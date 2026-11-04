@@ -2,15 +2,15 @@
 # Installs Opai: clones the engine, installs its dependencies, puts `opai` on
 # the PATH, and creates the instance. Run it again to update the engine.
 #
-#   curl -fsSL https://opai.teogoulois.com/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/teo-goulois/opai/main/scripts/install.sh | sh
 #
 # OPAI_DIR is where the engine goes (default ~/.local/share/opai), OPAI_HOME
-# the instance (default ~/.opai).
+# the instance (default ~/.opai), OPAI_REPO the repository to clone.
 set -eu
 
 dir=${OPAI_DIR:-$HOME/.local/share/opai}
 bin="$HOME/.local/bin"
-repo=https://github.com/teo-goulois/opai.git
+repo=${OPAI_REPO:-https://github.com/teo-goulois/opai.git}
 
 fail() {
   echo "opai: $*" >&2

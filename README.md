@@ -21,7 +21,11 @@ ln -s ~/.local/share/opai/opai ~/.local/bin/opai
 opai init
 ```
 
-Or in one line, with the same steps: `sh scripts/install.sh`.
+Or in one line, with the same steps:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/teo-goulois/opai/main/scripts/install.sh | sh
+```
 
 `opai init` creates the instance from `template/`, points its hooks and its
 MCP server to the engine, links the skills, and starts a Git repository whose
