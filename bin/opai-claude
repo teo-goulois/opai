@@ -1,0 +1,3 @@
+#!/bin/sh
+# claude on the Opai instance, for apps that take a binary path (T3 Code).
+exec "$(dirname "$(realpath "$0")")/../opai" claude "$@"

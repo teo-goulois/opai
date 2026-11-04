@@ -1,0 +1,36 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "ui": "tui",
+  "tasks": {
+    "build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "dist/**",
+        ".output/**"
+      ]
+    },
+    "check-types": {
+      "dependsOn": [
+        "^check-types"
+      ]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": [
+        "OPAI_HOME",
+        "OPAI_ICONS",
+        "UMAMI_URL",
+        "UMAMI_ADMIN_API_KEY",
+        "UMAMI_CLOUD_API_KEY"
+      ]
+    },
+    "test": {
+      "dependsOn": [
+        "^check-types"
+      ]
+    }
+  }
+}

@@ -1,0 +1,507 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "app_name": "Opai",
+  "nav_rules": "Règles",
+  "nav_analytics": "Analytics",
+  "nav_design_system": "Design system",
+  "nav_main": "Navigation principale",
+  "nav_group_dev": "Développement",
+  "sidebar_open": "Ouvrir la navigation",
+  "sidebar_title": "Navigation",
+  "search": "Rechercher",
+  "theme_toggle": "Changer de thème",
+  "language_toggle": "Changer de langue",
+  "language_current": "Langue : {locale}",
+  "palette_title": "Commandes",
+  "palette_placeholder": "Rechercher une page, un skill ou une action…",
+  "palette_empty": "Aucun résultat.",
+  "palette_pages": "Pages",
+  "palette_actions": "Actions",
+  "breadcrumb": "Fil d'Ariane",
+  "on_this_page": "Sur cette page",
+  "rules_title": "Règles",
+  "rules_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} fichier",
+        "countPlural=*": "{count} fichiers"
+      }
+    }
+  ],
+  "rules_scope_global": "Instructions globales",
+  "rules_scope_global_hint": "Les règles de tous les projets, et les modules optionnels qu'elles citent.",
+  "rules_scope_repository": "Ce dépôt",
+  "rules_scope_repository_hint": "Pour les agents qui travaillent dans l'instance elle-même.",
+  "rules_points_to": "Importe {file}",
+  "rules_back": "Toutes les règles",
+  "rule_not_found_title": "Aucun fichier de règles avec cet identifiant",
+  "rule_not_found_description": "Il a peut-être été renommé ou retiré de l'instance.",
+  "retry": "Réessayer",
+  "design_system_title": "Design system",
+  "design_system_description": "Tous les composants de l'app, avec leurs variantes et leurs états. En dev seulement.",
+  "not_found_title": "Page introuvable",
+  "not_found_description": "Cette page n'existe pas.",
+  "not_found_back": "Aller aux skills",
+  "error_title": "Impossible de lire l'instance",
+  "close": "Fermer",
+  "view": "Vue",
+  "view_preview": "Aperçu",
+  "view_markdown": "Markdown",
+  "editor_save": "Enregistrer",
+  "editor_cancel": "Annuler les modifications",
+  "editor_unsaved": "Modifications non enregistrées",
+  "editor_saved": "Enregistré",
+  "editor_error": "Impossible d'enregistrer",
+  "editor_leave": "Des modifications ne sont pas enregistrées. Quitter quand même ?",
+  "prompt_button": "Prompt",
+  "prompt_title": "Prompt pour ton agent",
+  "prompt_description": "Décris le changement, puis copie le prompt et colle-le à ton agent.",
+  "prompt_request_label": "Que veux-tu changer ?",
+  "prompt_preview": "Prompt",
+  "prompt_copy": "Copier le prompt",
+  "prompt_copied": "Copié",
+  "prompt_request_placeholder": "<décris le changement>",
+  "prompt_request_line": "Ce que je veux : {request}",
+  "prompt_rule_intro": "Dans mon instance Opai, je veux modifier le fichier de règles {path} ({title}).",
+  "prompt_rule_steps": "Lis d'abord l'AGENTS.md à la racine de l'instance et ce fichier. Garde-le court, dis ce que le changement remplace ou rend obsolète, et attends mon accord avant d'écrire.",
+  "editor_conflict_hint": "Recharge-le pour voir cette version ; ton brouillon reste, et l'enregistrer remplacera le fichier.",
+  "editor_reload": "Recharger",
+  "analytics_title": "Analytics",
+  "analytics_source": "Umami",
+  "analytics_period": "Période",
+  "analytics_tracked": "Suivis par Umami",
+  "analytics_untracked": "Sans données Umami",
+  "analytics_untracked_hint": "Ces sites et apps n'apparaissent pas dans la comparaison.",
+  "analytics_app": "App",
+  "analytics_project": "Projet",
+  "analytics_visitors": "Visiteurs",
+  "analytics_pageviews": "Pages vues",
+  "analytics_visits": "Visites",
+  "analytics_bounce_rate": "Rebond",
+  "analytics_visit_duration": "Durée moyenne",
+  "analytics_trend_7d": "7 jours",
+  "analytics_trend_30d": "30 jours",
+  "analytics_trend_new": "Nouveau",
+  "analytics_visitor_trend": "Tendance des visiteurs :",
+  "analytics_reason": "Raison",
+  "analytics_other_sources": "Autre source",
+  "analytics_reason_not_tracked": "Pas d'Umami",
+  "analytics_reason_missing_id": "Site introuvable dans Umami",
+  "analytics_reason_missing_access": "Accès manquant : {variable}",
+  "analytics_reason_error": "Erreur : {message}",
+  "analytics_summary": "Sur la période",
+  "analytics_active_now": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} visiteur en ce moment",
+        "countPlural=*": "{count} visiteurs en ce moment"
+      }
+    }
+  ],
+  "analytics_visits_per_day": "Visites et pages vues par jour",
+  "analytics_visits_per_hour": "Visites et pages vues par heure",
+  "analytics_chart_point": "{visits} visites, {pageviews} pages vues",
+  "analytics_chart_peak": "Pic : {value} visites, {at}",
+  "analytics_chart_empty": "Aucune visite sur la période",
+  "analytics_chart_label": "Visites sur la période, {total} au total",
+  "analytics_no_data": "Aucune donnée sur la période.",
+  "analytics_pages": "Pages",
+  "analytics_sources": "Sources",
+  "analytics_environment": "Environnement",
+  "analytics_location": "Lieu",
+  "analytics_tab_events": "Événements",
+  "analytics_tab_path": "Pages",
+  "analytics_tab_entry": "Entrée",
+  "analytics_tab_exit": "Sortie",
+  "analytics_tab_title": "Titres",
+  "analytics_tab_referrer": "Sites d'origine",
+  "analytics_tab_channel": "Canaux",
+  "analytics_tab_query": "Paramètres",
+  "analytics_tab_browser": "Navigateurs",
+  "analytics_tab_os": "Systèmes",
+  "analytics_tab_device": "Appareils",
+  "analytics_tab_screen": "Écrans",
+  "analytics_tab_country": "Pays",
+  "analytics_tab_language": "Langues",
+  "analytics_value": "Valeur",
+  "analytics_value_none": "(aucun)",
+  "analytics_value_unknown": "(inconnu)",
+  "analytics_show_all": "Tout afficher ({count})",
+  "analytics_show_less": "Afficher moins",
+  "analytics_hosts_only": "Seul {host} est compté, sans les bots connus.",
+  "analytics_hosts_left_out": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} page vue venue d'autres hôtes est écartée ({hosts}), comme les bots connus.",
+        "countPlural=*": "{count} pages vues venues d'autres hôtes sont écartées ({hosts}), comme les bots connus."
+      }
+    }
+  ],
+  "design_system_tab_list": "Liste",
+  "design_system_tab_canvas": "Canvas",
+  "canvas_toolbar": "Vue du canvas",
+  "canvas_zoom_in": "Zoomer",
+  "canvas_zoom_out": "Dézoomer",
+  "canvas_fit": "Tout afficher",
+  "canvas_reset": "Réinitialiser la vue",
+  "canvas_label": "Canvas des composants. Glisse sur le vide ou fais défiler pour te déplacer, Ctrl ou Cmd avec la molette pour zoomer. Canvas sélectionné : flèches pour te déplacer, + et - pour zoomer, F pour tout afficher, 0 pour réinitialiser.",
+  "nav_handbook": "Handbook",
+  "handbook_title": "Handbook",
+  "handbook_description": "Le handbook de ton instance, dans handbook/. Modifie une page ici, puis publie-la sur le site.",
+  "handbook_pages_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} page",
+        "countPlural=*": "{count} pages"
+      }
+    }
+  ],
+  "handbook_publish": "Publier",
+  "handbook_missing_title": "Pas encore de handbook",
+  "handbook_missing_description": "Commence-le avec un dossier handbook/ dans l'instance : une page Markdown par fichier, index.md d'abord, et handbook.json pour les sections.",
+  "handbook_view_online": "Voir en ligne",
+  "handbook_on_site": "Sur le site",
+  "handbook_back": "Tout le handbook",
+  "handbook_page_not_found_title": "Aucune page du handbook à cette adresse",
+  "handbook_page_not_found_description": "Elle a peut-être été renommée ou retirée sur main.",
+  "handbook_publish_title": "Publier le handbook",
+  "handbook_publish_description": "Copie le handbook sur main dans le clone du site de l'app, puis lance le build du site. Publier pousse une branche et ouvre une PR. Rien n'est déployé avant ton merge.",
+  "handbook_publish_comparing": "Comparaison avec le site…",
+  "handbook_publish_up_to_date": "Le site est à jour avec le handbook.",
+  "handbook_publish_changes": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} fichier changé",
+        "countPlural=*": "{count} fichiers changés"
+      }
+    }
+  ],
+  "handbook_publish_base": "Comparé à main à {sha}",
+  "handbook_publish_compare_again": "Comparer de nouveau",
+  "handbook_publish_open": "Ouvrir la PR",
+  "handbook_publish_confirm_title": "Ouvrir une PR sur le site ?",
+  "handbook_publish_confirm_description": "Pousse une branche handbook/publish-… et ouvre une PR vers main. Merge-la quand la CI passe.",
+  "handbook_publish_confirm": "Pousser et ouvrir la PR",
+  "handbook_publish_cancel": "Annuler",
+  "handbook_publish_opened": "PR ouverte sur la branche {branch}.",
+  "handbook_publish_view_pr": "Voir la PR",
+  "handbook_publish_open_prs": "Des PR de synchro sont déjà ouvertes. Merge-les ou ferme-les avant d'en ouvrir une autre.",
+  "handbook_publish_failed": "La publication a échoué",
+  "prompt_handbook_intro": "Je veux modifier la page « {title} » de mon handbook : {path} dans mon instance Opai.",
+  "prompt_handbook_steps": "Lis d'abord la page et celles qu'elle lie, propose le changement, et attends mon accord avant d'écrire. Modifie le fichier dans l'instance ; la publication sur le site est une étape à part.",
+  "nav_spaces": "Espaces",
+  "spaces_title": "Espaces",
+  "spaces_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} espace",
+        "countPlural=*": "{count} espaces"
+      }
+    }
+  ],
+  "space_base": "Base",
+  "space_base_hint": "Chargé par tous les agents, dans tous les espaces.",
+  "space_default": "Par défaut",
+  "space_default_hint": "Pour tout dossier qu'aucun autre espace ne réclame.",
+  "space_folders": "Dossiers",
+  "space_folders_every": "Tous les dossiers",
+  "space_folders_rest": "Tout dossier qu'aucun autre espace ne réclame",
+  "space_nothing_yet": "Rien à lui pour l'instant",
+  "space_rule_files": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} fichier de règles",
+        "countPlural=*": "{count} fichiers de règles"
+      }
+    }
+  ],
+  "space_issues": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} issue",
+        "countPlural=*": "{count} issues"
+      }
+    }
+  ],
+  "space_rules": "Règles",
+  "rules_scope_space": "Espace {space}",
+  "rules_scope_space_hint": "Lues en plus des globales dans les projets {space}.",
+  "space_folders_none": "Aucun dossier : aucune session ne lui appartient.",
+  "nav_config": "Config",
+  "config_title": "Config",
+  "config_tool_claude": "Claude Code",
+  "config_tool_codex": "Codex",
+  "config_state_missing": "Pas créé",
+  "config_state_empty": "Vide",
+  "config_state_filled": "Rempli",
+  "config_skills_none": "Aucun skill pour l'instant",
+  "config_skill_no_file": "Pas de SKILL.md",
+  "config_file_not_found_title": "Ce fichier n'existe pas en v2",
+  "config_file_not_found_description": "L'interface ouvre les instructions, les réglages et le SKILL.md de chaque skill.",
+  "config_back": "Retour à la config",
+  "config_file_new": "Ce fichier n'existe pas encore : l'enregistrer le crée.",
+  "config_instructions": "Instructions",
+  "config_instructions_hint": "Chaque outil lit son propre fichier. Les deux renvoient aux règles de tous les projets.",
+  "config_instructions_global": "Règles globales",
+  "config_instructions_other": "Renvoie à {target}",
+  "config_not_link": "Ne renvoie pas aux règles globales",
+  "config_settings": "Réglages",
+  "config_skills": "Skills",
+  "space_facts": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} fait",
+        "countPlural=*": "{count} faits"
+      }
+    }
+  ],
+  "space_journal_entries": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} entrée de journal",
+        "countPlural=*": "{count} entrées de journal"
+      }
+    }
+  ],
+  "space_rules_none": "Pas de règles propres. Ajoutez-les dans {path}.",
+  "space_memory": "Mémoire",
+  "space_memory_hint": "Les faits que j'ai validés, dans {path}. Les agents les lisent et n'y écrivent jamais.",
+  "space_memory_none": "Aucun fait pour l'instant.",
+  "space_journal": "Journal",
+  "space_journal_hint": "Le travail que les agents ont noté ici, du plus récent au plus ancien.",
+  "space_journal_none": "Aucune entrée pour l'instant.",
+  "space_journal_relevance": "Pertinence, de S à D",
+  "space_issues_title": "Issues",
+  "space_issues_hint": "Les problèmes que j'ai signalés sur le travail des agents. Une clé vue trois fois mérite une règle.",
+  "space_issues_none": "Aucune issue pour l'instant.",
+  "space_issue_occurrences": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "vue une fois",
+        "countPlural=*": "vue {count} fois"
+      }
+    }
+  ],
+  "space_modules_off": "Modules désactivés",
+  "spaces_back": "Tous les espaces",
+  "space_not_found_title": "Aucun espace à ce nom",
+  "space_not_found_description": "Il a peut-être été renommé ou retiré de l'instance.",
+  "analytics_channel_affiliate": "Affiliation",
+  "analytics_channel_direct": "Direct",
+  "analytics_channel_display": "Bannières",
+  "analytics_channel_email": "E-mail",
+  "analytics_channel_organic_search": "Recherche naturelle",
+  "analytics_channel_organic_shopping": "Shopping",
+  "analytics_channel_organic_social": "Réseaux sociaux",
+  "analytics_channel_organic_video": "Vidéo",
+  "analytics_channel_paid_search": "Recherche payante",
+  "analytics_channel_paid_shopping": "Shopping payant",
+  "analytics_channel_paid_social": "Réseaux sociaux payants",
+  "analytics_channel_paid_video": "Vidéo payante",
+  "analytics_channel_referral": "Lien",
+  "analytics_channel_sms": "SMS",
+  "analytics_device_desktop": "Ordinateur fixe",
+  "analytics_device_laptop": "Portable",
+  "analytics_device_mobile": "Mobile",
+  "analytics_device_tablet": "Tablette",
+  "analytics_period_24h": "24 h",
+  "analytics_period_30d": "30 jours",
+  "analytics_period_7d": "7 jours",
+  "analytics_period_90d": "90 jours",
+  "nav_sessions": "Sessions",
+  "sessions_title": "Sessions",
+  "sessions_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} session",
+        "countPlural=*": "{count} sessions"
+      }
+    }
+  ],
+  "sessions_none": "Aucune session pour l’instant. Claude Code et Codex enregistrent chaque session lancée sur cette config dans claude/projects/ et codex/sessions/.",
+  "sessions_back": "Toutes les sessions",
+  "session_not_found_title": "Aucune session avec cet identifiant",
+  "session_not_found_description": "Claude Code efface ses sessions après 30 jours, et seules les sessions lancées par Opai apparaissent ici.",
+  "session_prompts": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} prompt",
+        "countPlural=*": "{count} prompts"
+      }
+    }
+  ],
+  "session_tool_calls": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} appel de tool",
+        "countPlural=*": "{count} appels de tools"
+      }
+    }
+  ],
+  "session_context_tokens": "≈ {tokens} tokens de contexte",
+  "session_tab_context": "Contexte",
+  "session_tab_timeline": "Déroulé",
+  "session_context_hint": "Ce que l’agent a reçu avant le premier prompt, dans l’ordre. Chaque badge indique qui l’a mis là. Les tailles sont approximatives : environ 4 caractères par token.",
+  "session_timeline_none": "Il ne s’est encore rien passé dans cette session.",
+  "session_kind_system": "Système",
+  "session_kind_instructions": "Instructions",
+  "session_kind_hook": "Hook",
+  "session_kind_skills": "Skills",
+  "session_kind_tools": "Tools",
+  "session_kind_mcp": "MCP",
+  "session_kind_message": "Message",
+  "session_kind_other": "Autre",
+  "session_step_prompt": "Prompt",
+  "session_step_reply": "Réponse",
+  "session_step_context": "Contexte ajouté",
+  "session_tool_input": "Entrée",
+  "session_tool_output": "Sortie",
+  "session_tool_no_output": "Aucune sortie enregistrée.",
+  "session_tool_error": "Erreur",
+  "session_details": "Détails",
+  "session_folder": "Dossier",
+  "session_space": "Espace",
+  "session_model": "Modèle",
+  "session_client": "Lancée depuis",
+  "session_started": "Début",
+  "session_file": "Fichier",
+  "session_skills_used": "Skills utilisés",
+  "session_skills_used_none": "Aucun skill utilisé.",
+  "session_skills_offered": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} skill proposé",
+        "countPlural=*": "{count} skills proposés"
+      }
+    }
+  ],
+  "session_tools_available": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} tool disponible",
+        "countPlural=*": "{count} tools disponibles"
+      }
+    }
+  ],
+  "skill_uses_title": "Utilisation des skills",
+  "skill_uses_hint": "Toutes les machines, depuis spaces/*/agents/usage/, que sync.sh remplit toutes les 10 minutes.",
+  "skill_uses_none": "Aucune utilisation de skill enregistrée pour l’instant.",
+  "skill_uses_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} utilisation",
+        "countPlural=*": "{count} utilisations"
+      }
+    }
+  ],
+  "skill_uses_by_user": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} demandée par toi",
+        "countPlural=*": "{count} demandées par toi"
+      }
+    }
+  ],
+  "session_tokens": "≈ {tokens} tokens",
+  "origin_claude_code": "Claude Code",
+  "origin_codex": "Codex",
+  "origin_t3_code": "T3 Code",
+  "origin_opai": "Opai",
+  "origin_project": "Projet",
+  "origin_account": "Compte",
+  "origin_mcp": "MCP",
+  "origin_other": "Autre",
+  "session_origins_title": "Par origine",
+  "session_origins_hint": "Qui a mis quoi dans le contexte : le harness, l’app qui a lancé la session, ta config, le projet, un compte ou un serveur MCP.",
+  "session_origin_share": "{share} %",
+  "nav_skills": "Skills",
+  "skills_title": "Skills",
+  "skills_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} skill",
+        "countPlural=*": "{count} skills"
+      }
+    }
+  ],
+  "skills_hint": "Chaque skill vit une seule fois, dans spaces/<space>/skills/. Ceux de global sont dans toutes les sessions ; ceux d’un space, seulement dans les sessions de ce space.",
+  "skills_since": "Utilisations observées depuis le {date}, sur toutes les machines.",
+  "skills_since_none": "Aucune utilisation observée pour l’instant.",
+  "skills_back": "Tous les skills",
+  "skills_problems": "À corriger",
+  "skills_problems_hint": "Lance opai skills link, ou corrige les fichiers indiqués.",
+  "skills_space_none": "Aucun skill dans ce space.",
+  "skill_no_use": "Aucune utilisation observée",
+  "skill_last_used": "dernière {when}",
+  "skill_explicit": "Sur demande",
+  "skill_explicit_hint": "Absent de la liste de l’agent tant que tu ne le demandes pas avec /nom ou $nom.",
+  "skill_modified": "Modifié ici",
+  "skill_modified_hint": "Diffère de la version importée depuis sa source.",
+  "skill_cost": "≈ {tokens} tokens à chaque session",
+  "skill_not_found_title": "Aucun skill à ce nom",
+  "skill_not_found_description": "Il a peut-être été renommé ou supprimé.",
+  "skills_import": "Importer",
+  "skills_import_title": "Importer un skill",
+  "skills_import_description": "Depuis GitHub (owner/repo/chemin, ou une URL), l’URL d’un SKILL.md, ou un dossier de ce Mac. Sa source est notée, pour pouvoir le mettre à jour.",
+  "skills_import_source": "Source",
+  "skills_import_space": "Space",
+  "skills_import_name": "Nom, si ce n’est pas celui de son SKILL.md",
+  "skills_import_submit": "Importer",
+  "skill_details": "Détails",
+  "skill_space": "Space",
+  "skill_move": "Déplacer vers",
+  "skill_source": "Source",
+  "skill_source_none": "Écrit ici",
+  "skill_revision": "Commit amont",
+  "skill_updated": "Importé ou mis à jour",
+  "skill_notes": "Notes",
+  "skill_files": "Autres fichiers",
+  "skill_usage": "Utilisation",
+  "skill_compare": "Comparer avec la source",
+  "skill_compare_same": "Identique à sa source.",
+  "skill_compare_local": "La source n’a pas changé : le diff montre tes propres modifications.",
+  "skill_compare_upstream": "La source a changé depuis le dernier import.",
+  "skill_apply": "Prendre la version de la source",
+  "skill_apply_blocked": "Modifié ici : fusionne le diff à la main, ou lance opai skills update {name} --apply --force.",
+  "handbook_generated": "Depuis l'instance",
+  "handbook_generated_hint": "Une partie de cette page est remplie depuis l'instance (les skills, ou un fichier comme les règles globales) à chaque lecture : modifie la source, pas le bloc.",
+  "prompt_handbook_generated": "Une partie de la page est remplie depuis l'instance entre des marqueurs <!-- opai:… --> : change la source d'où elle vient, pas le bloc."
+}

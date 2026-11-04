@@ -1,0 +1,430 @@
+/* Theme "Untitled" from Graphical (GUI.md at the repository root). This file owns
+   every theme value: components and screens use these tokens, never literals.
+   Light values sit in :root, dark values in .dark (set by next-themes). */
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "./fonts.css";
+@source "../../../apps/**/*.{ts,tsx}";
+@source "../**/*.{ts,tsx}";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Spacing */
+  --space-zero: 0px;
+  --space-xxs: 4px;
+  --space-xs: 8px;
+  --space-s: 12px;
+  --space-m: 16px;
+  --space-l: 24px;
+  --space-xl: 32px;
+  --space-xxl: 48px;
+
+  /* Typography: text steps, their default tracking, and the tracking scale */
+  --size-xxs: 10px;
+  --line-xxs: 14px;
+  --letter-spacing-xxs: 0.02em;
+  --size-xs: 12px;
+  --line-xs: 16px;
+  --letter-spacing-xs: 0.01em;
+  --size-s: 14px;
+  --line-s: 20px;
+  --letter-spacing-s: 0.01em;
+  --size-m: 16px;
+  --line-m: 24px;
+  --letter-spacing-m: 0em;
+  --size-l: 24px;
+  --line-l: 32px;
+  --letter-spacing-l: -0.01em;
+  --size-xl: 36px;
+  --line-xl: 40px;
+  --letter-spacing-xl: -0.01em;
+  --size-xxl: 48px;
+  --line-xxl: 52px;
+  --letter-spacing-xxl: -0.02em;
+  --tracking-xs: -0.02em;
+  --tracking-s: -0.01em;
+  --tracking-m: 0em;
+  --tracking-l: 0.01em;
+  --tracking-xl: 0.02em;
+
+  /* Font roles */
+  --font-ui: "Sidebar Geist", sans-serif;
+  --weight-ui-regular: 400;
+  --weight-ui-medium: 500;
+  --weight-ui-heavy: 700;
+  --font-brand: "Sidebar Geist", sans-serif;
+  --weight-brand-regular: 400;
+  --weight-brand-medium: 500;
+  --weight-brand-heavy: 700;
+  --font-editorial: "Sidebar Geist", sans-serif;
+  --weight-editorial-regular: 400;
+  --weight-editorial-medium: 500;
+  --weight-editorial-heavy: 700;
+  --font-data: "Sidebar Geist Mono", monospace;
+  --weight-data-regular: 400;
+  --weight-data-medium: 500;
+  --weight-data-heavy: 700;
+
+  /* Corners and edges */
+  --radius-zero: 0px;
+  --radius-xs: 3px;
+  --radius-s: 6px;
+  --radius-m: 9px;
+  --radius-l: 17px;
+  --radius-xl: 26px;
+  --radius-full: 9999px;
+  --border-none: 0px;
+  --border-s: 1px;
+  --border-m: 1px;
+  --border-l: 2px;
+  --border-default-color: rgb(0 0 0 / 0.1);
+  --border-shadow-none: 0 0 0 0 transparent;
+  --border-shadow-s: 0 0 0 var(--border-s) var(--border-default-color);
+  --border-shadow-m: 0 0 0 var(--border-m) var(--border-default-color);
+  --border-shadow-l: 0 0 0 var(--border-l) var(--border-default-color);
+
+  /* Motion */
+  --motion-duration: 150ms;
+  --motion-easing: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --motion-large-duration: 300ms;
+  --motion-large-easing: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-popup-scale: 0.96;
+  --motion-press-distance: 1px;
+
+  /* Surfaces */
+  --surface-raised-image: none;
+  --surface-raised-shadow: 0 0 0 0 transparent;
+  --surface-recessed-image: none;
+  --surface-recessed-shadow: 0 0 0 0 transparent;
+  --toolbar-divider-bleed: 1;
+
+  /* Colors, light */
+  --color-none: transparent;
+  --color-1: #e0e709;
+  --color-1-transparent: #e0e70933;
+  --color-2: #76ef6b;
+  --color-2-transparent: #76ef6b33;
+  --color-3: #009ff0;
+  --color-3-transparent: #009ff033;
+  --color-4: #e864ff;
+  --color-4-transparent: #e864ff33;
+  --neutral-1: #ffffff;
+  --neutral-1-transparent: #ffffff33;
+  --neutral-2: #fafafa;
+  --neutral-2-transparent: #fafafa33;
+  --neutral-3: #f0f0f0;
+  --neutral-3-transparent: #f0f0f033;
+  --neutral-4: #dedede;
+  --neutral-4-transparent: #dedede33;
+  --neutral-5: #c5c5c5;
+  --neutral-5-transparent: #c5c5c533;
+  --neutral-6: #969696;
+  --neutral-6-transparent: #96969633;
+  --neutral-7: #6c6c6c;
+  --neutral-7-transparent: #6c6c6c33;
+  --neutral-8: #454545;
+  --neutral-8-transparent: #45454533;
+  --neutral-9: #252525;
+  --neutral-9-transparent: #25252533;
+  --neutral-10: #000000;
+  --neutral-10-transparent: #00000033;
+  --success: #76ef6b;
+  --success-transparent: #76ef6b33;
+  --warning: #ffa344;
+  --warning-transparent: #ffa34433;
+  --error: #ff5263;
+  --error-transparent: #ff526333;
+
+  /* Primary action foreground (primaryForeground: neutral-9 light, neutral-2 dark) */
+  --primary-foreground: var(--neutral-9);
+  --option-badge-background: color-mix(in srgb, var(--color-1) 10%, transparent);
+  --option-badge-foreground: var(--color-1);
+  --navigation-active-foreground: var(--neutral-9);
+  --emphasis-chart-fill: var(--color-1-transparent);
+  --focus-ring-outline: var(--border-l) solid color-mix(in srgb, var(--neutral-10) 50%, transparent);
+
+  /* Elevation (all three are fully transparent in this theme) */
+  --shadow-none: none;
+  --shadow-s: 0px 1px 2px 0px #00000000;
+  --shadow-m: 0px 8px 24px 0px #00000000;
+  --shadow-l: 0px 12px 30px 0px #00000000;
+
+  /* Resolved convenience roles */
+  --cte-canvas: var(--neutral-1);
+  --cte-surface: var(--neutral-2);
+  --cte-surface-muted: var(--neutral-3);
+  --cte-text: var(--neutral-10);
+  --cte-text-muted: var(--neutral-7);
+  --cte-border: var(--border-default-color);
+  --cte-accent: var(--color-1);
+  --cte-accent-text: var(--primary-foreground);
+  --cte-danger: var(--error);
+  --cte-focus: var(--color-1);
+}
+
+.dark {
+  --color-1: #f4f83b;
+  --color-1-transparent: #f4f83b33;
+  --color-2: #76ef6b;
+  --color-2-transparent: #76ef6b33;
+  --color-3: #009ff0;
+  --color-3-transparent: #009ff033;
+  --color-4: #e864ff;
+  --color-4-transparent: #e864ff33;
+  --neutral-1: #000000;
+  --neutral-1-transparent: #00000033;
+  --neutral-2: #202020;
+  --neutral-2-transparent: #20202033;
+  --neutral-3: #2b2b2b;
+  --neutral-3-transparent: #2b2b2b33;
+  --neutral-4: #383838;
+  --neutral-4-transparent: #38383833;
+  --neutral-5: #505050;
+  --neutral-5-transparent: #50505033;
+  --neutral-6: #777777;
+  --neutral-6-transparent: #77777733;
+  --neutral-7: #a3a3a3;
+  --neutral-7-transparent: #a3a3a333;
+  --neutral-8: #c6c6c6;
+  --neutral-8-transparent: #c6c6c633;
+  --neutral-9: #e5e5e5;
+  --neutral-9-transparent: #e5e5e533;
+  --neutral-10: #ffffff;
+  --neutral-10-transparent: #ffffff33;
+  --success: #76ef6b;
+  --success-transparent: #76ef6b33;
+  --warning: #ffa344;
+  --warning-transparent: #ffa34433;
+  --error: #ff5263;
+  --error-transparent: #ff526333;
+
+  --primary-foreground: var(--neutral-2);
+  --navigation-active-foreground: var(--neutral-2);
+  /* Shadow colors point to neutral-1 in dark mode, which is also black. */
+}
+
+/* Tailwind utilities that point at the tokens above. Defaults are reset so a
+   utility outside the theme (text-sm, rounded-lg, bg-red-500) does not exist. */
+@theme inline {
+  --color-*: initial;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+  --color-color-1: var(--color-1);
+  --color-color-1-transparent: var(--color-1-transparent);
+  --color-color-2: var(--color-2);
+  --color-color-2-transparent: var(--color-2-transparent);
+  --color-color-3: var(--color-3);
+  --color-color-3-transparent: var(--color-3-transparent);
+  --color-color-4: var(--color-4);
+  --color-color-4-transparent: var(--color-4-transparent);
+  --color-neutral-1: var(--neutral-1);
+  --color-neutral-1-transparent: var(--neutral-1-transparent);
+  --color-neutral-2: var(--neutral-2);
+  --color-neutral-2-transparent: var(--neutral-2-transparent);
+  --color-neutral-3: var(--neutral-3);
+  --color-neutral-3-transparent: var(--neutral-3-transparent);
+  --color-neutral-4: var(--neutral-4);
+  --color-neutral-4-transparent: var(--neutral-4-transparent);
+  --color-neutral-5: var(--neutral-5);
+  --color-neutral-5-transparent: var(--neutral-5-transparent);
+  --color-neutral-6: var(--neutral-6);
+  --color-neutral-6-transparent: var(--neutral-6-transparent);
+  --color-neutral-7: var(--neutral-7);
+  --color-neutral-7-transparent: var(--neutral-7-transparent);
+  --color-neutral-8: var(--neutral-8);
+  --color-neutral-8-transparent: var(--neutral-8-transparent);
+  --color-neutral-9: var(--neutral-9);
+  --color-neutral-9-transparent: var(--neutral-9-transparent);
+  --color-neutral-10: var(--neutral-10);
+  --color-neutral-10-transparent: var(--neutral-10-transparent);
+  --color-success: var(--success);
+  --color-success-transparent: var(--success-transparent);
+  --color-warning: var(--warning);
+  --color-warning-transparent: var(--warning-transparent);
+  --color-error: var(--error);
+  --color-error-transparent: var(--error-transparent);
+  --color-border-default: var(--border-default-color);
+  --color-primary-foreground: var(--primary-foreground);
+
+  /* Named spacing: p-xs, gap-m. Numeric steps stay for structural sizes. */
+  --spacing-zero: var(--space-zero);
+  --spacing-xxs: var(--space-xxs);
+  --spacing-xs: var(--space-xs);
+  --spacing-s: var(--space-s);
+  --spacing-m: var(--space-m);
+  --spacing-l: var(--space-l);
+  --spacing-xl: var(--space-xl);
+  --spacing-xxl: var(--space-xxl);
+
+  /* text-<step> sets size, line height, and default tracking together. */
+  --text-*: initial;
+  --text-xxs: var(--size-xxs);
+  --text-xxs--line-height: var(--line-xxs);
+  --text-xxs--letter-spacing: var(--letter-spacing-xxs);
+  --text-xs: var(--size-xs);
+  --text-xs--line-height: var(--line-xs);
+  --text-xs--letter-spacing: var(--letter-spacing-xs);
+  --text-s: var(--size-s);
+  --text-s--line-height: var(--line-s);
+  --text-s--letter-spacing: var(--letter-spacing-s);
+  --text-m: var(--size-m);
+  --text-m--line-height: var(--line-m);
+  --text-m--letter-spacing: var(--letter-spacing-m);
+  --text-l: var(--size-l);
+  --text-l--line-height: var(--line-l);
+  --text-l--letter-spacing: var(--letter-spacing-l);
+  --text-xl: var(--size-xl);
+  --text-xl--line-height: var(--line-xl);
+  --text-xl--letter-spacing: var(--letter-spacing-xl);
+  --text-xxl: var(--size-xxl);
+  --text-xxl--line-height: var(--line-xxl);
+  --text-xxl--letter-spacing: var(--letter-spacing-xxl);
+
+  --font-weight-*: initial;
+  --font-weight-regular: var(--weight-ui-regular);
+  --font-weight-medium: var(--weight-ui-medium);
+  --font-weight-heavy: var(--weight-ui-heavy);
+
+  --ease-*: initial;
+  --ease-small: var(--motion-easing);
+  --ease-large: var(--motion-large-easing);
+  --default-transition-duration: var(--motion-duration);
+  --default-transition-timing-function: var(--motion-easing);
+}
+
+/* Same names as Tailwind's namespaces (rounded-s, shadow-m, font-ui, tracking-s):
+   "reference" maps the utilities without re-declaring the variables. */
+@theme inline reference {
+  --radius-*: initial;
+  --radius-zero: var(--radius-zero);
+  --radius-xs: var(--radius-xs);
+  --radius-s: var(--radius-s);
+  --radius-m: var(--radius-m);
+  --radius-l: var(--radius-l);
+  --radius-xl: var(--radius-xl);
+  --radius-full: var(--radius-full);
+
+  --shadow-*: initial;
+  --shadow-none: var(--shadow-none);
+  --shadow-s: var(--shadow-s);
+  --shadow-m: var(--shadow-m);
+  --shadow-l: var(--shadow-l);
+
+  --font-*: initial;
+  --font-ui: var(--font-ui);
+  --font-brand: var(--font-brand);
+  --font-editorial: var(--font-editorial);
+  --font-data: var(--font-data);
+
+  --tracking-*: initial;
+  --tracking-xs: var(--tracking-xs);
+  --tracking-s: var(--tracking-s);
+  --tracking-m: var(--tracking-m);
+  --tracking-l: var(--tracking-l);
+  --tracking-xl: var(--tracking-xl);
+}
+
+/* Component edges are zero-blur box shadows, never CSS borders, so they compose
+   with elevation (shadow-*) and never change layout.
+   edge: inset line; edge-outer: outside line; edge-<color> picks the color
+   (default: --border-default-color). */
+/* Set per element: a parent's edge color must not leak into its children. */
+@property --edge-color {
+  syntax: "*";
+  inherits: false;
+}
+
+@utility edge {
+  --tw-inset-ring-shadow: inset 0 0 0 var(--border-s) var(--edge-color, var(--border-default-color));
+  box-shadow:
+    var(--tw-inset-shadow, 0 0 #0000), var(--tw-inset-ring-shadow),
+    var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
+    var(--tw-shadow, 0 0 #0000);
+}
+
+@utility edge-outer {
+  --tw-ring-shadow: 0 0 0 var(--border-s) var(--edge-color, var(--border-default-color));
+  box-shadow:
+    var(--tw-inset-shadow, 0 0 #0000), var(--tw-inset-ring-shadow, 0 0 #0000),
+    var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+}
+
+/* Dividers: a one-sided inset line. */
+@utility edge-top {
+  --tw-inset-ring-shadow: inset 0 var(--border-s) 0 0 var(--edge-color, var(--border-default-color));
+  box-shadow:
+    var(--tw-inset-shadow, 0 0 #0000), var(--tw-inset-ring-shadow),
+    var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
+    var(--tw-shadow, 0 0 #0000);
+}
+
+@utility edge-bottom {
+  --tw-inset-ring-shadow: inset 0 calc(-1 * var(--border-s)) 0 0
+    var(--edge-color, var(--border-default-color));
+  box-shadow:
+    var(--tw-inset-shadow, 0 0 #0000), var(--tw-inset-ring-shadow),
+    var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
+    var(--tw-shadow, 0 0 #0000);
+}
+
+@utility edge-start {
+  --tw-inset-ring-shadow: inset var(--border-s) 0 0 0 var(--edge-color, var(--border-default-color));
+  box-shadow:
+    var(--tw-inset-shadow, 0 0 #0000), var(--tw-inset-ring-shadow),
+    var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
+    var(--tw-shadow, 0 0 #0000);
+}
+
+@utility edge-end {
+  --tw-inset-ring-shadow: inset calc(-1 * var(--border-s)) 0 0 0
+    var(--edge-color, var(--border-default-color));
+  box-shadow:
+    var(--tw-inset-shadow, 0 0 #0000), var(--tw-inset-ring-shadow),
+    var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
+    var(--tw-shadow, 0 0 #0000);
+}
+
+@utility edge-* {
+  --edge-color: --value(--color-*);
+}
+
+/* Keyboard focus: the theme's outline, separate from edges and fills. */
+@utility focus-ring {
+  outline: var(--focus-ring-outline);
+}
+
+@layer base {
+  html {
+    font-family: var(--font-ui);
+    font-weight: var(--weight-ui-regular);
+    background-color: var(--neutral-1);
+    color: var(--neutral-10);
+    color-scheme: light;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    min-height: 100svh;
+    font-size: var(--size-m);
+    line-height: var(--line-m);
+    letter-spacing: var(--letter-spacing-m);
+    text-wrap: pretty;
+  }
+
+  :focus-visible {
+    outline: var(--focus-ring-outline);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+}

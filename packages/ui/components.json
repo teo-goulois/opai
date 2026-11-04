@@ -1,0 +1,21 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "base-lyra",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "config": "",
+    "css": "src/styles/globals.css",
+    "baseColor": "neutral",
+    "cssVariables": true,
+    "prefix": ""
+  },
+  "iconLibrary": "lucide",
+  "aliases": {
+    "components": "@opai/ui/components",
+    "utils": "@opai/ui/lib/utils",
+    "ui": "@opai/ui/components/ui",
+    "lib": "@opai/ui/lib",
+    "hooks": "@opai/ui/hooks"
+  }
+}

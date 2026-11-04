@@ -1,0 +1,507 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "app_name": "Opai",
+  "nav_rules": "Rules",
+  "nav_analytics": "Analytics",
+  "nav_design_system": "Design system",
+  "nav_main": "Main",
+  "nav_group_dev": "Development",
+  "sidebar_open": "Open navigation",
+  "sidebar_title": "Navigation",
+  "search": "Search",
+  "theme_toggle": "Switch theme",
+  "language_toggle": "Switch language",
+  "language_current": "Language: {locale}",
+  "palette_title": "Commands",
+  "palette_placeholder": "Search pages, skills, and actions…",
+  "palette_empty": "No results.",
+  "palette_pages": "Pages",
+  "palette_actions": "Actions",
+  "breadcrumb": "Breadcrumb",
+  "on_this_page": "On this page",
+  "rules_title": "Rules",
+  "rules_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} file",
+        "countPlural=*": "{count} files"
+      }
+    }
+  ],
+  "rules_scope_global": "Global instructions",
+  "rules_scope_global_hint": "Rules for every project, and the optional modules they point to.",
+  "rules_scope_repository": "This repository",
+  "rules_scope_repository_hint": "For agents working in the instance itself.",
+  "rules_points_to": "Imports {file}",
+  "rules_back": "All rules",
+  "rule_not_found_title": "No rule file with this id",
+  "rule_not_found_description": "It may have been renamed or removed from the instance.",
+  "retry": "Retry",
+  "design_system_title": "Design system",
+  "design_system_description": "Every component of this app, with its variants and states. Dev only.",
+  "not_found_title": "Page not found",
+  "not_found_description": "This page doesn't exist.",
+  "not_found_back": "Go to skills",
+  "error_title": "Can't read the instance",
+  "close": "Close",
+  "view": "View",
+  "view_preview": "Preview",
+  "view_markdown": "Markdown",
+  "editor_save": "Save",
+  "editor_cancel": "Discard",
+  "editor_unsaved": "Unsaved changes",
+  "editor_saved": "Saved",
+  "editor_error": "Can't save",
+  "editor_leave": "You have unsaved changes. Leave anyway?",
+  "prompt_button": "Prompt",
+  "prompt_title": "Prompt for your agent",
+  "prompt_description": "Describe the change, then copy the prompt and paste it to your agent.",
+  "prompt_request_label": "What do you want to change?",
+  "prompt_preview": "Prompt",
+  "prompt_copy": "Copy prompt",
+  "prompt_copied": "Copied",
+  "prompt_request_placeholder": "<describe the change>",
+  "prompt_request_line": "What I want: {request}",
+  "prompt_rule_intro": "In my Opai instance, I want to change the rule file {path} ({title}).",
+  "prompt_rule_steps": "Read the AGENTS.md at the root of the instance and this file first. Keep it short, say what the change replaces or makes stale, and wait for my OK before writing.",
+  "editor_conflict_hint": "Reload it to see that version; your draft stays, and saving it replaces the file.",
+  "editor_reload": "Reload",
+  "analytics_title": "Analytics",
+  "analytics_source": "Umami",
+  "analytics_period": "Period",
+  "analytics_tracked": "Tracked by Umami",
+  "analytics_untracked": "No Umami data",
+  "analytics_untracked_hint": "These sites and apps are left out of the comparison.",
+  "analytics_app": "App",
+  "analytics_project": "Project",
+  "analytics_visitors": "Visitors",
+  "analytics_pageviews": "Page views",
+  "analytics_visits": "Visits",
+  "analytics_bounce_rate": "Bounce",
+  "analytics_visit_duration": "Avg. duration",
+  "analytics_trend_7d": "7 days",
+  "analytics_trend_30d": "30 days",
+  "analytics_trend_new": "New",
+  "analytics_visitor_trend": "Visitor trend:",
+  "analytics_reason": "Reason",
+  "analytics_other_sources": "Other source",
+  "analytics_reason_not_tracked": "No Umami",
+  "analytics_reason_missing_id": "Site not found in Umami",
+  "analytics_reason_missing_access": "Missing access: {variable}",
+  "analytics_reason_error": "Error: {message}",
+  "analytics_summary": "Over the period",
+  "analytics_active_now": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} visitor right now",
+        "countPlural=*": "{count} visitors right now"
+      }
+    }
+  ],
+  "analytics_visits_per_day": "Visits and page views per day",
+  "analytics_visits_per_hour": "Visits and page views per hour",
+  "analytics_chart_point": "{visits} visits, {pageviews} page views",
+  "analytics_chart_peak": "Peak: {value} visits, {at}",
+  "analytics_chart_empty": "No visits over the period",
+  "analytics_chart_label": "Visits over the period, {total} in total",
+  "analytics_no_data": "No data over the period.",
+  "analytics_pages": "Pages",
+  "analytics_sources": "Sources",
+  "analytics_environment": "Environment",
+  "analytics_location": "Location",
+  "analytics_tab_events": "Events",
+  "analytics_tab_path": "Pages",
+  "analytics_tab_entry": "Entry",
+  "analytics_tab_exit": "Exit",
+  "analytics_tab_title": "Titles",
+  "analytics_tab_referrer": "Referrers",
+  "analytics_tab_channel": "Channels",
+  "analytics_tab_query": "Query",
+  "analytics_tab_browser": "Browsers",
+  "analytics_tab_os": "OS",
+  "analytics_tab_device": "Devices",
+  "analytics_tab_screen": "Screens",
+  "analytics_tab_country": "Countries",
+  "analytics_tab_language": "Languages",
+  "analytics_value": "Value",
+  "analytics_value_none": "(none)",
+  "analytics_value_unknown": "(unknown)",
+  "analytics_show_all": "Show all {count}",
+  "analytics_show_less": "Show less",
+  "analytics_hosts_only": "Only {host} is counted, without known bots.",
+  "analytics_hosts_left_out": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} page view from other hosts left out ({hosts}), and known bots.",
+        "countPlural=*": "{count} page views from other hosts left out ({hosts}), and known bots."
+      }
+    }
+  ],
+  "design_system_tab_list": "List",
+  "design_system_tab_canvas": "Canvas",
+  "canvas_toolbar": "Canvas view",
+  "canvas_zoom_in": "Zoom in",
+  "canvas_zoom_out": "Zoom out",
+  "canvas_fit": "Show everything",
+  "canvas_reset": "Reset the view",
+  "canvas_label": "Component canvas. Drag empty space or scroll to pan, Ctrl or Cmd with the wheel to zoom. With the canvas focused: arrows pan, + and - zoom, F shows everything, 0 resets.",
+  "nav_handbook": "Handbook",
+  "handbook_title": "Handbook",
+  "handbook_description": "The handbook of your instance, in handbook/. Edit a page here, then publish it to the site.",
+  "handbook_pages_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} page",
+        "countPlural=*": "{count} pages"
+      }
+    }
+  ],
+  "handbook_publish": "Publish",
+  "handbook_missing_title": "No handbook yet",
+  "handbook_missing_description": "Start one with a handbook/ folder in the instance: one Markdown page per file, index.md first, and handbook.json for the sections.",
+  "handbook_view_online": "View online",
+  "handbook_on_site": "On the site",
+  "handbook_back": "All of the handbook",
+  "handbook_page_not_found_title": "No handbook page at this address",
+  "handbook_page_not_found_description": "It may have been renamed or removed on main.",
+  "handbook_publish_title": "Publish the handbook",
+  "handbook_publish_description": "Copies the handbook onto main in the app's clone of the site, then runs the site's build. Publishing pushes a branch and opens a pull request. Nothing deploys before you merge.",
+  "handbook_publish_comparing": "Comparing with the site…",
+  "handbook_publish_up_to_date": "The site is up to date with the handbook.",
+  "handbook_publish_changes": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} file changed",
+        "countPlural=*": "{count} files changed"
+      }
+    }
+  ],
+  "handbook_publish_base": "Compared with main at {sha}",
+  "handbook_publish_compare_again": "Compare again",
+  "handbook_publish_open": "Open the pull request",
+  "handbook_publish_confirm_title": "Open a pull request on the site?",
+  "handbook_publish_confirm_description": "Pushes a handbook/publish-… branch and opens a pull request against main. Merge it once CI passes.",
+  "handbook_publish_confirm": "Push and open the pull request",
+  "handbook_publish_cancel": "Cancel",
+  "handbook_publish_opened": "Pull request opened from {branch}.",
+  "handbook_publish_view_pr": "View the pull request",
+  "handbook_publish_open_prs": "Sync pull requests are already open. Merge or close them before opening another.",
+  "handbook_publish_failed": "Publishing failed",
+  "prompt_handbook_intro": "I want to change the \"{title}\" page of my handbook: {path} in my Opai instance.",
+  "prompt_handbook_steps": "Read the page and the pages it links to first, propose the change, and wait for my OK before writing. Edit the file in the instance; publishing to the site is a separate step.",
+  "nav_spaces": "Spaces",
+  "spaces_title": "Spaces",
+  "spaces_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} space",
+        "countPlural=*": "{count} spaces"
+      }
+    }
+  ],
+  "space_base": "Base",
+  "space_base_hint": "Every agent loads it, in every space.",
+  "space_default": "Default",
+  "space_default_hint": "For every folder no other space claims.",
+  "space_folders": "Folders",
+  "space_folders_every": "Every folder",
+  "space_folders_rest": "Every folder no other space claims",
+  "space_nothing_yet": "Nothing of its own yet",
+  "space_rule_files": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} rule file",
+        "countPlural=*": "{count} rule files"
+      }
+    }
+  ],
+  "space_issues": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} issue",
+        "countPlural=*": "{count} issues"
+      }
+    }
+  ],
+  "space_rules": "Rules",
+  "rules_scope_space": "Space {space}",
+  "rules_scope_space_hint": "Read on top of the global ones in {space} projects.",
+  "space_folders_none": "No folder yet: no session belongs to it.",
+  "nav_config": "Config",
+  "config_title": "Config",
+  "config_tool_claude": "Claude Code",
+  "config_tool_codex": "Codex",
+  "config_state_missing": "Not created",
+  "config_state_empty": "Empty",
+  "config_state_filled": "Filled",
+  "config_skills_none": "No skills yet",
+  "config_skill_no_file": "No SKILL.md",
+  "config_file_not_found_title": "No such file in v2",
+  "config_file_not_found_description": "The interface opens the instructions, the settings, and the SKILL.md of each skill.",
+  "config_back": "Back to the config",
+  "config_file_new": "This file does not exist yet: saving creates it.",
+  "config_instructions": "Instructions",
+  "config_instructions_hint": "Each tool reads its own file. Both link to the rules for every project.",
+  "config_instructions_global": "Global rules",
+  "config_instructions_other": "Links to {target}",
+  "config_not_link": "Not a link to the global rules",
+  "config_settings": "Settings",
+  "config_skills": "Skills",
+  "space_facts": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} fact",
+        "countPlural=*": "{count} facts"
+      }
+    }
+  ],
+  "space_journal_entries": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} journal entry",
+        "countPlural=*": "{count} journal entries"
+      }
+    }
+  ],
+  "space_rules_none": "No rules of its own. Add them in {path}.",
+  "space_memory": "Memory",
+  "space_memory_hint": "Facts I validated, in {path}. Agents read them and never write there.",
+  "space_memory_none": "No fact yet.",
+  "space_journal": "Journal",
+  "space_journal_hint": "Work agents recorded here, newest first.",
+  "space_journal_none": "No entry yet.",
+  "space_journal_relevance": "Relevance, from S to D",
+  "space_issues_title": "Issues",
+  "space_issues_hint": "Problems I reported about agents' work. A key seen three times deserves a rule.",
+  "space_issues_none": "No issue yet.",
+  "space_issue_occurrences": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "seen once",
+        "countPlural=*": "seen {count} times"
+      }
+    }
+  ],
+  "space_modules_off": "Modules turned off",
+  "spaces_back": "All spaces",
+  "space_not_found_title": "No space with this name",
+  "space_not_found_description": "It may have been renamed or removed from the instance.",
+  "analytics_channel_affiliate": "Affiliate",
+  "analytics_channel_direct": "Direct",
+  "analytics_channel_display": "Display ads",
+  "analytics_channel_email": "Email",
+  "analytics_channel_organic_search": "Organic search",
+  "analytics_channel_organic_shopping": "Organic shopping",
+  "analytics_channel_organic_social": "Organic social",
+  "analytics_channel_organic_video": "Organic video",
+  "analytics_channel_paid_search": "Paid search",
+  "analytics_channel_paid_shopping": "Paid shopping",
+  "analytics_channel_paid_social": "Paid social",
+  "analytics_channel_paid_video": "Paid video",
+  "analytics_channel_referral": "Referral",
+  "analytics_channel_sms": "SMS",
+  "analytics_device_desktop": "Desktop",
+  "analytics_device_laptop": "Laptop",
+  "analytics_device_mobile": "Mobile",
+  "analytics_device_tablet": "Tablet",
+  "analytics_period_24h": "24 h",
+  "analytics_period_30d": "30 days",
+  "analytics_period_7d": "7 days",
+  "analytics_period_90d": "90 days",
+  "nav_sessions": "Sessions",
+  "sessions_title": "Sessions",
+  "sessions_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} session",
+        "countPlural=*": "{count} sessions"
+      }
+    }
+  ],
+  "sessions_none": "No session yet. Claude Code and Codex record each session run on this config in claude/projects/ and codex/sessions/.",
+  "sessions_back": "All sessions",
+  "session_not_found_title": "No session with this id",
+  "session_not_found_description": "Claude Code deletes its sessions after 30 days, and only sessions run through Opai show here.",
+  "session_prompts": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} prompt",
+        "countPlural=*": "{count} prompts"
+      }
+    }
+  ],
+  "session_tool_calls": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} tool call",
+        "countPlural=*": "{count} tool calls"
+      }
+    }
+  ],
+  "session_context_tokens": "≈ {tokens} tokens of context",
+  "session_tab_context": "Context",
+  "session_tab_timeline": "Timeline",
+  "session_context_hint": "What the agent was given before the first prompt, in order. Each badge names who put it there. Sizes are rough: about 4 characters per token.",
+  "session_timeline_none": "Nothing happened in this session yet.",
+  "session_kind_system": "System",
+  "session_kind_instructions": "Instructions",
+  "session_kind_hook": "Hook",
+  "session_kind_skills": "Skills",
+  "session_kind_tools": "Tools",
+  "session_kind_mcp": "MCP",
+  "session_kind_message": "Message",
+  "session_kind_other": "Other",
+  "session_step_prompt": "Prompt",
+  "session_step_reply": "Reply",
+  "session_step_context": "Context added",
+  "session_tool_input": "Input",
+  "session_tool_output": "Output",
+  "session_tool_no_output": "No output recorded.",
+  "session_tool_error": "Error",
+  "session_details": "Details",
+  "session_folder": "Folder",
+  "session_space": "Space",
+  "session_model": "Model",
+  "session_client": "Started from",
+  "session_started": "Started",
+  "session_file": "File",
+  "session_skills_used": "Skills used",
+  "session_skills_used_none": "No skill used.",
+  "session_skills_offered": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} skill offered",
+        "countPlural=*": "{count} skills offered"
+      }
+    }
+  ],
+  "session_tools_available": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} tool available",
+        "countPlural=*": "{count} tools available"
+      }
+    }
+  ],
+  "skill_uses_title": "Skill use",
+  "skill_uses_hint": "Every machine, from spaces/*/agents/usage/, which sync.sh fills every 10 minutes.",
+  "skill_uses_none": "No skill use recorded yet.",
+  "skill_uses_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} use",
+        "countPlural=*": "{count} uses"
+      }
+    }
+  ],
+  "skill_uses_by_user": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} asked by you",
+        "countPlural=*": "{count} asked by you"
+      }
+    }
+  ],
+  "session_tokens": "≈ {tokens} tokens",
+  "origin_claude_code": "Claude Code",
+  "origin_codex": "Codex",
+  "origin_t3_code": "T3 Code",
+  "origin_opai": "Opai",
+  "origin_project": "Project",
+  "origin_account": "Account",
+  "origin_mcp": "MCP",
+  "origin_other": "Other",
+  "session_origins_title": "By origin",
+  "session_origins_hint": "Who put what in the context: the harness, the app that started the session, your config, the project, an account, or an MCP server.",
+  "session_origin_share": "{share} %",
+  "nav_skills": "Skills",
+  "skills_title": "Skills",
+  "skills_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} skill",
+        "countPlural=*": "{count} skills"
+      }
+    }
+  ],
+  "skills_hint": "Each skill lives once, in spaces/<space>/skills/. Those of global are in every session; a space's only in the sessions of that space.",
+  "skills_since": "Uses observed since {date}, on every machine.",
+  "skills_since_none": "No use observed yet.",
+  "skills_back": "All skills",
+  "skills_problems": "To fix",
+  "skills_problems_hint": "Run opai skills link, or fix the files named here.",
+  "skills_space_none": "No skill in this space.",
+  "skill_no_use": "No observed use",
+  "skill_last_used": "last {when}",
+  "skill_explicit": "On request",
+  "skill_explicit_hint": "Out of the agent's list until you ask for it with /name or $name.",
+  "skill_modified": "Changed here",
+  "skill_modified_hint": "Differs from the version imported from its source.",
+  "skill_cost": "≈ {tokens} tokens in every session",
+  "skill_not_found_title": "No skill with this name",
+  "skill_not_found_description": "It may have been renamed or removed.",
+  "skills_import": "Import",
+  "skills_import_title": "Import a skill",
+  "skills_import_description": "From GitHub (owner/repo/path, or a URL), the URL of a SKILL.md, or a folder on this Mac. Its source is recorded, so it can be updated later.",
+  "skills_import_source": "Source",
+  "skills_import_space": "Space",
+  "skills_import_name": "Name, if not the one in its SKILL.md",
+  "skills_import_submit": "Import",
+  "skill_details": "Details",
+  "skill_space": "Space",
+  "skill_move": "Move to",
+  "skill_source": "Source",
+  "skill_source_none": "Written here",
+  "skill_revision": "Upstream commit",
+  "skill_updated": "Imported or updated",
+  "skill_notes": "Notes",
+  "skill_files": "Other files",
+  "skill_usage": "Usage",
+  "skill_compare": "Compare with source",
+  "skill_compare_same": "Same as its source.",
+  "skill_compare_local": "Upstream has not changed: the diff is your own changes.",
+  "skill_compare_upstream": "Upstream changed since the last import.",
+  "skill_apply": "Take the upstream version",
+  "skill_apply_blocked": "Changed here: merge the diff by hand, or run opai skills update {name} --apply --force.",
+  "handbook_generated": "From the instance",
+  "handbook_generated_hint": "Part of this page is filled from the instance (the skills, or a file such as the global rules) each time it is read: edit the source, not the block.",
+  "prompt_handbook_generated": "Part of the page is filled from the instance between <!-- opai:… --> markers: change the source it comes from, not the block."
+}

@@ -1,0 +1,13 @@
+.DS_Store
+node_modules/
+.local/
+dist/
+.output/
+.turbo/
+*.tsbuildinfo
+apps/web/src/paraglide/
+.localify/project.json
+.env*
+# Nucleo artwork, built on the machines that own a license.
+packages/ui/src/icon/svg/
+packages/ui/src/icon/nucleo.generated.tsx

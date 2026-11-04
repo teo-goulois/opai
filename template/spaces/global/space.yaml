@@ -1,0 +1,3 @@
+name: global
+description: Shared by every space, the universal rules and skills. Every agent loads it, whatever the project.
+base: true

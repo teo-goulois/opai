@@ -1,0 +1,120 @@
+#!/bin/sh
+# Opai: runs Claude Code and Codex on your instance, and manages it.
+#
+#   opai init [folder]          create an instance (default ~/.opai) and set it up
+#   opai setup                  point the instance's hooks and MCP to this engine again
+#   opai claude|codex [args]    run the tool on the instance's claude/ or codex/
+#   opai skills [command]       manage the skills (opai skills help)
+#   opai which [folder]         print a folder's space
+#   opai sync [--install]       sync the instance with its Git remote
+#   opai app                    start the local interface
+#   opai home                   print the instance folder
+#
+# The instance is the folder in OPAI_HOME, ~/.opai by default.
+set -eu
+
+engine=$(dirname "$(realpath "$0")")
+context="$engine/packages/context/src"
+home=${OPAI_HOME:-$HOME/.opai}
+case "$home" in "~" | "~/"*) home="$HOME${home#\~}" ;; esac
+export OPAI_HOME="$home"
+node=${OPAI_NODE:-$(command -v node || true)}
+# The hooks and the MCP server run with this node: the one on the PATH, not
+# a versioned path that an upgrade removes.
+export OPAI_NODE="$node"
+
+usage() {
+  sed -n '4,11p' "$0" | sed 's/^# *//' >&2
+  exit 2
+}
+
+need_node() {
+  [ -n "$node" ] || { echo "opai: node is missing (Node 24 or later)" >&2; exit 1; }
+}
+
+need_instance() {
+  [ -d "$home/spaces" ] || { echo "opai: no instance in $home. Run: opai init" >&2; exit 1; }
+}
+
+# The arguments that bring the session's space skills and keep the others
+# out (skills.ts launchArgs), one per line. Without them the tool still starts.
+launch_args() {
+  [ -n "$node" ] && "$node" "$context/skills-cli.ts" launch "$@" 2> /dev/null || true
+}
+
+run_tool() {
+  tool=$1
+  shift
+  need_instance
+  case "$tool" in
+    # claude/settings.json excludes ~/.claude/CLAUDE.md, which Claude would
+    # read as the instructions of a parent folder of every project under ~.
+    claude) export CLAUDE_CONFIG_DIR="$home/claude" ;;
+    codex) export CODEX_HOME="$home/codex" ;;
+  esac
+  # Prepend the launch arguments, read one per line. Paths hold no newline.
+  extra=$(launch_args "$tool" -- "$@")
+  if [ -n "$extra" ]; then
+    old_ifs=$IFS
+    IFS='
+'
+    set -f
+    # shellcheck disable=SC2086
+    set -- $extra "$@"
+    set +f
+    IFS=$old_ifs
+  fi
+  exec "$tool" "$@"
+}
+
+case "${1:-}" in
+  init)
+    shift
+    need_node
+    exec "$node" "$context/init.ts" init "$@"
+    ;;
+  setup)
+    need_node
+    exec "$node" "$context/init.ts" setup
+    ;;
+  claude | codex)
+    run_tool "$@"
+    ;;
+  skills)
+    shift
+    need_node
+    exec "$node" "$context/skills-cli.ts" "$@"
+    ;;
+  which)
+    shift
+    need_node
+    exec "$node" "$context/hook.ts" which "$@"
+    ;;
+  sync)
+    shift
+    exec "$engine/scripts/sync.sh" "$@"
+    ;;
+  app)
+    need_instance
+    # Through Localify when it is installed (https://opai.localify), else on
+    # 127.0.0.1:4748. An instance with an Infisical project gets its secrets
+    # (Umami keys) from it.
+    set -- pnpm dev
+    command -v localify > /dev/null 2>&1 && set -- localify dev
+    if [ -f "$home/.infisical.yaml" ] && command -v infisical > /dev/null 2>&1; then
+      # From the instance, so a profile bound to it (infisical profile bind)
+      # picks the organization.
+      cd "$home"
+      set -- infisical run --silent -- sh -c 'cd "$0" && exec "$@"' "$engine/apps/web" "$@"
+    else
+      cd "$engine/apps/web"
+    fi
+    exec "$@"
+    ;;
+  home)
+    echo "$home"
+    ;;
+  *)
+    usage
+    ;;
+esac

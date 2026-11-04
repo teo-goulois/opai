@@ -1,0 +1,8 @@
+#!/bin/sh
+# Blocks a commit that would add a secret to this repository. Don't skip it with
+# --no-verify: fix the file, or list a false positive in .gitleaksignore.
+if ! command -v gitleaks > /dev/null 2>&1; then
+  echo "Commit blocked: gitleaks is missing. Install it (brew install gitleaks)." >&2
+  exit 1
+fi
+exec gitleaks git --pre-commit --staged --redact --no-banner

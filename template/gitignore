@@ -1,0 +1,25 @@
+# Claude Code and Codex write sessions, history, caches, logs and credentials
+# into their config folder. Only the files listed here are tracked; add a line
+# when you add a new kind of config.
+/claude/*
+!/claude/.gitkeep
+!/claude/CLAUDE.md
+!/claude/settings.json
+!/claude/skills/
+!/claude/agents/
+!/claude/commands/
+# Skills Claude Code copies from the claude.ai account.
+/claude/skills/synced/
+
+/codex/*
+!/codex/.gitkeep
+!/codex/AGENTS.md
+!/codex/config.toml
+!/codex/hooks.json
+!/codex/skills/
+# Built-in skills Codex installs and updates itself.
+/codex/skills/.system/
+
+.DS_Store
+.local/
+.env*
