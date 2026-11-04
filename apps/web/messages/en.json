@@ -503,5 +503,84 @@
   "skill_apply_blocked": "Changed here: merge the diff by hand, or run opai skills update {name} --apply --force.",
   "handbook_generated": "From the instance",
   "handbook_generated_hint": "Part of this page is filled from the instance (the skills, or a file such as the global rules) each time it is read: edit the source, not the block.",
-  "prompt_handbook_generated": "Part of the page is filled from the instance between <!-- opai:… --> markers: change the source it comes from, not the block."
+  "prompt_handbook_generated": "Part of the page is filled from the instance between <!-- opai:… --> markers: change the source it comes from, not the block.",
+  "nav_automations": "Automations",
+  "automations_title": "Automations",
+  "automations_description": "What runs on this machine, next to the registry you keep of it.",
+  "automations_codex_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Codex automation",
+        "countPlural=*": "{count} Codex automations"
+      }
+    }
+  ],
+  "automations_launchd_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} launchd agent",
+        "countPlural=*": "{count} launchd agents"
+      }
+    }
+  ],
+  "automations_missing": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} automation runs here without an entry in the registry. Describe it there, or remove it.",
+        "countPlural=*": "{count} automations run here without an entry in the registry. Describe them there, or remove them."
+      }
+    }
+  ],
+  "automations_registry": "Registry",
+  "automations_registry_hint": "What runs for you, where, and how to change it, written by hand. The only place that knows what Opai cannot read here: other machines, managers such as Grok Bot, scheduled tasks of other apps.",
+  "automations_registry_of": "Registry of {space}",
+  "automations_registry_none": "No registry yet. Start one in a space:",
+  "automations_codex": "Codex app",
+  "automations_codex_hint": "Read from automations/ of ~/.codex and of the instance's codex/.",
+  "automations_launchd": "launchd",
+  "automations_launchd_hint": "Your agents in ~/Library/LaunchAgents, and whether each one runs.",
+  "automations_none": "None.",
+  "automations_apps": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} agent installed by an app",
+        "countPlural=*": "{count} agents installed by apps"
+      }
+    }
+  ],
+  "automations_not_in_registry": "Not in the registry",
+  "automations_ended": "Ended",
+  "automations_paused": "Paused",
+  "automations_active": "Active",
+  "automations_no_schedule": "No schedule",
+  "automations_every_minutes": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "every minute",
+        "countPlural=*": "every {count} minutes"
+      }
+    }
+  ],
+  "automations_every_seconds": "every {count} s",
+  "automations_daily_at": "at {time}",
+  "automations_calendar": "on a calendar",
+  "automations_kept_alive": "kept running",
+  "automations_at_load": "at login",
+  "automations_not_loaded": "Not loaded",
+  "automations_running": "Running",
+  "automations_failed": "Last run failed ({code})",
+  "automations_idle": "Waiting",
+  "automations_registry_not_found_title": "No registry in this space",
+  "automations_registry_not_found_description": "Create context/ops.md in the space to describe its automations.",
+  "automations_back": "Back to automations"
 }

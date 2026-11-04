@@ -18,6 +18,7 @@ import {
   FolderIcon,
   HandbookIcon,
   LanguageIcon,
+  OpsIcon,
   PaletteIcon,
   RulesIcon,
   SessionsIcon,
@@ -128,6 +129,12 @@ function CommandPalette({
             label: m.nav_skills(),
             icon: <SkillIcon aria-hidden />,
             run: () => void navigate({ to: "/skills" }),
+          },
+          {
+            value: `${m.nav_automations()} automations automatisations ops launchd codex cron`,
+            label: m.nav_automations(),
+            icon: <OpsIcon aria-hidden />,
+            run: () => void navigate({ to: "/automations" }),
           },
           {
             value: `${m.nav_config()} config settings réglages codex claude skills hooks`,

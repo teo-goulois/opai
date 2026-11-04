@@ -129,6 +129,10 @@ is installed, on `127.0.0.1:4748` otherwise. Its pages call the same oRPC proced
   description costs in every session; edit its `SKILL.md`, move it to another
   space, import one, and compare an imported one with its source (`opai
   skills`, below, does the same from a terminal).
+- Automations: what runs on this machine, the Codex app's automations and
+  your launchd agents, next to the registry you keep in a space's
+  `context/ops.md`, editable here. An automation whose id or label the
+  registry does not name is flagged; agents installed by apps are set apart.
 - Handbook: the instance's handbook, edited in place and published to a site
   (below).
 - Analytics: Umami numbers of the sites in `analytics.json`. The keys come

@@ -1,10 +1,11 @@
 // Every procedure of the app: the context layer, the Spaces, Rules, Config,
-// Sessions and Skills pages, the handbook, and analytics.
+// Sessions, Skills and Automations pages, the handbook, and analytics.
 // The web app serves all of them; the MCP server only those mcp.ts lists.
 
 import type { RouterClient } from "@orpc/server";
 
 import { analyticsRouter } from "./routers/analytics.ts";
+import { automationsRouter } from "./routers/automations.ts";
 import { contextRouter } from "./routers/context.ts";
 import { handbookRouter } from "./routers/handbook.ts";
 import { sessionsRouter } from "./routers/sessions.ts";
@@ -16,6 +17,7 @@ export const appRouter = {
   ...workspaceRouter,
   sessions: sessionsRouter,
   skills: skillsRouter,
+  automations: automationsRouter,
   handbook: handbookRouter,
   analytics: analyticsRouter,
 };

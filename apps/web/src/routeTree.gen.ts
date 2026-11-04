@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DesignSystemRouteImport } from './routes/design-system'
 import { Route as AnalyticsIndexRouteImport } from './routes/analytics/index'
 import { Route as AnalyticsIdRouteImport } from './routes/analytics/$id'
+import { Route as AutomationsIndexRouteImport } from './routes/automations/index'
+import { Route as AutomationsSpaceRouteImport } from './routes/automations/$space'
 import { Route as ConfigIndexRouteImport } from './routes/config/index'
 import { Route as ConfigSplatRouteImport } from './routes/config/$'
 import { Route as HandbookIndexRouteImport } from './routes/handbook/index'
@@ -46,6 +48,16 @@ const AnalyticsIndexRoute = AnalyticsIndexRouteImport.update({
 const AnalyticsIdRoute = AnalyticsIdRouteImport.update({
   id: '/analytics/$id',
   path: '/analytics/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AutomationsIndexRoute = AutomationsIndexRouteImport.update({
+  id: '/automations/',
+  path: '/automations/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AutomationsSpaceRoute = AutomationsSpaceRouteImport.update({
+  id: '/automations/$space',
+  path: '/automations/$space',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConfigIndexRoute = ConfigIndexRouteImport.update({
@@ -123,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/design-system': typeof DesignSystemRoute
   '/analytics/$id': typeof AnalyticsIdRoute
+  '/automations/$space': typeof AutomationsSpaceRoute
   '/config/$': typeof ConfigSplatRoute
   '/handbook/$': typeof HandbookSplatRoute
   '/handbook/publish': typeof HandbookPublishRoute
@@ -131,6 +144,7 @@ export interface FileRoutesByFullPath {
   '/skills/$name': typeof SkillsNameRoute
   '/spaces/$name': typeof SpacesNameRoute
   '/analytics/': typeof AnalyticsIndexRoute
+  '/automations/': typeof AutomationsIndexRoute
   '/config/': typeof ConfigIndexRoute
   '/handbook/': typeof HandbookIndexRoute
   '/rules/': typeof RulesIndexRoute
@@ -143,6 +157,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/design-system': typeof DesignSystemRoute
   '/analytics/$id': typeof AnalyticsIdRoute
+  '/automations/$space': typeof AutomationsSpaceRoute
   '/config/$': typeof ConfigSplatRoute
   '/handbook/$': typeof HandbookSplatRoute
   '/handbook/publish': typeof HandbookPublishRoute
@@ -151,6 +166,7 @@ export interface FileRoutesByTo {
   '/skills/$name': typeof SkillsNameRoute
   '/spaces/$name': typeof SpacesNameRoute
   '/analytics': typeof AnalyticsIndexRoute
+  '/automations': typeof AutomationsIndexRoute
   '/config': typeof ConfigIndexRoute
   '/handbook': typeof HandbookIndexRoute
   '/rules': typeof RulesIndexRoute
@@ -164,6 +180,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/design-system': typeof DesignSystemRoute
   '/analytics/$id': typeof AnalyticsIdRoute
+  '/automations/$space': typeof AutomationsSpaceRoute
   '/config/$': typeof ConfigSplatRoute
   '/handbook/$': typeof HandbookSplatRoute
   '/handbook/publish': typeof HandbookPublishRoute
@@ -172,6 +189,7 @@ export interface FileRoutesById {
   '/skills/$name': typeof SkillsNameRoute
   '/spaces/$name': typeof SpacesNameRoute
   '/analytics/': typeof AnalyticsIndexRoute
+  '/automations/': typeof AutomationsIndexRoute
   '/config/': typeof ConfigIndexRoute
   '/handbook/': typeof HandbookIndexRoute
   '/rules/': typeof RulesIndexRoute
@@ -186,6 +204,7 @@ export interface FileRouteTypes {
     | '/'
     | '/design-system'
     | '/analytics/$id'
+    | '/automations/$space'
     | '/config/$'
     | '/handbook/$'
     | '/handbook/publish'
@@ -194,6 +213,7 @@ export interface FileRouteTypes {
     | '/skills/$name'
     | '/spaces/$name'
     | '/analytics/'
+    | '/automations/'
     | '/config/'
     | '/handbook/'
     | '/rules/'
@@ -206,6 +226,7 @@ export interface FileRouteTypes {
     | '/'
     | '/design-system'
     | '/analytics/$id'
+    | '/automations/$space'
     | '/config/$'
     | '/handbook/$'
     | '/handbook/publish'
@@ -214,6 +235,7 @@ export interface FileRouteTypes {
     | '/skills/$name'
     | '/spaces/$name'
     | '/analytics'
+    | '/automations'
     | '/config'
     | '/handbook'
     | '/rules'
@@ -226,6 +248,7 @@ export interface FileRouteTypes {
     | '/'
     | '/design-system'
     | '/analytics/$id'
+    | '/automations/$space'
     | '/config/$'
     | '/handbook/$'
     | '/handbook/publish'
@@ -234,6 +257,7 @@ export interface FileRouteTypes {
     | '/skills/$name'
     | '/spaces/$name'
     | '/analytics/'
+    | '/automations/'
     | '/config/'
     | '/handbook/'
     | '/rules/'
@@ -247,6 +271,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DesignSystemRoute: typeof DesignSystemRoute
   AnalyticsIdRoute: typeof AnalyticsIdRoute
+  AutomationsSpaceRoute: typeof AutomationsSpaceRoute
   ConfigSplatRoute: typeof ConfigSplatRoute
   HandbookSplatRoute: typeof HandbookSplatRoute
   HandbookPublishRoute: typeof HandbookPublishRoute
@@ -255,6 +280,7 @@ export interface RootRouteChildren {
   SkillsNameRoute: typeof SkillsNameRoute
   SpacesNameRoute: typeof SpacesNameRoute
   AnalyticsIndexRoute: typeof AnalyticsIndexRoute
+  AutomationsIndexRoute: typeof AutomationsIndexRoute
   ConfigIndexRoute: typeof ConfigIndexRoute
   HandbookIndexRoute: typeof HandbookIndexRoute
   RulesIndexRoute: typeof RulesIndexRoute
@@ -292,6 +318,20 @@ declare module '@tanstack/react-router' {
       path: '/analytics/$id'
       fullPath: '/analytics/$id'
       preLoaderRoute: typeof AnalyticsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/automations/': {
+      id: '/automations/'
+      path: '/automations'
+      fullPath: '/automations/'
+      preLoaderRoute: typeof AutomationsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/automations/$space': {
+      id: '/automations/$space'
+      path: '/automations/$space'
+      fullPath: '/automations/$space'
+      preLoaderRoute: typeof AutomationsSpaceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/config/': {
@@ -399,6 +439,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DesignSystemRoute: DesignSystemRoute,
   AnalyticsIdRoute: AnalyticsIdRoute,
+  AutomationsSpaceRoute: AutomationsSpaceRoute,
   ConfigSplatRoute: ConfigSplatRoute,
   HandbookSplatRoute: HandbookSplatRoute,
   HandbookPublishRoute: HandbookPublishRoute,
@@ -407,6 +448,7 @@ const rootRouteChildren: RootRouteChildren = {
   SkillsNameRoute: SkillsNameRoute,
   SpacesNameRoute: SpacesNameRoute,
   AnalyticsIndexRoute: AnalyticsIndexRoute,
+  AutomationsIndexRoute: AutomationsIndexRoute,
   ConfigIndexRoute: ConfigIndexRoute,
   HandbookIndexRoute: HandbookIndexRoute,
   RulesIndexRoute: RulesIndexRoute,

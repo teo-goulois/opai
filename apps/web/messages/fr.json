@@ -503,5 +503,84 @@
   "skill_apply_blocked": "Modifié ici : fusionne le diff à la main, ou lance opai skills update {name} --apply --force.",
   "handbook_generated": "Depuis l'instance",
   "handbook_generated_hint": "Une partie de cette page est remplie depuis l'instance (les skills, ou un fichier comme les règles globales) à chaque lecture : modifie la source, pas le bloc.",
-  "prompt_handbook_generated": "Une partie de la page est remplie depuis l'instance entre des marqueurs <!-- opai:… --> : change la source d'où elle vient, pas le bloc."
+  "prompt_handbook_generated": "Une partie de la page est remplie depuis l'instance entre des marqueurs <!-- opai:… --> : change la source d'où elle vient, pas le bloc.",
+  "nav_automations": "Automatisations",
+  "automations_title": "Automatisations",
+  "automations_description": "Ce qui tourne sur cette machine, face au registre que tu en tiens.",
+  "automations_codex_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} automatisation Codex",
+        "countPlural=*": "{count} automatisations Codex"
+      }
+    }
+  ],
+  "automations_launchd_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} agent launchd",
+        "countPlural=*": "{count} agents launchd"
+      }
+    }
+  ],
+  "automations_missing": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} automatisation tourne ici sans entrée dans le registre. Décris-la, ou supprime-la.",
+        "countPlural=*": "{count} automatisations tournent ici sans entrée dans le registre. Décris-les, ou supprime-les."
+      }
+    }
+  ],
+  "automations_registry": "Registre",
+  "automations_registry_hint": "Ce qui tourne pour toi, où, et comment le changer, écrit à la main. Le seul endroit qui connaît ce qu'Opai ne peut pas lire ici : les autres machines, les gestionnaires comme Grok Bot, les tâches planifiées d'autres apps.",
+  "automations_registry_of": "Registre de {space}",
+  "automations_registry_none": "Pas encore de registre. Commence-le dans un espace :",
+  "automations_codex": "App Codex",
+  "automations_codex_hint": "Lues dans automations/ de ~/.codex et du codex/ de l'instance.",
+  "automations_launchd": "launchd",
+  "automations_launchd_hint": "Tes agents dans ~/Library/LaunchAgents, et s'ils tournent.",
+  "automations_none": "Aucune.",
+  "automations_apps": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} agent installé par une app",
+        "countPlural=*": "{count} agents installés par des apps"
+      }
+    }
+  ],
+  "automations_not_in_registry": "Absent du registre",
+  "automations_ended": "Terminée",
+  "automations_paused": "En pause",
+  "automations_active": "Active",
+  "automations_no_schedule": "Sans planning",
+  "automations_every_minutes": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "chaque minute",
+        "countPlural=*": "toutes les {count} minutes"
+      }
+    }
+  ],
+  "automations_every_seconds": "toutes les {count} s",
+  "automations_daily_at": "à {time}",
+  "automations_calendar": "selon un calendrier",
+  "automations_kept_alive": "maintenu en marche",
+  "automations_at_load": "à l'ouverture de session",
+  "automations_not_loaded": "Non chargé",
+  "automations_running": "En cours",
+  "automations_failed": "Dernier lancement en échec ({code})",
+  "automations_idle": "En attente",
+  "automations_registry_not_found_title": "Pas de registre dans cet espace",
+  "automations_registry_not_found_description": "Crée context/ops.md dans l'espace pour décrire ses automatisations.",
+  "automations_back": "Retour aux automatisations"
 }
