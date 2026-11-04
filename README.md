@@ -226,7 +226,3 @@ anything else in the way is reported, not replaced.
 TypeScript on Node 24+, run without a build. `pnpm install`, then `pnpm check`
 runs lint, format, types and tests of the whole workspace. The tests build
 throwaway instances and never read yours.
-
-## Before a public release
-
-- Start the public history from a clean commit.
