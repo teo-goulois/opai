@@ -582,5 +582,34 @@
   "automations_idle": "En attente",
   "automations_registry_not_found_title": "Pas de registre dans cet espace",
   "automations_registry_not_found_description": "Crée context/ops.md dans l'espace pour décrire ses automatisations.",
-  "automations_back": "Retour aux automatisations"
+  "automations_back": "Retour aux automatisations",
+  "automations_machines_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} autre machine",
+        "countPlural=*": "{count} autres machines"
+      }
+    }
+  ],
+  "automations_this_machine": "Ce Mac",
+  "automations_machine": "{name}",
+  "automations_machine_reading": "Lecture par SSH…",
+  "automations_machine_failed": "Impossible de lire cette machine par SSH : {message}",
+  "automations_pause": "Mettre en pause",
+  "automations_resume": "Reprendre",
+  "automations_edit": "Modifier",
+  "automations_archive": "Archiver",
+  "automations_archive_title": "Archiver {name} ?",
+  "automations_archive_description": "Son dossier part dans .local/archive/codex-automations/ de l'instance : l'app Codex ne la lance plus. Remets-le à sa place pour la restaurer.",
+  "automations_restart": "Relancer",
+  "automations_start": "Démarrer",
+  "automations_stop": "Arrêter",
+  "automations_stop_title": "Arrêter {label} ?",
+  "automations_stop_description": "launchd décharge l'agent jusqu'à ce que tu le redémarres, ou jusqu'à ta prochaine session s'il démarre à l'ouverture.",
+  "automations_cancel": "Annuler",
+  "automations_edit_hint": "L'app Codex lit ce fichier : le prompt, le planning (rrule) et le statut.",
+  "automations_codex_not_found_title": "Automatisation introuvable",
+  "automations_codex_not_found_description": "Elle a peut-être été archivée ou supprimée."
 }

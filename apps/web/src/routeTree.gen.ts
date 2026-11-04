@@ -15,6 +15,7 @@ import { Route as AnalyticsIndexRouteImport } from './routes/analytics/index'
 import { Route as AnalyticsIdRouteImport } from './routes/analytics/$id'
 import { Route as AutomationsIndexRouteImport } from './routes/automations/index'
 import { Route as AutomationsSpaceRouteImport } from './routes/automations/$space'
+import { Route as AutomationsCodexRouteImport } from './routes/automations/codex'
 import { Route as ConfigIndexRouteImport } from './routes/config/index'
 import { Route as ConfigSplatRouteImport } from './routes/config/$'
 import { Route as HandbookIndexRouteImport } from './routes/handbook/index'
@@ -58,6 +59,11 @@ const AutomationsIndexRoute = AutomationsIndexRouteImport.update({
 const AutomationsSpaceRoute = AutomationsSpaceRouteImport.update({
   id: '/automations/$space',
   path: '/automations/$space',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AutomationsCodexRoute = AutomationsCodexRouteImport.update({
+  id: '/automations/codex',
+  path: '/automations/codex',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConfigIndexRoute = ConfigIndexRouteImport.update({
@@ -136,6 +142,7 @@ export interface FileRoutesByFullPath {
   '/design-system': typeof DesignSystemRoute
   '/analytics/$id': typeof AnalyticsIdRoute
   '/automations/$space': typeof AutomationsSpaceRoute
+  '/automations/codex': typeof AutomationsCodexRoute
   '/config/$': typeof ConfigSplatRoute
   '/handbook/$': typeof HandbookSplatRoute
   '/handbook/publish': typeof HandbookPublishRoute
@@ -158,6 +165,7 @@ export interface FileRoutesByTo {
   '/design-system': typeof DesignSystemRoute
   '/analytics/$id': typeof AnalyticsIdRoute
   '/automations/$space': typeof AutomationsSpaceRoute
+  '/automations/codex': typeof AutomationsCodexRoute
   '/config/$': typeof ConfigSplatRoute
   '/handbook/$': typeof HandbookSplatRoute
   '/handbook/publish': typeof HandbookPublishRoute
@@ -181,6 +189,7 @@ export interface FileRoutesById {
   '/design-system': typeof DesignSystemRoute
   '/analytics/$id': typeof AnalyticsIdRoute
   '/automations/$space': typeof AutomationsSpaceRoute
+  '/automations/codex': typeof AutomationsCodexRoute
   '/config/$': typeof ConfigSplatRoute
   '/handbook/$': typeof HandbookSplatRoute
   '/handbook/publish': typeof HandbookPublishRoute
@@ -205,6 +214,7 @@ export interface FileRouteTypes {
     | '/design-system'
     | '/analytics/$id'
     | '/automations/$space'
+    | '/automations/codex'
     | '/config/$'
     | '/handbook/$'
     | '/handbook/publish'
@@ -227,6 +237,7 @@ export interface FileRouteTypes {
     | '/design-system'
     | '/analytics/$id'
     | '/automations/$space'
+    | '/automations/codex'
     | '/config/$'
     | '/handbook/$'
     | '/handbook/publish'
@@ -249,6 +260,7 @@ export interface FileRouteTypes {
     | '/design-system'
     | '/analytics/$id'
     | '/automations/$space'
+    | '/automations/codex'
     | '/config/$'
     | '/handbook/$'
     | '/handbook/publish'
@@ -272,6 +284,7 @@ export interface RootRouteChildren {
   DesignSystemRoute: typeof DesignSystemRoute
   AnalyticsIdRoute: typeof AnalyticsIdRoute
   AutomationsSpaceRoute: typeof AutomationsSpaceRoute
+  AutomationsCodexRoute: typeof AutomationsCodexRoute
   ConfigSplatRoute: typeof ConfigSplatRoute
   HandbookSplatRoute: typeof HandbookSplatRoute
   HandbookPublishRoute: typeof HandbookPublishRoute
@@ -332,6 +345,13 @@ declare module '@tanstack/react-router' {
       path: '/automations/$space'
       fullPath: '/automations/$space'
       preLoaderRoute: typeof AutomationsSpaceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/automations/codex': {
+      id: '/automations/codex'
+      path: '/automations/codex'
+      fullPath: '/automations/codex'
+      preLoaderRoute: typeof AutomationsCodexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/config/': {
@@ -440,6 +460,7 @@ const rootRouteChildren: RootRouteChildren = {
   DesignSystemRoute: DesignSystemRoute,
   AnalyticsIdRoute: AnalyticsIdRoute,
   AutomationsSpaceRoute: AutomationsSpaceRoute,
+  AutomationsCodexRoute: AutomationsCodexRoute,
   ConfigSplatRoute: ConfigSplatRoute,
   HandbookSplatRoute: HandbookSplatRoute,
   HandbookPublishRoute: HandbookPublishRoute,

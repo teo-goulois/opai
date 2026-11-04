@@ -582,5 +582,34 @@
   "automations_idle": "Waiting",
   "automations_registry_not_found_title": "No registry in this space",
   "automations_registry_not_found_description": "Create context/ops.md in the space to describe its automations.",
-  "automations_back": "Back to automations"
+  "automations_back": "Back to automations",
+  "automations_machines_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} other machine",
+        "countPlural=*": "{count} other machines"
+      }
+    }
+  ],
+  "automations_this_machine": "This Mac",
+  "automations_machine": "{name}",
+  "automations_machine_reading": "Reading through SSH…",
+  "automations_machine_failed": "Could not read this machine through SSH: {message}",
+  "automations_pause": "Pause",
+  "automations_resume": "Resume",
+  "automations_edit": "Edit",
+  "automations_archive": "Archive",
+  "automations_archive_title": "Archive {name}?",
+  "automations_archive_description": "Its folder moves to .local/archive/codex-automations/ of the instance, so the Codex app no longer runs it. Move it back to restore it.",
+  "automations_restart": "Restart",
+  "automations_start": "Start",
+  "automations_stop": "Stop",
+  "automations_stop_title": "Stop {label}?",
+  "automations_stop_description": "launchd unloads the agent until you start it again or log in again (if it runs at login).",
+  "automations_cancel": "Cancel",
+  "automations_edit_hint": "The Codex app reads this file: the prompt, the schedule (rrule) and the status.",
+  "automations_codex_not_found_title": "No such automation",
+  "automations_codex_not_found_description": "It may have been archived or removed."
 }

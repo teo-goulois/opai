@@ -68,7 +68,8 @@ Codex reads `~/.agents/skills` (`opai codex` turns each of those skills off).
 ├── handbook/          optional: your handbook, published to a site
 ├── claude/            Claude Code's config folder
 ├── codex/             Codex's config folder
-└── analytics.json     optional: the sites the Analytics page compares
+├── analytics.json     optional: the sites the Analytics page compares
+└── machines.json      optional: other machines the Automations page reads (SSH)
 ```
 
 A space groups the rules and notes of one part of your life: a company, a
@@ -131,8 +132,13 @@ is installed, on `127.0.0.1:4748` otherwise. Its pages call the same oRPC proced
   skills`, below, does the same from a terminal).
 - Automations: what runs on this machine, the Codex app's automations and
   your launchd agents, next to the registry you keep in a space's
-  `context/ops.md`, editable here. An automation whose id or label the
+  `context/ops.md`, editable here. An automation whose id, name or label the
   registry does not name is flagged; agents installed by apps are set apart.
+  A Codex automation can be paused, resumed, edited (its `automation.toml`)
+  and archived (to `.local/archive/codex-automations/`); one of your launchd
+  agents stopped, started and restarted. The machines of `machines.json`
+  (`{ "machines": [{ "name": "runner", "ssh": "<ssh host>" }] }`) are read
+  through SSH, read-only.
 - Handbook: the instance's handbook, edited in place and published to a site
   (below).
 - Analytics: Umami numbers of the sites in `analytics.json`. The keys come
