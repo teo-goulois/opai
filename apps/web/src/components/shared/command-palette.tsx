@@ -24,6 +24,7 @@ import {
   SessionsIcon,
   SkillIcon,
   SunIcon,
+  TerminalIcon,
 } from "@opai/ui/icon";
 import { formatForDisplay, useAppHotkeys, useHotkey } from "@tanstack/react-hotkeys";
 import { useQuery } from "@tanstack/react-query";
@@ -171,6 +172,12 @@ function CommandPalette({
             label: m.nav_skills(),
             icon: <SkillIcon aria-hidden />,
             run: () => void navigate({ to: "/skills" }),
+          },
+          {
+            value: `${m.nav_mcp()} mcp servers serveurs tools outils secrets infisical`,
+            label: m.nav_mcp(),
+            icon: <TerminalIcon aria-hidden />,
+            run: () => void navigate({ to: "/mcp" }),
           },
           {
             value: `${m.nav_sessions()} sessions debug context contexte tools skills usage`,

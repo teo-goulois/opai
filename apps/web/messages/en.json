@@ -754,5 +754,51 @@
   "space_make_default": "Make it the default space",
   "space_archive": "Archive",
   "space_archive_title": "Archive {name}?",
-  "space_archive_hint": "Moves spaces/{name}/, with its rules, notes, skills and records, to .local/archive/spaces/ of the instance. Its folders go back to the default space. Move it back to restore it."
+  "space_archive_hint": "Moves spaces/{name}/, with its rules, notes, skills and records, to .local/archive/spaces/ of the instance. Its folders go back to the default space. Move it back to restore it.",
+  "nav_mcp": "MCP",
+  "mcp_title": "MCP servers",
+  "mcp_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} server",
+        "countPlural=*": "{count} servers"
+      }
+    }
+  ],
+  "mcp_add": "Add",
+  "mcp_add_title": "Add an MCP server",
+  "mcp_add_description": "Paste what the server's docs give: a claude mcp add or codex mcp add command, JSON, a command such as npx -y @acme/mcp, or a URL. Tokens in it go to Infisical, never into mcp.json.",
+  "mcp_add_paste": "Command, JSON or URL",
+  "mcp_add_space": "Space",
+  "mcp_add_space_hint": "global: every session. Another space: only its sessions.",
+  "mcp_add_name": "Name, if not the one found",
+  "mcp_add_submit": "Add",
+  "mcp_add_replace": "Replace a server of the same name",
+  "mcp_preview_secrets": "To Infisical: {names}",
+  "mcp_preview_left": "Left behind: {notes}",
+  "mcp_claude_only": "Claude only",
+  "mcp_claude_only_hint": "Codex can't run it: {what}",
+  "mcp_every_session": "Every session",
+  "mcp_space_sessions": "Sessions of {space}",
+  "mcp_none": "No server yet.",
+  "mcp_secret_stored": "{name}: in Infisical",
+  "mcp_secret_env": "{name}: from the environment",
+  "mcp_secret_missing": "{name}: missing, set it",
+  "mcp_secret_title": "Store {name}",
+  "mcp_secret_description": "Its value goes to Infisical (folder /mcp). opai claude and opai codex read it at launch; the app never shows it again.",
+  "mcp_secret_value": "Value",
+  "mcp_secret_submit": "Store",
+  "mcp_actions": "Actions for {name}",
+  "mcp_move_to": "Move to {space}",
+  "mcp_remove": "Remove",
+  "mcp_problems": "To fix",
+  "mcp_problems_hint": "Fix the files named here, or store the missing secrets.",
+  "mcp_infisical_off": "The MCP secrets can't be read from Infisical: {reason}",
+  "mcp_found_title": "In Claude Code's and Codex's own configs",
+  "mcp_found_hint": "Plain claude and codex use these. Import one to give it to Opai sessions; its tokens go to Infisical.",
+  "mcp_found_into": "Import into",
+  "mcp_import": "Import",
+  "mcp_applies_next": "Changes apply from the next session."
 }

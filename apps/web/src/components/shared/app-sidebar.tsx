@@ -22,6 +22,7 @@ import {
   SessionsIcon,
   SkillIcon,
   SunIcon,
+  TerminalIcon,
 } from "@opai/ui/icon";
 import { formatForDisplay, useAppHotkeys } from "@tanstack/react-hotkeys";
 import { useQuery } from "@tanstack/react-query";
@@ -52,6 +53,7 @@ function useNavGroups(): NavGroup[] {
       label: m.nav_group_across(),
       items: [
         { to: "/skills", label: m.nav_skills(), icon: SkillIcon },
+        { to: "/mcp", label: m.nav_mcp(), icon: TerminalIcon },
         { to: "/sessions", label: m.nav_sessions(), icon: SessionsIcon },
         { to: "/automations", label: m.nav_automations(), icon: OpsIcon },
       ],

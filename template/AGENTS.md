@@ -10,6 +10,7 @@ README.md describes the layout.
 - Everything else agents write goes in `spaces/*/agents/`, through the `opai`
   MCP tools.
 - Add, move or remove an MCP server with `opai mcp`, in the space it serves
-  (`global` for every session); never write a secret into `mcp.json`.
+  (`global` for every session): `opai mcp paste '<what its docs say>'`. Its
+  tokens go to Infisical (`opai mcp secret set`), never into `mcp.json`.
 - Never commit what Claude Code or Codex write into `claude/` and `codex/`
   (sessions, caches, logs, credentials): `.gitignore` lists what is tracked.

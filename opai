@@ -38,9 +38,10 @@ need_instance() {
   [ -d "$home/spaces" ] || { echo "opai: no instance in $home. Run: opai init" >&2; exit 1; }
 }
 
-# The arguments that bring the session's space skills and MCP servers and keep
-# the others out (launch-cli.ts), one per line. Without them the tool still starts.
-launch_args() {
+# The session's space skills, MCP servers and their secrets (launch-cli.ts):
+# a script of `export` lines, warnings, and a `set --` that prepends the
+# arguments. Without it the tool still starts.
+launch_script() {
   [ -n "$node" ] && "$node" "$context/launch-cli.ts" "$@" 2> /dev/null || true
 }
 
@@ -54,18 +55,8 @@ run_tool() {
     claude) export CLAUDE_CONFIG_DIR="$home/claude" ;;
     codex) export CODEX_HOME="$home/codex" ;;
   esac
-  # Prepend the launch arguments, read one per line. Paths hold no newline.
-  extra=$(launch_args "$tool" -- "$@")
-  if [ -n "$extra" ]; then
-    old_ifs=$IFS
-    IFS='
-'
-    set -f
-    # shellcheck disable=SC2086
-    set -- $extra "$@"
-    set +f
-    IFS=$old_ifs
-  fi
+  script=$(launch_script "$tool" -- "$@")
+  eval "$script"
   exec "$tool" "$@"
 }
 

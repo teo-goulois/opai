@@ -3,9 +3,12 @@
 //   opai mcp list
 //   opai mcp add <name> <url> [--space s] [--header "Name: value"]...
 //   opai mcp add <name> [--space s] [--env NAME=value]... -- <command> [args...]
+//   opai mcp paste '<command or JSON>' [--space s] [--name n] [--replace]
 //   opai mcp remove <name> [--space s]
 //   opai mcp move <name> <space> [--from s]
 //   opai mcp import [<name>...] [--space s] [--replace]
+//   opai mcp secrets
+//   opai mcp secret set <NAME>
 //   opai mcp check
 
 import { parseArgs } from "node:util";
@@ -22,7 +25,45 @@ import {
   removeServer,
   type Server,
 } from "./mcp-servers.ts";
+import { parsePaste } from "./mcp-paste.ts";
+import { readSecrets, storeSecrets, variables } from "./mcp-secrets.ts";
 import { homePath, ROOT } from "./spaces.ts";
+
+/** The names stored in Infisical, or undefined when it can't be read. */
+function storedNames() {
+  try {
+    return new Set(Object.keys(readSecrets(ROOT)));
+  } catch (error) {
+    console.error(`opai mcp: ${(error as Error).message}`);
+    return undefined;
+  }
+}
+
+/** A value typed without echo, or piped in. */
+async function readValue(name: string) {
+  const { stdin, stderr } = process;
+  if (!stdin.isTTY) {
+    let text = "";
+    for await (const chunk of stdin) text += chunk;
+    return text.replace(/\r?\n$/, "");
+  }
+  stderr.write(`${name}: `);
+  stdin.setRawMode(true);
+  let value = "";
+  for await (const chunk of stdin) {
+    for (const char of String(chunk)) {
+      if (char === "\r" || char === "\n") {
+        stdin.setRawMode(false);
+        stdin.pause();
+        stderr.write("\n");
+        return value;
+      }
+      if (char === "\u0003") process.exit(130);
+      value = char === "\u007f" ? value.slice(0, -1) : value + char;
+    }
+  }
+  return value;
+}
 
 const USAGE = `usage: opai mcp <command>
 
@@ -30,16 +71,21 @@ const USAGE = `usage: opai mcp <command>
   add <name> <url> [--space s] [--header "H: v"]...
   add <name> [--space s] [--env K=v]... -- <command> [args...]
                                                 declare a server (global by default)
+  paste '<text>' [--space s] [--name n]         add what a provider's docs say to paste: a claude
+                                                or codex mcp add command, JSON, a command, a URL;
+                                                its tokens go to Infisical
   remove <name> [--space s]                     remove it
   move <name> <space> [--from s]                move it to another space
   import [<name>...] [--space s] [--replace]    copy servers Claude Code or Codex keep
                                                 in their own configs; with no name, list them
+  secrets                                       the secrets the servers name, stored or missing
+  secret set <NAME>                             store one in Infisical, typed or piped in
   check                                         report what is wrong
 
 Servers of global are in every session; those of another space only in its
 sessions. opai claude and opai codex load them at launch, so a change applies
-from the next session. Keep secrets out: write \${NAME} and set NAME in the
-environment, as "API_KEY": "\${API_KEY}" or "Authorization": "Bearer \${TOKEN}".`;
+from the next session. Keep secrets out: write \${NAME}, and store NAME in
+Infisical (folder /mcp) or set it in the environment, as "API_KEY": "\${API_KEY}" or "Authorization": "Bearer \${TOKEN}".`;
 
 function describe(server: Server) {
   const target = server.url ?? [server.command, ...(server.args ?? [])].join(" ");
@@ -58,7 +104,7 @@ function pairs(items: string[] | undefined, separator: string, label: string) {
   return Object.keys(result).length > 0 ? result : undefined;
 }
 
-function main(argv: string[]) {
+async function main(argv: string[]) {
   const [command, ...rest] = argv;
   const { values, positionals } = parseArgs({
     args: rest,
@@ -69,6 +115,7 @@ function main(argv: string[]) {
       env: { type: "string", multiple: true },
       header: { type: "string", multiple: true },
       type: { type: "string" },
+      name: { type: "string" },
       replace: { type: "boolean" },
     },
   });
@@ -102,6 +149,23 @@ function main(argv: string[]) {
       console.log(`Added ${entry.name} to ${entry.space}: ${homePath(mcpFile(ROOT, entry.space))}`);
       return;
     }
+    case "paste": {
+      const [text] = positionals;
+      if (!text) throw new McpError("paste '<command or JSON>'");
+      const pasted = parsePaste(text, values.name);
+      const secrets = Object.assign({}, ...pasted.map((item) => item.secrets));
+      // The secrets first: a server must not name a variable that was never stored.
+      if (Object.keys(secrets).length > 0) {
+        storeSecrets(ROOT, secrets);
+        console.log(`Stored in Infisical (/mcp): ${Object.keys(secrets).join(", ")}`);
+      }
+      for (const item of pasted) {
+        const entry = addServer(ROOT, item.name, item.server, values);
+        console.log(`Added ${entry.name} to ${entry.space}: ${describe(entry.server)}`);
+        for (const note of item.notes) console.log(`  left behind: ${note}`);
+      }
+      return;
+    }
     case "remove": {
       const [name] = positionals;
       if (!name) throw new McpError("remove <name>");
@@ -127,17 +191,53 @@ function main(argv: string[]) {
       }
       for (const { name, space, source } of importServers(ROOT, positionals, values)) {
         console.log(`Imported ${name} into ${space}, from ${source.where}`);
-        for (const secret of source.secrets) {
-          console.log(
-            `  ${secret}: its value stays out of mcp.json; set ${secret} in the environment`,
-          );
+        const secrets = Object.keys(source.secrets);
+        if (secrets.length > 0) {
+          try {
+            storeSecrets(ROOT, source.secrets);
+            console.log(`  stored in Infisical (/mcp): ${secrets.join(", ")}`);
+          } catch (error) {
+            console.log(`  not stored (${(error as Error).message}): ${secrets.join(", ")}`);
+            console.log(`  store each with opai mcp secret set <NAME>`);
+          }
         }
         if (source.dropped.length > 0) console.log(`  left behind: ${source.dropped.join(", ")}`);
       }
       return;
     }
+    case "secrets": {
+      const stored = storedNames();
+      const names = new Map<string, string[]>();
+      for (const entry of listServers(ROOT)) {
+        for (const name of variables(entry.server)) {
+          names.set(name, [...(names.get(name) ?? []), entry.name]);
+        }
+      }
+      for (const [name, servers] of [...names].sort()) {
+        const state = stored?.has(name)
+          ? "in Infisical"
+          : process.env[name]
+            ? "in the environment"
+            : "missing";
+        console.log(`${name}  ${state}  (${servers.join(", ")})`);
+      }
+      return;
+    }
+    case "secret": {
+      const [action, name] = positionals;
+      if (action !== "set" || !name || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
+        throw new McpError("secret set <NAME>");
+      }
+      const value = await readValue(name);
+      if (!value) throw new McpError("no value given");
+      storeSecrets(ROOT, { [name]: value });
+      console.log(`Stored ${name} in Infisical (/mcp).`);
+      return;
+    }
     case "check": {
-      const problems = checkServers(ROOT);
+      const stored = storedNames();
+      const known = Object.fromEntries([...(stored ?? [])].map((name) => [name, "stored"]));
+      const problems = checkServers(ROOT, { ...process.env, ...known });
       for (const problem of problems) console.log(problem);
       if (problems.length > 0) process.exitCode = 1;
       else console.log("MCP servers are in order.");
@@ -150,7 +250,7 @@ function main(argv: string[]) {
 }
 
 try {
-  main(process.argv.slice(2));
+  await main(process.argv.slice(2));
 } catch (error) {
   if (!(error instanceof McpError || (error instanceof Error && error.name === "TypeError"))) {
     throw error;

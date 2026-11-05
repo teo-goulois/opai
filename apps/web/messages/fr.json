@@ -754,5 +754,51 @@
   "space_make_default": "En faire l'espace par défaut",
   "space_archive": "Archiver",
   "space_archive_title": "Archiver {name} ?",
-  "space_archive_hint": "Déplace spaces/{name}/, avec ses règles, notes, skills et traces, dans .local/archive/spaces/ de l'instance. Ses dossiers reviennent à l'espace par défaut. Remets-le à sa place pour le restaurer."
+  "space_archive_hint": "Déplace spaces/{name}/, avec ses règles, notes, skills et traces, dans .local/archive/spaces/ de l'instance. Ses dossiers reviennent à l'espace par défaut. Remets-le à sa place pour le restaurer.",
+  "nav_mcp": "MCP",
+  "mcp_title": "Serveurs MCP",
+  "mcp_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} serveur",
+        "countPlural=*": "{count} serveurs"
+      }
+    }
+  ],
+  "mcp_add": "Ajouter",
+  "mcp_add_title": "Ajouter un serveur MCP",
+  "mcp_add_description": "Colle ce que donne la doc du serveur : une commande claude mcp add ou codex mcp add, du JSON, une commande comme npx -y @acme/mcp, ou une URL. Les tokens qu’elle contient vont dans Infisical, jamais dans mcp.json.",
+  "mcp_add_paste": "Commande, JSON ou URL",
+  "mcp_add_space": "Space",
+  "mcp_add_space_hint": "global : toutes les sessions. Un autre space : ses sessions seulement.",
+  "mcp_add_name": "Nom, si ce n’est pas celui trouvé",
+  "mcp_add_submit": "Ajouter",
+  "mcp_add_replace": "Remplacer un serveur du même nom",
+  "mcp_preview_secrets": "Vers Infisical : {names}",
+  "mcp_preview_left": "Pas repris : {notes}",
+  "mcp_claude_only": "Claude seulement",
+  "mcp_claude_only_hint": "Codex ne peut pas le lancer : {what}",
+  "mcp_every_session": "Toutes les sessions",
+  "mcp_space_sessions": "Sessions de {space}",
+  "mcp_none": "Aucun serveur pour l’instant.",
+  "mcp_secret_stored": "{name} : dans Infisical",
+  "mcp_secret_env": "{name} : depuis l’environnement",
+  "mcp_secret_missing": "{name} : manquant, à renseigner",
+  "mcp_secret_title": "Enregistrer {name}",
+  "mcp_secret_description": "Sa valeur va dans Infisical (dossier /mcp). opai claude et opai codex la lisent au lancement ; l’app ne l’affiche plus jamais.",
+  "mcp_secret_value": "Valeur",
+  "mcp_secret_submit": "Enregistrer",
+  "mcp_actions": "Actions pour {name}",
+  "mcp_move_to": "Déplacer vers {space}",
+  "mcp_remove": "Retirer",
+  "mcp_problems": "À corriger",
+  "mcp_problems_hint": "Corrige les fichiers indiqués, ou renseigne les secrets manquants.",
+  "mcp_infisical_off": "Les secrets MCP ne peuvent pas être lus dans Infisical : {reason}",
+  "mcp_found_title": "Dans les configs de Claude Code et Codex",
+  "mcp_found_hint": "claude et codex lancés directement les utilisent. Importe-en un pour le donner aux sessions Opai ; ses tokens vont dans Infisical.",
+  "mcp_found_into": "Importer dans",
+  "mcp_import": "Importer",
+  "mcp_applies_next": "Un changement s’applique à la session suivante."
 }

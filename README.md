@@ -151,6 +151,11 @@ is installed, on `127.0.0.1:4748` otherwise. Its pages call the same oRPC proced
   description the agent reads to decide, edits its `SKILL.md`, moves it to
   another space, and compares an imported one with its source (`opai
   skills`, below, does the same from a terminal). Import one from either page.
+- MCP: the servers of each space, and the secrets they name, stored or
+  missing (a missing one is stored from its badge). Add one by pasting what
+  its docs give (`claude mcp add ...`, `codex mcp add ...`, JSON, `npx ...`,
+  a URL): a preview shows what it becomes and which tokens go to Infisical.
+  Move or remove a server, or import one plain `claude` and `codex` have.
 - Config: what Claude Code and Codex read in `claude/` and `codex/`, and the
   instance's own `AGENTS.md` and `CLAUDE.md`, editable.
 - Sessions: each session Claude Code and Codex ran on the instance, with the
@@ -292,24 +297,32 @@ applies from the next session:
 
 ```sh
 opai mcp list                                         # every server, by space
-opai mcp add docs https://docs.example/mcp            # a remote server, in global
-opai mcp add stripe --space work -- npx -y @stripe/mcp
+opai mcp paste 'claude mcp add --transport http sentry https://mcp.sentry.dev/mcp'
+opai mcp paste 'npx -y @stripe/mcp' --space work      # what a provider's docs say to paste
+opai mcp add docs https://docs.example/mcp            # or say it yourself, in global
 opai mcp add api https://api.example/mcp --header 'Authorization: Bearer ${API_TOKEN}'
 opai mcp move <name> <space>
 opai mcp remove <name> [--space s]
 opai mcp import                                       # the servers the tools keep themselves
 opai mcp import <name>... [--space s]                 # copy them into a space
+opai mcp secrets                                      # the secrets they name: stored or missing
+opai mcp secret set <NAME>                            # store one, typed or piped in
 opai mcp check
 ```
 
 `mcp.json` is committed, so it holds no secret: a value can be `${NAME}` or
-`${NAME:-default}`, read from the environment the tool starts in, and `add`
-refuses a literal token. Name a secret after its own key (`"API_KEY":
-"${API_KEY}"`) or put it in `Authorization: Bearer ${TOKEN}`: Codex then
-reads it from the environment as well, instead of getting it in its
-arguments. `import` reads `~/.claude.json`, `~/.codex/config.toml` and the
-instance's own `claude/` and `codex/`, writes `${HOME}` for paths in the home
-folder, and swaps literal secrets for variables it names.
+`${NAME:-default}`, and `add` refuses a literal token. The values live in the
+instance's Infisical project (`.infisical.yaml`), folder `/mcp`, in its
+default environment. At launch, `opai` reads from there the ones the
+session's servers name and the environment lacks, nothing else, and passes
+them in the tool's environment, never in its arguments; without Infisical, or
+when it fails, the tool starts anyway and those servers lack their token.
+Name a secret after its own key (`"API_KEY": "${API_KEY}"`) or put it in
+`Authorization: Bearer ${TOKEN}`: Codex then reads it from the environment
+too. `paste` and `import` take the tokens out of what they read, store them in
+Infisical, and write `${HOME}` for paths in the home folder; `import` reads
+`~/.claude.json`, `~/.codex/config.toml` and the instance's `claude/` and
+`codex/`.
 
 The `opai` server is not in a space: `opai setup` writes it into the tools'
 configs, for plain `claude` and `codex` too. Servers you add with `claude mcp

@@ -187,7 +187,7 @@ test("import copies a server from the tools' configs, its secrets left behind", 
     url: "https://sentry.example/mcp",
     headers: { Authorization: "Bearer ${SENTRY_TOKEN}" },
   });
-  assert.deepEqual(sentry!.source.secrets, ["SENTRY_TOKEN"]);
+  assert.deepEqual(sentry!.source.secrets, { SENTRY_TOKEN: "s3cret" });
   assert.deepEqual(gsc!.server, {
     command: "npx",
     args: ["-y", "gsc"],
@@ -220,7 +220,9 @@ test("check reports broken files, unset variables and servers defined twice", ()
   );
   const problems = checkServers(root, {});
   assert.ok(problems.some((problem) => problem.includes("billing/mcp.json")));
-  assert.ok(problems.includes("perso/keyed: ${UNSET_TOKEN} is not set here"));
+  assert.ok(
+    problems.includes("perso/keyed: ${UNSET_TOKEN} is in neither Infisical nor the environment"),
+  );
   assert.ok(problems.some((problem) => problem.startsWith("docs is also in")));
   assert.deepEqual(
     listServers(root).map((entry) => entry.name),

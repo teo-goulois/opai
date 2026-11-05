@@ -8,7 +8,8 @@
 //   lacks: SSE servers and headersHelper.
 //
 // Secrets stay out of mcp.json: a value can hold ${NAME} or ${NAME:-default},
-// read from the environment the tool starts in. Give a secret its own name as
+// read from the environment the tool starts in, where opai puts those stored
+// in Infisical (mcp-secrets.ts). Give a secret its own name as
 // the key ("API_KEY": "${API_KEY}"), or put it in an Authorization header
 // ("Bearer ${TOKEN}"): Codex then reads it from the environment too, instead of
 // receiving the value in its arguments.
@@ -54,7 +55,10 @@ const SECRET = /key|token|secret|password|passwd|cookie|authorization/i;
 /** The env variables and headers that look secret and hold a value, not a ${NAME}. */
 function literalSecrets(server: Server) {
   return Object.entries({ ...server.env, ...server.headers })
-    .filter(([key, value]) => SECRET.test(key) && !value.includes("${"))
+    .filter(
+      ([key, value]) =>
+        SECRET.test(key) && !value.includes("${") && !/^(true|false|\d+)$/i.test(value),
+    )
     .map(([key]) => key);
 }
 
@@ -234,8 +238,13 @@ export function inlineToml(value: unknown): string {
 }
 
 /** The arguments that bring a session's servers, for `opai claude` and `opai codex`. */
-export function mcpLaunchArgs(root: string, tool: "claude" | "codex", cwd: string) {
-  const servers = sessionServers(root, cwd);
+export function mcpLaunchArgs(
+  root: string,
+  tool: "claude" | "codex",
+  cwd: string,
+  env = process.env,
+  servers = sessionServers(root, cwd),
+) {
   const names = Object.keys(servers);
   if (names.length === 0) return [];
   if (tool === "claude") {
@@ -250,7 +259,7 @@ export function mcpLaunchArgs(root: string, tool: "claude" | "codex", cwd: strin
     return [`--mcp-config=${file}`];
   }
   return names.flatMap((name) => {
-    const table = codexServer(servers[name]!);
+    const table = codexServer(servers[name]!, env);
     return table ? ["-c", `mcp_servers.${name}=${inlineToml(table)}`] : [];
   });
 }
@@ -325,8 +334,8 @@ export type Found = {
   server: Server;
   /** Settings mcp.json has no place for, left behind on import. */
   dropped: string[];
-  /** Literal values that look like secrets, replaced by ${NAME} on import. */
-  secrets: string[];
+  /** Literal values taken out, by the variable now in their place: for Infisical, never shown. */
+  secrets: Record<string, string>;
 };
 
 function variableName(text: string) {
@@ -338,11 +347,12 @@ function variableName(text: string) {
  * ${NAME} (mcp.json is committed), and paths in the home folder ${HOME}/...,
  * so the server runs on another machine too.
  */
-function portable(name: string, server: Server) {
+export function portable(name: string, server: Server) {
   const home = homedir();
   const local = (text: string) =>
     text === home || text.startsWith(`${home}/`) ? `\${HOME}${text.slice(home.length)}` : text;
-  const secrets: string[] = [];
+  /** The literal values taken out, by the variable that replaces them. */
+  const secrets: Record<string, string> = {};
   const result: Server = { ...server };
   if (result.command) result.command = local(result.command);
   if (result.args) result.args = result.args.map(local);
@@ -354,8 +364,8 @@ function portable(name: string, server: Server) {
       Object.entries(server.env).map(([key, value]) => [key, local(value)]),
     );
     for (const key of literalSecrets({ env })) {
+      secrets[key] = env[key]!;
       env[key] = `\${${key}}`;
-      secrets.push(key);
     }
     result.env = env;
   }
@@ -366,8 +376,8 @@ function portable(name: string, server: Server) {
       const variable = variableName(
         key.toLowerCase() === "authorization" ? `${name}_TOKEN` : `${name}_${key}`,
       );
+      secrets[variable] = bearer ? headers[key]!.replace(/^bearer\s+/i, "") : headers[key]!;
       headers[key] = bearer ? `Bearer \${${variable}}` : `\${${variable}}`;
-      secrets.push(variable);
     }
     result.headers = headers;
   }
@@ -508,8 +518,11 @@ export function importServers(
 
 // --- Checks ----------------------------------------------------------------
 
-/** What is wrong with the servers; empty when all is well. */
-export function checkServers(root: string, env = process.env): string[] {
+/**
+ * What is wrong with the servers; empty when all is well. `env` holds the
+ * variables a launch would have: the environment and the stored secrets.
+ */
+export function checkServers(root: string, env: NodeJS.ProcessEnv = process.env): string[] {
   const problems: string[] = [];
   for (const space of loadSpaces(root)) {
     let servers: Record<string, Server>;
@@ -529,7 +542,7 @@ export function checkServers(root: string, env = process.env): string[] {
       const text = JSON.stringify(server);
       for (const [, variable, fallback] of text.matchAll(TEMPLATE)) {
         if (!env[variable!] && fallback === undefined) {
-          problems.push(`${where}: \${${variable}} is not set here`);
+          problems.push(`${where}: \${${variable}} is in neither Infisical nor the environment`);
         }
       }
     }
