@@ -38,9 +38,11 @@ test("init refuses a folder that holds something else", () => {
   assert.throws(() => createInstance(other), /not empty/);
 });
 
-test("setup points the hooks and the MCP server to the engine", () => {
+test("setup points the hooks and the MCP server to the engine, through this machine's links", () => {
   setupInstance(paths);
-  const hook = `OPAI_HOME="${home}" "${process.execPath}" "${join(ENGINE, "packages/context/src/hook.ts")}" session`;
+  assert.equal(readlinkSync(join(home, ".local", "node")), process.execPath);
+  assert.equal(readlinkSync(join(home, ".local", "engine")), ENGINE);
+  const hook = `OPAI_HOME="${home}" "${home}/.local/node" "${home}/.local/engine/packages/context/src/hook.ts" session`;
   for (const settings of [json("claude/settings.json"), json("codex/hooks.json")]) {
     assert.deepEqual(settings.hooks.SessionStart, [
       { hooks: [{ type: "command", command: hook, timeout: 5 }] },
@@ -49,7 +51,11 @@ test("setup points the hooks and the MCP server to the engine", () => {
   assert.deepEqual(json("claude/settings.json").permissions.allow, ["mcp__opai"]);
   const toml = readFileSync(join(home, "codex", "config.toml"), "utf8");
   assert.match(toml, /\[mcp_servers\.opai\]/);
-  assert.match(toml, new RegExp(`OPAI_HOME = "${home}"`));
+  const args = toml.match(/^args = (\[.*\])$/m)?.[1];
+  assert.deepEqual(JSON.parse(args ?? "[]"), [
+    "-c",
+    `OPAI_HOME="${home}" exec "${home}/.local/node" "${home}/.local/engine/packages/context/src/mcp.ts"`,
+  ]);
   assert.equal(readlinkSync(join(home, "claude", "CLAUDE.md")), "../spaces/global/AGENTS.md");
   assert.equal(
     execFileSync("git", ["-C", home, "config", "core.hooksPath"], { encoding: "utf8" }).trim(),
@@ -76,11 +82,41 @@ test("setup keeps what it does not own, and changes nothing the second time", ()
   assert.equal(toml.match(/\[mcp_servers\.opai\]/g)?.length, 1);
 });
 
-test("the hook of a new instance names its space", () => {
-  const output = execFileSync(process.execPath, [join(import.meta.dirname, "hook.ts"), "session"], {
+test("the hook of a new instance names its space, run as the config writes it", () => {
+  const { command } = json("codex/hooks.json").hooks.SessionStart[0].hooks[0];
+  const output = execFileSync("/bin/sh", ["-c", command], {
     encoding: "utf8",
     input: JSON.stringify({ cwd: base }),
-    env: { ...process.env, OPAI_HOME: home },
   });
   assert.match(JSON.parse(output).hookSpecificOutput.additionalContext, /personal/);
+});
+
+test("an instance in the home folder is named from $HOME, the same on every machine", () => {
+  const saved = process.env.HOME;
+  process.env.HOME = base;
+  try {
+    const shared = join(base, "shared");
+    createInstance(shared);
+    setupInstance({ ...paths, home: shared });
+    const { command } = JSON.parse(readFileSync(join(shared, "claude", "settings.json"), "utf8"))
+      .hooks.SessionStart[0].hooks[0];
+    assert.match(command, /^OPAI_HOME="\$HOME\/shared" "\$HOME\/shared\/\.local\/node" /);
+    const output = execFileSync("/bin/sh", ["-c", command], {
+      encoding: "utf8",
+      input: JSON.stringify({ cwd: base }),
+      env: { ...process.env, HOME: base },
+    });
+    assert.match(JSON.parse(output).hookSpecificOutput.additionalContext, /personal/);
+  } finally {
+    process.env.HOME = saved;
+  }
+});
+
+test("setup on another machine only moves its links", () => {
+  const other = { ...paths, node: join(base, "other-node") };
+  writeFileSync(other.node, "");
+  const before = readFileSync(join(home, "claude", "settings.json"), "utf8");
+  assert.deepEqual(setupInstance(other).changed, [`.local/node → ${other.node} (this machine's)`]);
+  assert.equal(readFileSync(join(home, "claude", "settings.json"), "utf8"), before);
+  setupInstance(paths);
 });

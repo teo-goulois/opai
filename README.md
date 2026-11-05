@@ -190,6 +190,11 @@ yourself; the next run pushes it. `opai sync --install` runs it every 10
 minutes with launchd (macOS); log in `~/Library/Logs/opai/sync.log`. A
 conflict or a secret stops it with a notification.
 
+Several machines can share one instance: clone it at the same place under
+your home folder, then run `opai setup` on each. The tracked configs name the
+instance from `$HOME` and reach the engine and node only through
+`.local/engine` and `.local/node`, two links each machine points to its own.
+
 Sessions stay on the machine, and Claude Code deletes its own after 30 days.
 So the sync first copies each skill use it finds in them into
 `spaces/<space>/agents/usage/<machine>.jsonl`, one JSON line per use, in the

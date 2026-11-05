@@ -10,6 +10,11 @@
 // claude/settings.json and codex/hooks.json, its MCP server (a marked block in
 // codex/config.toml, `claude mcp add` for Claude Code), the instruction links
 // and the skill links. Everything else in those files is kept.
+//
+// Several machines can share one instance through Git. The tracked files name
+// the engine and node only through two links in .local/ (ignored by Git),
+// which each machine's setup points to its own, and name the instance from
+// $HOME when it lives there.
 
 import { execFileSync, spawnSync } from "node:child_process";
 import {
@@ -19,12 +24,14 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  readlinkSync,
   renameSync,
+  rmSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
-import { delimiter, join, resolve } from "node:path";
+import { delimiter, join, resolve, sep } from "node:path";
 
 import { link } from "./skills.ts";
 import { ENGINE, homePath, ROOT } from "./spaces.ts";
@@ -61,7 +68,19 @@ export function setupInstance({ home, engine, node }: Paths): SetupReport {
   for (const path of [home, engine, node]) {
     if (/["$`\\\n]/.test(path)) throw new Error(`Unsupported character in ${path}`);
   }
-  const hook = `OPAI_HOME="${home}" "${node}" "${join(engine, HOOK_MARK.slice(1))}" session`;
+  mkdirSync(join(home, ".local"), { recursive: true });
+  for (const [name, target] of Object.entries({ node, engine })) {
+    const path = join(home, ".local", name);
+    if (present(path) && readlinkSync(path) === target) continue;
+    rmSync(path, { force: true });
+    symlinkSync(target, path);
+    report.changed.push(`.local/${name} → ${homePath(target)} (this machine's)`);
+  }
+  const at = portable(home);
+  const env = `OPAI_HOME="${at}"`;
+  const run = (script: string) =>
+    `"${at}/.local/node" "${at}/.local/engine/packages/context/src/${script}"`;
+  const hook = `${env} ${run("hook.ts")} session`;
 
   for (const tool of ["claude", "codex"]) {
     mkdirSync(join(home, tool), { recursive: true });
@@ -77,7 +96,8 @@ export function setupInstance({ home, engine, node }: Paths): SetupReport {
 
   editJson(home, "claude/settings.json", report, (settings) => {
     // Claude reads ~/.claude/CLAUDE.md as the instructions of a parent folder
-    // of every project under ~, whatever its config folder.
+    // of every project under ~, whatever its config folder. Each machine adds
+    // its own home folder.
     settings.claudeMdExcludes = union(settings.claudeMdExcludes, [
       join(homedir(), ".claude", "**"),
     ]);
@@ -92,9 +112,9 @@ export function setupInstance({ home, engine, node }: Paths): SetupReport {
   editToml(home, report, [
     TOML_START,
     "[mcp_servers.opai]",
-    `command = ${JSON.stringify(node)}`,
-    `args = [${JSON.stringify(join(engine, "packages", "context", "src", "mcp.ts"))}]`,
-    `env = { OPAI_HOME = ${JSON.stringify(home)} }`,
+    // Through a shell, so that $HOME is this machine's.
+    'command = "/bin/sh"',
+    `args = ["-c", ${JSON.stringify(`${env} exec ${run("mcp.ts")}`)}]`,
     "",
     "# The writing tools only create new files in spaces/<space>/agents/.",
     "[mcp_servers.opai.tools.journal_append]",
@@ -139,6 +159,12 @@ export function registerClaudeMcp({ home, engine, node }: Paths) {
 // --- Helpers ----------------------------------------------------------------
 
 type Json = Record<string, unknown>;
+
+/** A path under the user's home folder written from $HOME, for a shell to expand. */
+function portable(path: string) {
+  const home = homedir();
+  return path.startsWith(home + sep) ? `$HOME${path.slice(home.length)}` : path;
+}
 
 function present(path: string) {
   try {
