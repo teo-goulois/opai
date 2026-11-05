@@ -15,6 +15,10 @@
 // the engine and node only through two links in .local/ (ignored by Git),
 // which each machine's setup points to its own, and name the instance from
 // $HOME when it lives there.
+//
+// The transcripts of opai claude|codex go where plain claude and codex keep
+// theirs (claude/projects, codex/sessions and codex/archived_sessions link to
+// ~/.claude and ~/.codex), so usage tools and /resume see every session.
 
 import { execFileSync, spawnSync } from "node:child_process";
 import {
@@ -26,6 +30,7 @@ import {
   readFileSync,
   readlinkSync,
   renameSync,
+  rmdirSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -43,6 +48,8 @@ export type Paths = {
   engine: string;
   /** The node binary the hooks and the MCP server run with. */
   node: string;
+  /** The tools' own folders, ~/.claude and ~/.codex by default. */
+  tools?: { claude: string; codex: string };
 };
 
 export type SetupReport = { changed: string[]; notes: string[] };
@@ -63,7 +70,7 @@ export function createInstance(home: string, engine = ENGINE) {
 }
 
 /** Points the instance's tool configs to the engine. Safe to run again. */
-export function setupInstance({ home, engine, node }: Paths): SetupReport {
+export function setupInstance({ home, engine, node, tools }: Paths): SetupReport {
   const report: SetupReport = { changed: [], notes: [] };
   for (const path of [home, engine, node]) {
     if (/["$`\\\n]/.test(path)) throw new Error(`Unsupported character in ${path}`);
@@ -125,6 +132,12 @@ export function setupInstance({ home, engine, node }: Paths): SetupReport {
     TOML_END,
   ]);
 
+  shareTranscripts(
+    home,
+    tools ?? { claude: join(homedir(), ".claude"), codex: join(homedir(), ".codex") },
+    report,
+  );
+
   const links = link(home);
   report.changed.push(...links.added.map((path) => `${path} (link)`));
   report.notes.push(...links.conflicts);
@@ -159,6 +172,62 @@ export function registerClaudeMcp({ home, engine, node }: Paths) {
 // --- Helpers ----------------------------------------------------------------
 
 type Json = Record<string, unknown>;
+
+const TRANSCRIPTS = [
+  ["claude", "projects"],
+  ["codex", "sessions"],
+  ["codex", "archived_sessions"],
+] as const;
+
+/**
+ * Links the instance's transcript folders to the tools' own. Transcripts
+ * already there move over; the link goes in first, so a running session keeps
+ * writing to the same file.
+ */
+function shareTranscripts(
+  home: string,
+  tools: { claude: string; codex: string },
+  report: SetupReport,
+) {
+  for (const [tool, folder] of TRANSCRIPTS) {
+    const source = join(home, tool, folder);
+    const target = join(tools[tool], folder);
+    const linked = present(source) && lstatSync(source).isSymbolicLink();
+    if (linked && readlinkSync(source) === target) continue;
+    mkdirSync(target, { recursive: true });
+    let moving: string | undefined;
+    if (linked) rmSync(source);
+    else if (present(source)) {
+      moving = `${source}.moving-${Date.now()}`;
+      renameSync(source, moving);
+    }
+    symlinkSync(target, source);
+    if (moving) merge(moving, target);
+    report.changed.push(`${tool}/${folder} → ${homePath(target)} (shared with plain ${tool})`);
+  }
+}
+
+/**
+ * Moves every file of `from` into `to`, then removes `from`. A file in both,
+ * which a running session wrote again after the move, keeps its older lines
+ * first.
+ */
+function merge(from: string, to: string) {
+  for (const entry of readdirSync(from, { withFileTypes: true })) {
+    const source = join(from, entry.name);
+    const target = join(to, entry.name);
+    if (entry.isDirectory() && (!present(target) || lstatSync(target).isDirectory())) {
+      mkdirSync(target, { recursive: true });
+      merge(source, target);
+    } else if (!present(target)) {
+      renameSync(source, target);
+    } else {
+      writeFileSync(source, readFileSync(target), { flag: "a" });
+      renameSync(source, target);
+    }
+  }
+  rmdirSync(from);
+}
 
 /** A path under the user's home folder written from $HOME, for a shell to expand. */
 function portable(path: string) {

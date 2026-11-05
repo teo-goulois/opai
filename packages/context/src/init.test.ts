@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import {
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   readlinkSync,
   realpathSync,
@@ -21,7 +22,8 @@ const base = realpathSync(mkdtempSync(join(tmpdir(), "opai-init-")));
 after(() => rmSync(base, { recursive: true, force: true }));
 
 const home = join(base, "instance");
-const paths = { home, engine: ENGINE, node: process.execPath };
+const tools = { claude: join(base, "dot-claude"), codex: join(base, "dot-codex") };
+const paths = { home, engine: ENGINE, node: process.execPath, tools };
 const json = (file: string) => JSON.parse(readFileSync(join(home, file), "utf8"));
 
 test("init copies the template into a new folder", () => {
@@ -110,6 +112,30 @@ test("an instance in the home folder is named from $HOME, the same on every mach
   } finally {
     process.env.HOME = saved;
   }
+});
+
+test("setup shares the transcripts with the tools' own folders, keeping every line", () => {
+  const ours = join(home, "claude", "projects");
+  const theirs = join(tools.claude, "projects");
+  rmSync(ours);
+  mkdirSync(join(ours, "work"), { recursive: true });
+  writeFileSync(join(ours, "work", "a.jsonl"), "old\n");
+  writeFileSync(join(ours, "work", "b.jsonl"), "only ours\n");
+  mkdirSync(join(theirs, "work"), { recursive: true });
+  writeFileSync(join(theirs, "work", "a.jsonl"), "new\n");
+
+  assert.deepEqual(setupInstance(paths).changed, [
+    `claude/projects → ${theirs} (shared with plain claude)`,
+  ]);
+  assert.equal(readlinkSync(ours), theirs);
+  assert.equal(readFileSync(join(theirs, "work", "a.jsonl"), "utf8"), "old\nnew\n");
+  assert.equal(readFileSync(join(theirs, "work", "b.jsonl"), "utf8"), "only ours\n");
+  assert.deepEqual(
+    readdirSync(join(home, "claude")).filter((name) => name.includes("moving")),
+    [],
+  );
+  assert.equal(readlinkSync(join(home, "codex", "sessions")), join(tools.codex, "sessions"));
+  assert.deepEqual(setupInstance(paths).changed, []);
 });
 
 test("setup on another machine only moves its links", () => {

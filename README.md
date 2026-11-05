@@ -48,7 +48,10 @@ opai home                 # the instance folder
 
 `OPAI_HOME` points to another instance. For an app that takes a binary path,
 such as T3 Code, `bin/opai-claude` and `bin/opai-codex` run `opai claude|codex`.
-Plain `claude` and `codex` keep using `~/.claude` and `~/.codex`.
+Plain `claude` and `codex` keep using `~/.claude` and `~/.codex`. The
+transcripts are shared: the instance's `claude/projects`, `codex/sessions` and
+`codex/archived_sessions` link to those of `~/.claude` and `~/.codex`, so usage
+tools and `/resume` see every session.
 
 Two things reach a session from outside its config folder, and Opai blocks
 both: Claude reads `~/.claude/CLAUDE.md` as the instructions of a parent
