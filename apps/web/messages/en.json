@@ -285,7 +285,7 @@
   ],
   "space_rules_none": "No rules of its own. Add them in {path}.",
   "space_memory": "Memory",
-  "space_memory_hint": "Facts I validated, in {path}. Agents read them and never write there.",
+  "space_memory_hint": "Facts I validated, in {path}. Agents read them, and write there only once I said yes.",
   "space_memory_none": "No fact yet.",
   "space_journal": "Journal",
   "space_journal_hint": "Work agents recorded here, newest first.",

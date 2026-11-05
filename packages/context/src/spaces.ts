@@ -196,7 +196,7 @@ export function sessionContext(root: string, folder: string) {
   }
   if (existsSync(folders.context)) {
     lines.push(
-      `- The user's notes for this space: ${homePath(folders.context)}/. Read, never write.`,
+      `- The user's notes for this space: ${homePath(folders.context)}/. Change them only with the user's yes, asked in the task or given in one of their rules; otherwise propose the change and record what you found with journal_append.`,
     );
   }
   lines.push(

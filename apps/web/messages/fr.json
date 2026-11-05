@@ -285,7 +285,7 @@
   ],
   "space_rules_none": "Pas de règles propres. Ajoutez-les dans {path}.",
   "space_memory": "Mémoire",
-  "space_memory_hint": "Les faits que j'ai validés, dans {path}. Les agents les lisent et n'y écrivent jamais.",
+  "space_memory_hint": "Les faits que j'ai validés, dans {path}. Les agents les lisent, et n'y écrivent qu'après mon accord.",
   "space_memory_none": "Aucun fait pour l'instant.",
   "space_journal": "Journal",
   "space_journal_hint": "Le travail que les agents ont noté ici, du plus récent au plus ancien.",

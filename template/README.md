@@ -8,7 +8,7 @@ spaces/<name>/
 ├── space.yaml     the folders it claims, the modules it turns off (base, default)
 ├── AGENTS.md      its rules, if it has any
 ├── skills/        its skills
-├── context/       my notes: agents read, never write
+├── context/       my notes: agents write only once I said yes
 └── agents/        what agents write (journal, issues, skill uses)
 handbook/          optional: a handbook, see the engine's README
 claude/            Claude Code's config folder (CLAUDE_CONFIG_DIR)

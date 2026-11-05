@@ -63,7 +63,7 @@ Codex reads `~/.agents/skills` (`opai codex` turns each of those skills off).
 │   ├── space.yaml     the folders it claims, the modules it turns off (base, default)
 │   ├── AGENTS.md      its rules, if it has any
 │   ├── skills/        its skills
-│   ├── context/       your notes: agents read, never write
+│   ├── context/       your notes: agents write only with your yes
 │   └── agents/        what agents write (journal, issues, skill uses)
 ├── handbook/          optional: your handbook, published to a site
 ├── claude/            Claude Code's config folder
