@@ -7,24 +7,27 @@ import {
   EmptyTitle,
 } from "@opai/ui/components/ui/empty";
 import { ORPCError } from "@orpc/client";
-import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { Link, createFileRoute, notFound } from "@tanstack/react-router";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { Link, createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { z } from "zod";
 
 import { RouteError } from "@/components/shared/route-error";
 import { SkillDetailSkeleton, SkillDocument } from "@/components/skills/skill-detail";
+import { useSpaceData } from "@/components/spaces/space-data";
 import { m } from "@/paraglide/messages.js";
 import { orpc } from "@/utils/orpc";
 
 const skillQuery = (name: string) => orpc.skills.get.queryOptions({ input: { name } });
 
-export const Route = createFileRoute("/skills/$name")({
+export const Route = createFileRoute("/spaces/$name/skills/$skill")({
   validateSearch: z.object({
+    tab: z.enum(["settings", "instructions", "source"]).optional().catch(undefined),
     view: z.enum(["preview", "markdown"]).optional().catch(undefined),
   }),
   loader: async ({ context, params }) => {
+    let skill;
     try {
-      await context.queryClient.ensureQueryData(skillQuery(params.name));
+      skill = await context.queryClient.ensureQueryData(skillQuery(params.skill));
     } catch (error) {
       if (
         error instanceof ORPCError &&
@@ -34,6 +37,13 @@ export const Route = createFileRoute("/skills/$name")({
       }
       throw error;
     }
+    // A skill lives in one space: its page is under that space.
+    if (skill.space !== params.name) {
+      throw redirect({
+        to: "/spaces/$name/skills/$skill",
+        params: { name: skill.space, skill: skill.name },
+      });
+    }
   },
   pendingComponent: SkillDetailSkeleton,
   errorComponent: RouteError,
@@ -42,34 +52,37 @@ export const Route = createFileRoute("/skills/$name")({
 });
 
 function SkillPage() {
-  const { name } = Route.useParams();
-  const { view = "preview" } = Route.useSearch();
+  const { name, skill: skillName } = Route.useParams();
+  const { tab = "settings", view = "preview" } = Route.useSearch();
   const navigate = Route.useNavigate();
-  const queryClient = useQueryClient();
-  const query = skillQuery(name);
-  const { data: skill } = useSuspenseQuery(query);
-  const spaces = useQuery(orpc.skills.list.queryOptions());
-  const save = useMutation(
-    orpc.skills.save.mutationOptions({
-      onSuccess: () => void queryClient.invalidateQueries({ queryKey: orpc.skills.key() }),
-    }),
-  );
+  const { data: skill } = useSuspenseQuery(skillQuery(skillName));
+  const { spaces } = useSpaceData(name);
 
   return (
     <SkillDocument
+      key={skill.name}
       skill={skill}
-      spaces={spaces.data?.spaces.map((space) => space.name) ?? [skill.space]}
+      spaces={spaces.map((space) => space.name)}
+      tab={tab}
+      onTabChange={(next) =>
+        void navigate({
+          search: (prev) => ({ ...prev, tab: next === "settings" ? undefined : next }),
+          replace: true,
+        })
+      }
       view={view}
       onViewChange={(next) =>
-        void navigate({ search: { view: next === "preview" ? undefined : next }, replace: true })
+        void navigate({
+          search: (prev) => ({ ...prev, view: next === "preview" ? undefined : next }),
+          replace: true,
+        })
       }
-      onSave={(markdown, baseHash) => save.mutateAsync({ name, markdown, baseHash })}
-      onReload={() => queryClient.refetchQueries({ queryKey: query.queryKey })}
     />
   );
 }
 
 function SkillNotFound() {
+  const { name } = Route.useParams();
   return (
     <Empty>
       <EmptyHeader>
@@ -77,7 +90,7 @@ function SkillNotFound() {
         <EmptyDescription>{m.skill_not_found_description()}</EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
-        <Button variant="outline" render={<Link to="/skills" />}>
+        <Button variant="outline" render={<Link to="/spaces/$name/skills" params={{ name }} />}>
           {m.skills_back()}
         </Button>
       </EmptyContent>

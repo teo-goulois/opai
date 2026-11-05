@@ -3,10 +3,16 @@
 // given at the start (system prompt, instruction files, hook context, skills,
 // tools), then what it did (prompts, replies, tool calls), and the skills it
 // used. Nothing here writes: usage.ts keeps the skill uses.
+//
+// A session can start subagents. Claude Code writes each one next to its
+// session, in <session>/subagents/agent-<id>.jsonl with a .meta.json (its type,
+// the description it was given, the tool call that started it). Codex writes a
+// session of its own, whose session_meta names the parent thread. Both are
+// shown inside the session that started them, not in the list.
 
-import { readdir, readFile, stat } from "node:fs/promises";
+import { open, readdir, readFile, stat } from "node:fs/promises";
 import { homedir } from "node:os";
-import { basename, isAbsolute, join, relative, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 
 import { Data, Effect } from "effect";
 import { z } from "zod";
@@ -60,6 +66,8 @@ export type Step =
       input: string;
       output?: string | undefined;
       error?: boolean | undefined;
+      /** The subagent this call started. */
+      agent?: string | undefined;
     };
 
 export type SkillUse = {
@@ -86,12 +94,19 @@ export type SessionSummary = {
   /** The program that ran the session: T3 Code, codex_exec, the terminal... */
   client: string | undefined;
   startedAt: string | undefined;
+  /** The time of its last prompt, reply or tool call. */
+  endedAt: string | undefined;
   updatedAt: string;
   prompts: number;
   toolCalls: number;
   skills: string[];
   /** Characters of everything given at the start, a rough size of the context. */
   contextChars: number;
+  /** For a subagent: the session that started it, and its type (Explore, a Codex role). */
+  parent: string | undefined;
+  agentType: string | undefined;
+  /** How many subagents it started. */
+  subagents: number;
 };
 
 export type SessionDetail = SessionSummary & {
@@ -104,6 +119,10 @@ export type SessionDetail = SessionSummary & {
   skillsListed: string[];
   steps: Step[];
   uses: SkillUse[];
+  /** The subagents it started, oldest first. */
+  agents: SessionSummary[];
+  /** For a subagent: the title of the session that started it. */
+  parentTitle: string | undefined;
 };
 
 // Long texts are cut: the page is for reading, the file keeps everything.
@@ -221,12 +240,16 @@ export function skillsRead(text: string, listed: Map<string, string>, cwd?: stri
   return names;
 }
 
-type Parsed = Omit<SessionDetail, "file" | "space" | "updatedAt">;
+type Parsed = Omit<
+  SessionDetail,
+  "file" | "space" | "updatedAt" | "subagents" | "agents" | "parentTitle"
+>;
 
 function finish(parsed: Parsed): Parsed {
   parsed.skills = [...new Set(parsed.uses.map((use) => use.skill))];
   parsed.prompts = parsed.steps.filter((step) => step.kind === "prompt").length;
   parsed.toolCalls = parsed.steps.filter((step) => step.kind === "tool").length;
+  parsed.endedAt = [...parsed.steps].reverse().find((step) => step.at)?.at;
   parsed.contextChars = parsed.context.reduce((sum, item) => sum + item.chars, 0);
   parsed.origins = totalSources(parsed.context.map((item) => item.sources));
   parsed.tools = [...new Set(parsed.tools)];
@@ -243,6 +266,9 @@ function empty(id: string, harness: Harness): Parsed {
     model: undefined,
     client: undefined,
     startedAt: undefined,
+    endedAt: undefined,
+    parent: undefined,
+    agentType: undefined,
     prompts: 0,
     toolCalls: 0,
     skills: [],
@@ -281,8 +307,11 @@ function systemParts(sections: string[]): ContextPart[] {
   );
 }
 
-/** A Claude Code session file: claude/projects/<folder>/<session>.jsonl. */
-export function parseClaude(id: string, text: string, env: Env): Parsed {
+/**
+ * A Claude Code session file: claude/projects/<folder>/<session>.jsonl. A
+ * subagent's file is all sidechain: `sidechain` reads it instead of skipping it.
+ */
+export function parseClaude(id: string, text: string, env: Env, sidechain = false): Parsed {
   const session = empty(id, "claude");
   const tools = new Map<string, Extract<Step, { kind: "tool" }>>();
   let system: ContextPart[] = [];
@@ -299,7 +328,7 @@ export function parseClaude(id: string, text: string, env: Env): Parsed {
 
   for (const row of rows(text)) {
     const at: string | undefined = row.timestamp;
-    if (row.isSidechain) continue;
+    if (row.isSidechain && !sidechain) continue;
     if (row.cwd && !session.cwd) session.cwd = row.cwd;
     if (at && !session.startedAt) session.startedAt = at;
     if (row.entrypoint && !session.client) session.client = row.entrypoint;
@@ -591,6 +620,12 @@ export function parseCodex(id: string, text: string, env: Env): Parsed {
     if (row.type === "session_meta") {
       session.cwd = p.cwd;
       session.client = p.originator;
+      const spawn = p.source?.subagent?.thread_spawn;
+      if (spawn && typeof spawn.parent_thread_id === "string") {
+        session.parent = spawn.parent_thread_id;
+        session.agentType = typeof spawn.agent_role === "string" ? spawn.agent_role : undefined;
+        if (typeof spawn.agent_nickname === "string") session.title = spawn.agent_nickname;
+      }
       base = textOf(p.base_instructions?.text ?? p.base_instructions);
       if (base) {
         session.context.push(part("system", "Base instructions", base, { origin: "codex" }));
@@ -714,7 +749,7 @@ export function parseCodex(id: string, text: string, env: Env): Parsed {
   // A $mention is a skill only when the session listed one by that name.
   const listed = new Set(session.skillsListed);
   session.uses = session.uses.filter((use) => use.trigger === "model" || listed.has(use.skill));
-  session.title = firstLine(firstPrompt) || id;
+  session.title = session.title || firstLine(firstPrompt) || id;
   return finish(session);
 }
 
@@ -733,7 +768,17 @@ function firstLine(text: string) {
 
 // --- Files -----------------------------------------------------------------
 
-type SessionFile = { id: string; harness: Harness; path: string; mtime: number; size: number };
+type SessionFile = {
+  id: string;
+  harness: Harness;
+  path: string;
+  mtime: number;
+  size: number;
+  /** A Claude subagent: what its .meta.json says. */
+  agent?: AgentMeta | undefined;
+};
+
+type AgentMeta = { parent: string; description?: string; type?: string; toolUseId?: string };
 
 async function walk(folder: string, keep: (name: string) => boolean): Promise<string[]> {
   let entries;
@@ -775,7 +820,62 @@ export async function sessionFiles(root: string): Promise<SessionFile[]> {
       return { ...file, mtime: info.mtimeMs, size: info.size };
     }),
   );
-  return files.sort((a, b) => b.mtime - a.mtime);
+  // Newest first, then by id: the order a page's cursor counts on.
+  return files.sort((a, b) => b.mtime - a.mtime || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+}
+
+/** The folder of a Claude session's subagents. */
+const agentsFolder = (file: SessionFile) => join(dirname(file.path), file.id, "subagents");
+
+const AGENT_FILE = /^agent-([A-Za-z0-9-]{8,80})\.jsonl$/;
+
+async function readMeta(path: string, parent: string): Promise<AgentMeta> {
+  try {
+    // Claude Code can write the object twice in a row: read the last one.
+    const objects = (await readFile(path, "utf8")).trim().split(/(?<=\})\s*(?=\{)/);
+    const meta = JSON.parse(objects.at(-1) ?? "{}") as Record<string, unknown>;
+    const text = (key: string) => (typeof meta[key] === "string" ? meta[key] : undefined);
+    return {
+      parent,
+      ...(text("description") ? { description: text("description") } : {}),
+      ...(text("agentType") ? { type: text("agentType") } : {}),
+      ...(text("toolUseId") ? { toolUseId: text("toolUseId") } : {}),
+    };
+  } catch {
+    return { parent };
+  }
+}
+
+/** The subagent files of a Claude session; none for Codex, whose subagents are sessions. */
+async function agentFiles(file: SessionFile): Promise<SessionFile[]> {
+  if (file.harness !== "claude") return [];
+  const folder = agentsFolder(file);
+  let names: string[];
+  try {
+    names = await readdir(folder);
+  } catch {
+    return [];
+  }
+  return Promise.all(
+    names.flatMap((name) => {
+      const id = AGENT_FILE.exec(name)?.[1];
+      if (!id) return [];
+      const path = join(folder, name);
+      return [
+        (async () => {
+          const info = await stat(path);
+          return {
+            id,
+            harness: "claude" as const,
+            path,
+            mtime: info.mtimeMs,
+            size: info.size,
+            agent: await readMeta(join(folder, `agent-${id}.meta.json`), file.id),
+          };
+        })(),
+      ];
+    }),
+  );
 }
 
 // Parsed sessions, kept while their file does not change.
@@ -787,12 +887,22 @@ export async function readSession(root: string, file: SessionFile): Promise<Sess
   const text = await readFile(file.path, "utf8");
   const env = machineEnv(root);
   const parsed =
-    file.harness === "claude" ? parseClaude(file.id, text, env) : parseCodex(file.id, text, env);
+    file.harness === "claude"
+      ? parseClaude(file.id, text, env, file.agent !== undefined)
+      : parseCodex(file.id, text, env);
+  if (file.agent) {
+    parsed.parent = file.agent.parent;
+    parsed.agentType = file.agent.type;
+    if (file.agent.description) parsed.title = file.agent.description;
+  }
   const session: SessionDetail = {
     ...parsed,
     file: relative(root, file.path),
     space: parsed.cwd ? which(root, parsed.cwd)?.space.name : undefined,
     updatedAt: new Date(file.mtime).toISOString(),
+    subagents: 0,
+    agents: [],
+    parentTitle: undefined,
   };
   cache.set(file.path, { mtime: file.mtime, size: file.size, session });
   return session;
@@ -806,32 +916,200 @@ function summary(session: SessionDetail): SessionSummary {
     skillsListed: _listed,
     steps: _steps,
     uses: _uses,
+    agents: _agents,
+    parentTitle: _parentTitle,
     ...rest
   } = session;
   return rest;
 }
 
-export const listSessions = (root: string) =>
+/** The first line of a file: a Codex session's session_meta. */
+async function headLine(path: string) {
+  const handle = await open(path, "r");
+  try {
+    const chunks: Buffer[] = [];
+    let position = 0;
+    // session_meta holds the base instructions: tens of kilobytes.
+    while (position < 4_000_000) {
+      const { buffer, bytesRead } = await handle.read(Buffer.alloc(65_536), 0, 65_536, position);
+      if (bytesRead === 0) break;
+      const chunk = buffer.subarray(0, bytesRead);
+      const end = chunk.indexOf(10);
+      chunks.push(end === -1 ? chunk : chunk.subarray(0, end));
+      if (end !== -1) break;
+      position += bytesRead;
+    }
+    return Buffer.concat(chunks).toString("utf8");
+  } finally {
+    await handle.close();
+  }
+}
+
+// The parent each Codex session names, kept while its file does not change.
+const parents = new Map<string, { mtime: number; parent: string | undefined }>();
+
+/**
+ * The session a Codex session was started by, if it is a subagent: its first
+ * line says it. Reading only that line keeps a list of thousands quick.
+ */
+async function codexParent(file: SessionFile) {
+  const hit = parents.get(file.path);
+  if (hit?.mtime === file.mtime) return hit.parent;
+  let parent: string | undefined;
+  try {
+    const spawn = JSON.parse(await headLine(file.path))?.payload?.source?.subagent?.thread_spawn;
+    parent = typeof spawn?.parent_thread_id === "string" ? spawn.parent_thread_id : undefined;
+  } catch {
+    parent = undefined;
+  }
+  parents.set(file.path, { mtime: file.mtime, parent });
+  return parent;
+}
+
+/** Each Codex subagent file with the session that started it. */
+async function codexChildren(files: SessionFile[]) {
+  const codex = files.filter((file) => file.harness === "codex");
+  const found = await Promise.all(
+    codex.map(async (file) => ({ file, parent: await codexParent(file) })),
+  );
+  return found.filter((item): item is { file: SessionFile; parent: string } => !!item.parent);
+}
+
+/** Where a page of sessions stops: the last file it read, by date then id. */
+const cursorOf = (file: SessionFile) => `${file.mtime}|${file.id}`;
+
+function after(files: SessionFile[], cursor: string | undefined) {
+  if (!cursor) return 0;
+  const [mtime = "", id = ""] = cursor.split("|");
+  const index = files.findIndex(
+    (file) => file.mtime < Number(mtime) || (file.mtime === Number(mtime) && file.id > id),
+  );
+  return index === -1 ? files.length : index;
+}
+
+export type SessionPage = {
+  sessions: SessionSummary[];
+  /** Pass it back for the next page; undefined after the last one. */
+  next: string | undefined;
+};
+
+/**
+ * A page of sessions, the newest first, from `cursor` on. Only the files of
+ * the page are read: an instance can hold thousands of sessions. Empty
+ * sessions (opened, then closed) and Codex subagents of a session here are
+ * left out, so a page reads files until it has `limit` sessions.
+ */
+export const listSessions = (root: string, cursor?: string, limit = 25) =>
   Effect.tryPromise({
-    try: async () => {
+    try: async (): Promise<SessionPage> => {
       const files = await sessionFiles(root);
-      const sessions = await Promise.all(files.map((file) => readSession(root, file)));
-      // Sessions with nothing in them (opened, then closed) are noise.
-      return sessions.filter((session) => session.prompts > 0).map(summary);
+      const ids = new Set(files.map((file) => file.id));
+      const nested = (session: SessionDetail) =>
+        session.parent !== undefined && ids.has(session.parent);
+      const codexAgents = new Map<string, number>();
+      for (const { parent } of await codexChildren(files)) {
+        if (ids.has(parent)) codexAgents.set(parent, (codexAgents.get(parent) ?? 0) + 1);
+      }
+      const sessions: SessionSummary[] = [];
+      let index = after(files, cursor);
+      let last: SessionFile | undefined;
+      while (index < files.length && sessions.length < limit) {
+        const batch = files.slice(index, index + limit);
+        const read = await Promise.all(
+          batch.map(async (file) => ({
+            file,
+            session: await readSession(root, file),
+            agents: (await agentFiles(file)).length,
+          })),
+        );
+        for (const { file, session, agents } of read) {
+          index += 1;
+          last = file;
+          if (session.prompts === 0 || nested(session)) continue;
+          sessions.push({
+            ...summary(session),
+            subagents: agents + (codexAgents.get(session.id) ?? 0),
+          });
+          if (sessions.length === limit) break;
+        }
+      }
+      return { sessions, next: index < files.length && last ? cursorOf(last) : undefined };
     },
     catch: (cause) => new SessionsUnreadable({ path: root, cause }),
   });
 
+/** A session with its subagents, its Agent calls linked to the subagent each one started. */
+async function withAgents(root: string, file: SessionFile, files: SessionFile[]) {
+  const session = await readSession(root, file);
+  const agentList = await agentFiles(file);
+  const claude = await Promise.all(agentList.map((agent) => readSession(root, agent)));
+  const codex = await Promise.all(
+    (await codexChildren(files))
+      .filter((child) => child.parent === session.id)
+      .map((child) => readSession(root, child.file)),
+  );
+  const agents = [...claude, ...codex].sort((a, b) =>
+    (a.startedAt ?? a.updatedAt).localeCompare(b.startedAt ?? b.updatedAt),
+  );
+  const started = new Map(
+    agentList.flatMap((agent) =>
+      agent.agent?.toolUseId ? [[agent.agent.toolUseId, agent.id]] : [],
+    ),
+  );
+  const parent = files.find((other) => other.id === session.parent);
+  const detail: SessionDetail = {
+    ...session,
+    steps: session.steps.map((step) =>
+      step.kind === "tool" && started.has(step.id)
+        ? { ...step, agent: started.get(step.id) }
+        : step,
+    ),
+    agents: agents.map(summary),
+    subagents: agents.length,
+    parentTitle: parent ? (await readSession(root, parent)).title : undefined,
+  };
+  return detail;
+}
+
+const unreadable = (path: string) => (cause: unknown) => new SessionsUnreadable({ path, cause });
+
+const listFiles = (root: string) =>
+  Effect.tryPromise({ try: () => sessionFiles(root), catch: unreadable(root) });
+
 export const getSession = (root: string, id: string) =>
   Effect.gen(function* () {
-    const files = yield* Effect.tryPromise({
-      try: () => sessionFiles(root),
-      catch: (cause) => new SessionsUnreadable({ path: root, cause }),
-    });
+    const files = yield* listFiles(root);
     const file = files.find((item) => item.id === id);
     if (!file) return yield* Effect.fail(new SessionNotFound({ id }));
     return yield* Effect.tryPromise({
-      try: () => readSession(root, file),
-      catch: (cause) => new SessionsUnreadable({ path: file.path, cause }),
+      try: () => withAgents(root, file, files),
+      catch: unreadable(file.path),
     });
+  });
+
+/** One subagent of a session: a Claude subagent file, or a Codex session it started. */
+export const getSubagent = (root: string, id: string, agent: string) =>
+  Effect.gen(function* () {
+    const files = yield* listFiles(root);
+    const parent = files.find((item) => item.id === id);
+    if (!parent) return yield* Effect.fail(new SessionNotFound({ id }));
+    const found = yield* Effect.tryPromise({
+      try: async () => {
+        const claude = (await agentFiles(parent)).find((item) => item.id === agent);
+        if (claude) return claude;
+        const codex = files.find((item) => item.id === agent && item.harness === "codex");
+        return codex && (await readSession(root, codex)).parent === parent.id ? codex : undefined;
+      },
+      catch: unreadable(parent.path),
+    });
+    if (!found) return yield* Effect.fail(new SessionNotFound({ id: `${id}/${agent}` }));
+    const session = yield* Effect.tryPromise({
+      try: () => withAgents(root, found, files),
+      catch: unreadable(found.path),
+    });
+    // A Claude subagent is not a session of its own: its parent gives the title.
+    return {
+      ...session,
+      parentTitle: (yield* Effect.promise(() => readSession(root, parent))).title,
+    };
   });

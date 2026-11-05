@@ -1,6 +1,7 @@
 import type { SessionSummary } from "@opai/context/sessions";
 import type { SkillCount } from "@opai/context/usage";
 import { Badge } from "@opai/ui/components/ui/badge";
+import { Button } from "@opai/ui/components/ui/button";
 import {
   PageHeader,
   PageMeta,
@@ -10,9 +11,12 @@ import {
 } from "@opai/ui/components/ui/page-header";
 import { Skeleton } from "@opai/ui/components/ui/skeleton";
 import { Link } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
 
 import { m } from "@/paraglide/messages.js";
 import { formatRelative } from "@/utils/format";
+
+import { clientSource, modelSource, SourceTag } from "./session-source";
 
 /** Claude Code or Codex. */
 export function harnessLabel(harness: SessionSummary["harness"]) {
@@ -25,29 +29,46 @@ export function approxTokens(chars: number) {
   return tokens >= 1000 ? `${Math.round(tokens / 100) / 10}k` : String(tokens);
 }
 
+/** The pages after the first: whether there are more, and how to load them. */
+export type MoreSessions = {
+  hasMore: boolean;
+  loading: boolean;
+  error: string | undefined;
+  load: () => void;
+};
+
 export function SessionList({
   sessions,
   skills,
+  more,
 }: {
   sessions: SessionSummary[];
   skills: SkillCount[];
+  more: MoreSessions;
 }) {
   return (
     <div className="flex flex-col gap-xl">
       <PageHeader>
         <PageTitle>{m.sessions_title()}</PageTitle>
-        <PageMeta>{m.sessions_count({ count: sessions.length })}</PageMeta>
+        <PageMeta>
+          {more.hasMore
+            ? m.sessions_count_more({ count: sessions.length })
+            : m.sessions_count({ count: sessions.length })}
+        </PageMeta>
       </PageHeader>
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-xl lg:grid-cols-[minmax(0,1fr)_18rem]">
         {sessions.length > 0 ? (
-          <ul className="flex flex-col self-start overflow-hidden rounded-m bg-neutral-1 edge-outer dark:bg-neutral-2">
-            {sessions.map((session) => (
-              <li key={session.id}>
-                <SessionRow session={session} />
-              </li>
-            ))}
-          </ul>
+          <div className="flex flex-col gap-m self-start">
+            <ul className="-mx-s flex flex-col gap-xxs">
+              {sessions.map((session) => (
+                <li key={session.id}>
+                  <SessionRow session={session} />
+                </li>
+              ))}
+            </ul>
+            <LoadMore more={more} />
+          </div>
         ) : (
           <p className="max-w-prose font-ui text-s text-neutral-7">{m.sessions_none()}</p>
         )}
@@ -60,36 +81,51 @@ export function SessionList({
   );
 }
 
+/** The client and the model of a session, each with its mark. */
+export function SessionSources({ session }: { session: SessionSummary }) {
+  return (
+    <>
+      <SourceTag
+        source={clientSource(session)}
+        title={m.session_client_via({ harness: harnessLabel(session.harness) })}
+        className="text-neutral-9"
+      />
+      {session.model ? (
+        <SourceTag source={modelSource(session.model)} className="text-neutral-9" />
+      ) : null}
+    </>
+  );
+}
+
 function SessionRow({ session }: { session: SessionSummary }) {
   const facts = [
-    session.model,
+    formatRelative(session.updatedAt),
     m.session_prompts({ count: session.prompts }),
     m.session_tool_calls({ count: session.toolCalls }),
+    session.subagents > 0 ? m.session_subagents({ count: session.subagents }) : "",
     m.session_context_tokens({ tokens: approxTokens(session.contextChars) }),
   ].filter(Boolean);
   return (
     <Link
       to="/sessions/$id"
       params={{ id: session.id }}
-      className="flex flex-col gap-xs px-m py-s outline-none transition-colors in-[li:not(:first-child)]:edge-top in-[li:not(:first-child)]:edge-neutral-4 hover:bg-neutral-3 focus-visible:focus-ring focus-visible:-outline-offset-2"
+      className="flex flex-col gap-xs rounded-s px-s py-xs outline-none transition-colors hover:bg-neutral-3 focus-visible:focus-ring"
     >
       <span className="flex min-w-0 flex-wrap items-center gap-xs">
         <span className="min-w-0 font-ui text-m font-medium text-pretty text-neutral-10">
           {session.title}
         </span>
-        <Badge variant="neutral">{harnessLabel(session.harness)}</Badge>
         {session.space ? <Badge variant="neutral">{session.space}</Badge> : null}
       </span>
       <span className="flex flex-col gap-xxs">
-        <span className="font-ui text-s text-neutral-7">
-          {[formatRelative(session.updatedAt), session.client, ...facts]
-            .filter(Boolean)
-            .join(" · ")}
+        <span className="flex flex-wrap items-center gap-x-s gap-y-xxs font-ui text-s text-neutral-7">
+          <SessionSources session={session} />
+          <span>{facts.join(" · ")}</span>
         </span>
         {session.skills.length > 0 ? (
           <span className="flex flex-wrap gap-xxs">
             {session.skills.map((skill) => (
-              <Badge key={skill} variant="accent">
+              <Badge key={skill} variant="neutral">
                 {skill}
               </Badge>
             ))}
@@ -97,6 +133,42 @@ function SessionRow({ session }: { session: SessionSummary }) {
         ) : null}
       </span>
     </Link>
+  );
+}
+
+/**
+ * Loads the next page when the end of the list comes within a screen, and
+ * offers a button for the keyboard, or when the page could not load.
+ */
+function LoadMore({ more }: { more: MoreSessions }) {
+  const sentinel = useRef<HTMLDivElement>(null);
+  const { hasMore, loading, error, load } = more;
+
+  useEffect(() => {
+    const element = sentinel.current;
+    if (!element || !hasMore || loading || error) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) load();
+      },
+      { rootMargin: "0px 0px 100% 0px" },
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [hasMore, loading, error, load]);
+
+  if (!hasMore) return null;
+  return (
+    <div ref={sentinel} className="flex flex-col items-start gap-xs">
+      {error ? (
+        <p role="alert" className="font-ui text-s text-neutral-8">
+          {m.sessions_more_failed({ message: error })}
+        </p>
+      ) : null}
+      <Button variant="ghost" isPending={loading} onClick={load}>
+        {m.sessions_more()}
+      </Button>
+    </div>
   );
 }
 
@@ -114,7 +186,7 @@ function SkillUses({ skills }: { skills: SkillCount[] }) {
           {skills.map((skill) => (
             <li key={skill.skill} className="flex flex-col gap-xxs">
               <span className="flex items-baseline justify-between gap-xs">
-                <span className="min-w-0 truncate font-data text-s text-neutral-10">
+                <span className="min-w-0 truncate font-ui text-s text-neutral-10">
                   {skill.skill}
                 </span>
                 <span className="shrink-0 font-ui text-s text-neutral-8">

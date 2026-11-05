@@ -72,8 +72,8 @@ export function DiffView({
       {files.map((file) => (
         <Collapsible key={file.path} defaultOpen={defaultOpen(file.path)}>
           <CollapsibleTrigger className="gap-s">
-            <span className="min-w-0 flex-1 truncate font-data text-s">{file.path}</span>
-            <span className="shrink-0 font-data text-s text-neutral-7 tabular-nums">
+            <span className="min-w-0 flex-1 truncate font-ui text-s">{file.path}</span>
+            <span className="shrink-0 font-ui text-s text-neutral-7 tabular-nums">
               +{file.additions} −{file.deletions}
             </span>
           </CollapsibleTrigger>

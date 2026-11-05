@@ -119,29 +119,42 @@ is installed, on `127.0.0.1:4748` otherwise. Its pages call the same oRPC proced
 `GUI.md`. The icons are Lucide, or Nucleo when you own it
 (`packages/ui/src/icon/README.md`).
 
-- Spaces: each space's folders, rule files, memory, and the journal entries
-  and issues agents recorded there.
-- Rules: each space's `AGENTS.md` and modules, and the instance's own
-  `AGENTS.md`, editable.
-- Config: what Claude Code and Codex read in `claude/` and `codex/`.
-- Sessions: each session Claude Code and Codex ran on the instance. What the
-  agent was given before the first prompt (system prompt, instruction files,
-  hook context, skills, MCP instructions, tools), with a rough size of each
-  and who put it there (`packages/context/src/origins.ts`), then what it did,
-  and the skills it used.
-- Skills: every skill by space, with its observed uses and what its
-  description costs in every session; edit its `SKILL.md`, move it to another
-  space, import one, and compare an imported one with its source (`opai
-  skills`, below, does the same from a terminal).
-- Automations: what runs on this machine, the Codex app's automations and
-  your launchd agents, next to the registry you keep in a space's
-  `context/ops.md`, editable here. An automation whose id, name or label the
-  registry does not name is flagged; agents installed by apps are set apart.
-  A Codex automation can be paused, resumed, edited (its `automation.toml`)
-  and archived (to `.local/archive/codex-automations/`); one of your launchd
-  agents stopped, started and restarted. The machines of `machines.json`
-  (`{ "machines": [{ "name": "runner", "ssh": "<ssh host>" }] }`) are read
-  through SSH, read-only.
+- Spaces, the root of the navigation: each space's overview (the rules and
+  skills a session there gets, its own and those of `global`, with what they
+  cost), then its rules, skills, memory, journal and issues. A rule or a skill
+  opens under its space. A space turns a module of `global` on or off
+  (`disable` in its `space.yaml`).
+- Skills, across spaces: every skill with its space, trigger, observed uses
+  and what its description costs in every session. A skill's page sets its
+  trigger (automatic, or only on request: `disable-model-invocation`) and the
+  description the agent reads to decide, edits its `SKILL.md`, moves it to
+  another space, and compares an imported one with its source (`opai
+  skills`, below, does the same from a terminal). Import one from either page.
+- Config: what Claude Code and Codex read in `claude/` and `codex/`, and the
+  instance's own `AGENTS.md` and `CLAUDE.md`, editable.
+- Sessions: each session Claude Code and Codex ran on the instance, with the
+  program that ran it (T3 Code, the Codex app, `codex exec`...) and its model.
+  What the agent was given before the first prompt (system prompt, instruction
+  files, hook context, skills, MCP instructions, tools), with a rough size of
+  each and who put it there (`packages/context/src/origins.ts`), then what it
+  did, and the skills it used. The subagents a session started are shown in
+  it, each with its own context and timeline: Claude Code's from
+  `<session>/subagents/`, Codex's from the sessions that name it as parent.
+- Automations: what runs on each machine, the Codex app's automations and
+  your launchd agents, with their schedule in words. The machines of
+  `machines.json` (`{ "machines": [{ "name": "runner", "ssh": "<ssh host>" }] }`)
+  are read through SSH, read-only. The registry you keep in a space's
+  `context/ops.md` is read as entries: a heading whose text holds
+  `- **Label:** value` lines. An automation belongs to the entry that names
+  its id or label in its `Trigger`, `Manager`, `Automation ID` or `Where`
+  line (else anywhere in it, or whose title is its name); one the registry
+  does not name at all is flagged, and agents installed by apps are set apart.
+  Entries no automation matches (a Grok Bot routine, an agent hook) are listed
+  as known only from the registry. An automation's page shows where it runs,
+  its prompt, and its entry, which can be edited alone. A Codex automation can
+  be paused, resumed, edited (its `automation.toml`) and archived (to
+  `.local/archive/codex-automations/`); one of your launchd agents stopped,
+  started and restarted, on this machine only.
 - Handbook: the instance's handbook, edited in place and published to a site
   (below).
 - Analytics: Umami numbers of the sites in `analytics.json`. The keys come

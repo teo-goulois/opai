@@ -13,6 +13,7 @@ import {
   ChevronsUpDown,
   ClipboardList,
   Command,
+  Ellipsis,
   Expand,
   FileText,
   Folder,
@@ -32,6 +33,7 @@ import {
   ScrollText,
   Search,
   Sparkle,
+  SquareTerminal,
   Sun,
   Terminal,
   Trash2,
@@ -71,6 +73,7 @@ export const InfoIcon = icon(Info);
 export const LanguageIcon = icon(Languages);
 export const LoaderIcon = icon(Loader);
 export const MoonIcon = icon(Moon);
+export const MoreIcon = icon(Ellipsis);
 export const MoveIcon = icon(ArrowRight);
 export const OpsIcon = icon(ClipboardList);
 export const OwnedIcon = icon(User);
@@ -86,6 +89,7 @@ export const SkillIcon = icon(Sparkle);
 export const SpacesIcon = icon(Layers);
 export const SunIcon = icon(Sun);
 export const SystemThemeIcon = icon(Monitor);
+export const TerminalIcon = icon(SquareTerminal);
 export const TrendDownIcon = icon(TrendingDown);
 export const TrendUpIcon = icon(TrendingUp);
 export const VendoredIcon = icon(Box);

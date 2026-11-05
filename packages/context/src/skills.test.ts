@@ -25,6 +25,7 @@ import {
   parseSource,
   recordSource,
   removeSkill,
+  configureSkill,
   saveSkill,
   skillDetail,
   updateSkill,
@@ -208,5 +209,26 @@ test("saves a SKILL.md only from its latest version, under the same name", () =>
   assert.equal(saved.explicitOnly, true);
   assert.ok(
     existsSync(join(root, "spaces", "global", "skills", "localify", "agents", "openai.yaml")),
+  );
+});
+
+test("configures the description and the invocation, keeping the rest of SKILL.md", () => {
+  const before = skillDetail(root, "localify");
+  const body = before.markdown.replace(/^---[\s\S]*?---/, "");
+  const manual = configureSkill(
+    root,
+    "localify",
+    { description: "Use for local domains.", explicitOnly: true },
+    before.hash,
+  );
+  assert.equal(manual.description, "Use for local domains.");
+  assert.equal(manual.explicitOnly, true);
+  assert.equal(manual.markdown.replace(/^---[\s\S]*?---/, ""), body);
+  const auto = configureSkill(root, "localify", { explicitOnly: false }, manual.hash);
+  assert.equal(auto.explicitOnly, false);
+  assert.doesNotMatch(auto.markdown, /disable-model-invocation/);
+  assert.throws(
+    () => configureSkill(root, "localify", { description: " " }, auto.hash),
+    /needs a description/,
   );
 });

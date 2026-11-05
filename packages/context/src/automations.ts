@@ -9,10 +9,12 @@
 //   for whether each one runs (macOS only).
 //
 // This machine is read directly; the machines of `machines.json` at the root
-// of the instance through SSH, read-only. An automation counts as documented
-// when its id, name or label appears in a registry. On this machine, a Codex
-// automation can be paused, resumed, edited and archived, and one of your
-// launchd agents stopped, started and restarted.
+// of the instance through SSH, read-only. The registry is read as entries: a
+// heading whose text holds `- **Label:** …` lines. An automation belongs to
+// the entry that names its id or label (or whose title is its name), and
+// counts as documented when a registry names it at all ("Not mine"). On this
+// machine, a Codex automation can be paused, resumed, edited and archived,
+// and one of your launchd agents stopped, started and restarted.
 
 import { execFile, execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync } from "node:fs";
@@ -24,14 +26,29 @@ import { parse as parseToml } from "smol-toml";
 import { z } from "zod";
 
 import { hashText, readText, StaleWrite, writeText } from "./files.ts";
-import { outline, type Heading } from "./markdown/document.ts";
+import { blocks, outline, type Heading } from "./markdown/document.ts";
 import { homePath, loadSpaces } from "./spaces.ts";
+
+/** Where the registry describes an automation: a space, and the id of its heading. */
+export type EntryRef = { space: string; id: string };
+
+/** One automation as the registry describes it. */
+export type RegistryEntry = EntryRef & {
+  title: string;
+  /** Its `- **Label:** text` lines, in order; the text is Markdown. */
+  fields: { label: string; text: string }[];
+};
 
 export type CodexAutomation = {
   id: string;
   name: string;
   /** "heartbeat" posts in a chat, "cron" starts a run in a project. */
   kind: string;
+  /** The whole prompt. */
+  prompt: string;
+  /** For a run in a project: its model and folder. */
+  model: string | undefined;
+  folder: string | undefined;
   status: "active" | "paused";
   /** The RRULE, without DTSTART. */
   schedule: string;
@@ -41,6 +58,8 @@ export type CodexAutomation = {
   summary: string;
   /** Where the file is, from ~ of its machine. */
   path: string;
+  entry: EntryRef | undefined;
+  /** A registry names it, in its own entry or elsewhere. */
   documented: boolean;
 };
 
@@ -63,6 +82,8 @@ export type LaunchAgent = {
   /** Installed by an app (no program of its own, or one under an app's folders), not yours. */
   fromApp: boolean;
   path: string;
+  entry: EntryRef | undefined;
+  /** A registry names it, in its own entry or elsewhere. */
   documented: boolean;
 };
 
@@ -80,15 +101,36 @@ export type Registry = {
 
 export type Automations = MachineAutomations & {
   registries: Registry[];
+  /** Every entry of every registry. */
+  entries: RegistryEntry[];
   /** The other machines of machines.json, read on demand (`readMachine`). */
   machines: string[];
 };
 
-export type RegistryFile = Registry & { markdown: string; hash: string; sections: Heading[] };
+export type RegistryFile = Registry & {
+  markdown: string;
+  hash: string;
+  sections: Heading[];
+  entries: number;
+};
+
+/** One entry and its text: the heading and what follows, up to the next one. */
+export type EntryFile = RegistryEntry & {
+  /** The registry it is in, relative to the instance. */
+  path: string;
+  markdown: string;
+  /** Of the whole registry: an edit replaces the entry if the file did not change. */
+  hash: string;
+};
 
 export type CodexFile = { path: string; id: string; text: string; hash: string };
 
 export class RegistryNotFound extends Data.TaggedError("RegistryNotFound")<{ space: string }> {}
+
+export class EntryNotFound extends Data.TaggedError("EntryNotFound")<{
+  space: string;
+  id: string;
+}> {}
 
 /** Not an automation Opai may change on this machine. */
 export class AutomationNotFound extends Data.TaggedError("AutomationNotFound")<{
@@ -118,10 +160,91 @@ export function listRegistries(root: string): Registry[] {
   });
 }
 
-function registryText(root: string) {
-  return listRegistries(root)
-    .map((registry) => readFileSync(join(root, registry.path), "utf8"))
-    .join("\n");
+const FIELD = /^[-*] \*\*([^*]+?):\*\*\s*(.*)$/;
+
+/** The `- **Label:** text` lines of a text, each with its indented lines; fences skipped. */
+function fieldsOf(text: string) {
+  const fields: { label: string; text: string }[] = [];
+  let fence = false;
+  let current: { label: string; text: string } | undefined;
+  for (const line of text.split("\n")) {
+    if (/^(```|~~~)/.test(line)) {
+      fence = !fence;
+      current = undefined;
+      continue;
+    }
+    if (fence) continue;
+    const field = FIELD.exec(line);
+    if (field) {
+      current = { label: field[1]!.trim(), text: field[2]!.trim() };
+      fields.push(current);
+    } else if (current && /^\s+\S/.test(line)) {
+      current.text = `${current.text} ${line.trim()}`.trim();
+    } else {
+      current = undefined;
+    }
+  }
+  return fields;
+}
+
+export type ParsedEntry = RegistryEntry & { markdown: string; start: number; end: number };
+
+/** The entries of a registry: each heading whose own text has fields. */
+export function parseEntries(space: string, markdown: string): ParsedEntry[] {
+  return blocks(markdown).flatMap((block) => {
+    const fields = fieldsOf(markdown.slice(block.start, block.ownEnd));
+    if (fields.length === 0) return [];
+    return [
+      {
+        space,
+        id: block.id,
+        title: block.title,
+        fields,
+        markdown: markdown.slice(block.start, block.end),
+        start: block.start,
+        end: block.end,
+      },
+    ];
+  });
+}
+
+/** What the registries say: their entries, and their whole text. */
+export type Known = { entries: ParsedEntry[]; text: string };
+
+function readKnown(root: string): Known {
+  const files = listRegistries(root).map((registry) => ({
+    space: registry.space,
+    text: readFileSync(join(root, registry.path), "utf8"),
+  }));
+  return {
+    entries: files.flatMap((file) => parseEntries(file.space, file.text)),
+    text: files.map((file) => file.text).join("\n"),
+  };
+}
+
+// Fields that say what runs an entry: they win over a mention elsewhere.
+const RUNS = /^(trigger|manager|automation id|where)$/i;
+
+/** The entry that names one of `keys` (an id, a label), or whose title is `title`. */
+export function findEntry(
+  entries: ParsedEntry[],
+  keys: string[],
+  title?: string,
+): EntryRef | undefined {
+  const names = keys.filter(Boolean);
+  const named = (text: string) => names.some((key) => text.includes(key));
+  const found =
+    entries.find((entry) =>
+      named(
+        entry.fields
+          .filter((field) => RUNS.test(field.label))
+          .map((field) => field.text)
+          .join("\n"),
+      ),
+    ) ??
+    entries.find((entry) => title !== undefined && entry.title === title) ??
+    entries.find((entry) => named(entry.markdown));
+  return found ? { space: found.space, id: found.id } : undefined;
 }
 
 const findRegistry = (root: string, space: string) =>
@@ -140,8 +263,57 @@ export const getRegistry = (root: string, space: string) =>
       markdown,
       hash: hashText(markdown),
       sections: outline(markdown).filter((heading) => heading.depth <= 3),
+      entries: parseEntries(space, markdown).length,
     };
     return file;
+  });
+
+const findEntryIn = (space: string, markdown: string, id: string) =>
+  Effect.gen(function* () {
+    const entry = parseEntries(space, markdown).find((candidate) => candidate.id === id);
+    if (!entry) return yield* Effect.fail(new EntryNotFound({ space, id }));
+    return entry;
+  });
+
+function entryFile(path: string, markdown: string, entry: ParsedEntry): EntryFile {
+  const { start: _start, end: _end, markdown: text, ...rest } = entry;
+  return { ...rest, path, markdown: text.trimEnd(), hash: hashText(markdown) };
+}
+
+export const getEntry = (root: string, space: string, id: string) =>
+  Effect.gen(function* () {
+    const registry = yield* findRegistry(root, space);
+    const markdown = yield* readText(join(root, registry.path));
+    return entryFile(registry.path, markdown, yield* findEntryIn(space, markdown, id));
+  });
+
+/**
+ * Replaces one entry, heading included, if nobody changed the registry since
+ * `baseHash`. Returns the entry where it now is: its id follows a new title.
+ */
+export const updateEntry = (
+  root: string,
+  space: string,
+  id: string,
+  text: string,
+  baseHash: string,
+) =>
+  Effect.gen(function* () {
+    const registry = yield* findRegistry(root, space);
+    const path = join(root, registry.path);
+    const markdown = yield* readText(path);
+    if (hashText(markdown) !== baseHash) return yield* new StaleWrite({ path: registry.path });
+    const entry = yield* findEntryIn(space, markdown, id);
+    const rest = markdown.slice(entry.end);
+    const next = `${markdown.slice(0, entry.start)}${text.trimEnd()}\n${rest ? `\n${rest.replace(/^\n+/, "")}` : ""}`;
+    const moved = parseEntries(space, next).find((candidate) => candidate.start === entry.start);
+    if (!moved) {
+      return yield* new AutomationInvalid({
+        message: "An entry starts with a heading and holds - **Label:** lines.",
+      });
+    }
+    yield* writeText(path, next);
+    return entryFile(registry.path, next, moved);
   });
 
 /** Replaces a registry, if nobody changed it since `baseHash`. */
@@ -202,7 +374,7 @@ function rrule(value: string, now: Date) {
 function codexAutomation(
   file: { path: string; text: string },
   home: string,
-  documented: string,
+  known: Known,
   now: Date,
 ): CodexAutomation[] {
   let data: Record<string, unknown>;
@@ -215,17 +387,22 @@ function codexAutomation(
   const name = typeof data.name === "string" ? data.name : id;
   const prompt = typeof data.prompt === "string" ? data.prompt : "";
   const { schedule, ended } = rrule(typeof data.rrule === "string" ? data.rrule : "", now);
+  const folder = Array.isArray(data.cwds) && typeof data.cwds[0] === "string" ? data.cwds[0] : "";
   return [
     {
       id,
       name,
       kind: typeof data.kind === "string" ? data.kind : "",
+      prompt,
+      model: typeof data.model === "string" ? data.model : undefined,
+      folder: folder ? fromHome(home, folder) : undefined,
       status: String(data.status).toUpperCase() === "PAUSED" ? "paused" : "active",
       schedule,
       ended,
       summary: prompt.trim().split("\n")[0]?.slice(0, 240) ?? "",
       path: fromHome(home, file.path),
-      documented: documented.includes(id) || documented.includes(name),
+      entry: findEntry(known.entries, [id], name),
+      documented: known.text.includes(id) || known.text.includes(name),
     },
   ];
 }
@@ -243,10 +420,8 @@ function codexFiles(codexHomes: string[]) {
 }
 
 /** The Codex app automations of every folder given. */
-export function readCodexAutomations(codexHomes: string[], documented: string, now = new Date()) {
-  return codexFiles(codexHomes).flatMap((file) =>
-    codexAutomation(file, homedir(), documented, now),
-  );
+export function readCodexAutomations(codexHomes: string[], known: Known, now = new Date()) {
+  return codexFiles(codexHomes).flatMap((file) => codexAutomation(file, homedir(), known, now));
 }
 
 function programArguments(plist: Plist) {
@@ -310,7 +485,7 @@ export function parseLaunchctlList(output: string) {
   return states;
 }
 
-function launchAgents(source: Source, documented: string): LaunchAgent[] | null {
+function launchAgents(source: Source, known: Known): LaunchAgent[] | null {
   if (!source.plists) return null;
   const states = parseLaunchctlList(source.launchctl);
   return source.plists
@@ -330,7 +505,8 @@ function launchAgents(source: Source, documented: string): LaunchAgent[] | null 
         state: state ? { loaded: true, ...state } : { loaded: false },
         fromApp: fromApp(program(args), source.home),
         path: fromHome(source.home, path),
-        documented: documented.includes(label),
+        entry: findEntry(known.entries, [label]),
+        documented: known.text.includes(label),
       };
     });
 }
@@ -360,10 +536,9 @@ function plistsOf(folder: string) {
 }
 
 /** The launchd agents of a folder, with their state. */
-export function readLaunchAgents(folder: string, launchctl: string, documented: string) {
+export function readLaunchAgents(folder: string, launchctl: string, known: Known) {
   return (
-    launchAgents({ home: homedir(), codex: [], plists: plistsOf(folder), launchctl }, documented) ??
-    []
+    launchAgents({ home: homedir(), codex: [], plists: plistsOf(folder), launchctl }, known) ?? []
   );
 }
 
@@ -375,10 +550,10 @@ function launchctlList() {
   }
 }
 
-function describe(source: Source, documented: string, now = new Date()): MachineAutomations {
+function describe(source: Source, known: Known, now = new Date()): MachineAutomations {
   return {
-    codex: source.codex.flatMap((file) => codexAutomation(file, source.home, documented, now)),
-    launchd: launchAgents(source, documented),
+    codex: source.codex.flatMap((file) => codexAutomation(file, source.home, known, now)),
+    launchd: launchAgents(source, known),
   };
 }
 
@@ -397,11 +572,17 @@ function localSource(root: string): Source {
 
 /** Everything the Automations page shows of this machine. */
 export const getAutomations = (root: string) =>
-  Effect.sync((): Automations => ({
-    registries: listRegistries(root),
-    machines: readMachines(root).map((machine) => machine.name),
-    ...describe(localSource(root), registryText(root)),
-  }));
+  Effect.sync((): Automations => {
+    const known = readKnown(root);
+    return {
+      registries: listRegistries(root),
+      entries: known.entries.map(
+        ({ markdown: _text, start: _start, end: _end, ...entry }) => entry,
+      ),
+      machines: readMachines(root).map((machine) => machine.name),
+      ...describe(localSource(root), known),
+    };
+  });
 
 // --- Other machines -----------------------------------------------------------
 
@@ -482,7 +663,7 @@ export const readMachine = (root: string, name: string) =>
           message: cause instanceof Error ? cause.message : String(cause),
         }),
     });
-    return describe(parseRemote(output), registryText(root));
+    return describe(parseRemote(output), readKnown(root));
   });
 
 // --- Changing an automation on this machine -----------------------------------
@@ -582,7 +763,9 @@ export const controlAgent = (root: string, label: string, action: AgentAction) =
       return yield* Effect.fail(new AutomationNotFound({ target: label }));
     }
     const source = localSource(root);
-    const agent = launchAgents(source, "")?.find((candidate) => candidate.label === label);
+    const agent = launchAgents(source, { entries: [], text: "" })?.find(
+      (candidate) => candidate.label === label,
+    );
     if (!agent || agent.fromApp)
       return yield* Effect.fail(new AutomationNotFound({ target: label }));
     const domain = `gui/${process.getuid?.() ?? 501}`;

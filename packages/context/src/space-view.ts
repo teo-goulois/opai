@@ -17,6 +17,7 @@ export const SpaceName = z.string().regex(/^[a-z0-9][a-z0-9-]*$/, "A space name"
 
 export type SpaceConfig = {
   name: string;
+  description: string;
   base: boolean;
   default: boolean;
   /** The folders it claims, with `~`. */
@@ -65,6 +66,7 @@ export type SpaceDetail = SpaceSummary & {
 function configOf(space: Space): SpaceConfig {
   return {
     name: space.name,
+    description: space.description,
     base: space.base,
     default: space.default,
     paths: space.paths.map(homePath),

@@ -6,9 +6,14 @@ import { RouteError } from "@/components/shared/route-error";
 import { orpc } from "@/utils/orpc";
 
 const layoutQuery = orpc.harness.layout.queryOptions();
+const rulesQuery = orpc.rules.list.queryOptions();
 
 export const Route = createFileRoute("/config/")({
-  loader: ({ context }) => context.queryClient.ensureQueryData(layoutQuery),
+  loader: ({ context }) =>
+    Promise.all([
+      context.queryClient.ensureQueryData(layoutQuery),
+      context.queryClient.ensureQueryData(rulesQuery),
+    ]),
   pendingComponent: ConfigPageSkeleton,
   errorComponent: RouteError,
   component: ConfigRoute,
@@ -16,5 +21,6 @@ export const Route = createFileRoute("/config/")({
 
 function ConfigRoute() {
   const { data: layout } = useSuspenseQuery(layoutQuery);
-  return <ConfigPage layout={layout} />;
+  const { data: rules } = useSuspenseQuery(rulesQuery);
+  return <ConfigPage layout={layout} rules={rules.filter((rule) => rule.space === undefined)} />;
 }

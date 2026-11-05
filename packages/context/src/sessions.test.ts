@@ -6,7 +6,14 @@ import { after, test } from "node:test";
 import { Effect } from "effect";
 
 import { makeFixture } from "./fixture.ts";
-import { getSession, listSessions, parseClaude, parseCodex, skillsRead } from "./sessions.ts";
+import {
+  getSession,
+  getSubagent,
+  listSessions,
+  parseClaude,
+  parseCodex,
+  skillsRead,
+} from "./sessions.ts";
 import type { Env } from "./origins.ts";
 import { collect, countSkillUses } from "./usage.ts";
 
@@ -412,7 +419,8 @@ test("lists the sessions of claude/ and codex/, and records their skill uses onc
     writeFileSync(path, text);
   }
 
-  const sessions = await Effect.runPromise(listSessions(fixture.root));
+  const { sessions, next } = await Effect.runPromise(listSessions(fixture.root));
+  assert.equal(next, undefined);
   assert.deepEqual(sessions.map((session) => session.harness).sort(), ["claude", "codex"]);
   assert.ok(sessions.every((session) => session.space === "client"));
   const detail = await Effect.runPromise(
@@ -467,6 +475,143 @@ test("lists the sessions of claude/ and codex/, and records their skill uses onc
       ["deploy", 1, 1],
     ],
   );
+});
+
+test("shows subagents inside the session that started them", async () => {
+  const parent = "6d1c2b8e-0000-4000-8000-000000000002";
+  const folder = join(fixture.root, "claude", "projects", "-work-client");
+  const call = "toolu_agent_1";
+  writeFileSync(
+    join(folder, `${parent}.jsonl`),
+    jsonl([
+      { type: "user", timestamp: at, cwd, message: { role: "user", content: "Look around." } },
+      {
+        type: "assistant",
+        timestamp: at,
+        cwd,
+        message: {
+          model: "claude-opus-5-5",
+          content: [{ type: "tool_use", id: call, name: "Agent", input: { prompt: "Find it." } }],
+        },
+      },
+    ]),
+  );
+  const agents = join(folder, parent, "subagents");
+  mkdirSync(agents, { recursive: true });
+  writeFileSync(
+    join(agents, "agent-a5039b71e24177612.jsonl"),
+    jsonl([
+      { type: "user", isSidechain: true, timestamp: at, cwd, message: { content: "Find it." } },
+      {
+        type: "assistant",
+        isSidechain: true,
+        timestamp: at,
+        cwd,
+        message: {
+          model: "claude-haiku-5-5",
+          content: [
+            { type: "tool_use", id: "toolu_2", name: "Grep", input: {} },
+            { type: "text", text: "Found." },
+          ],
+        },
+      },
+    ]),
+  );
+  writeFileSync(
+    join(agents, "agent-a5039b71e24177612.meta.json"),
+    // Written twice, as Claude Code sometimes does.
+    JSON.stringify({ agentType: "Explore", description: "Find the file", toolUseId: call }).repeat(
+      2,
+    ),
+  );
+  // A Codex subagent: a session whose session_meta names its parent thread.
+  const child = "01a1a063-4918-75f0-9aa3-6ce0d4edd828";
+  const codexParent = "01a1a329-ecb2-70d0-9c7c-fdfbe269e671";
+  writeFileSync(
+    join(
+      fixture.root,
+      "codex",
+      "sessions",
+      "2026",
+      "11",
+      "04",
+      `rollout-2026-11-04T09-00-00-${child}.jsonl`,
+    ),
+    jsonl([
+      {
+        type: "session_meta",
+        timestamp: at,
+        payload: {
+          cwd,
+          originator: "Codex Desktop",
+          source: {
+            subagent: {
+              thread_spawn: {
+                parent_thread_id: codexParent,
+                agent_nickname: "Locke",
+                agent_role: "worker",
+              },
+            },
+          },
+        },
+      },
+      {
+        type: "response_item",
+        timestamp: at,
+        payload: { type: "message", role: "user", content: "Check the build." },
+      },
+    ]),
+  );
+
+  const { sessions } = await Effect.runPromise(listSessions(fixture.root));
+  assert.ok(
+    !sessions.some((session) => session.id === child),
+    "a Codex subagent stays in its parent",
+  );
+  assert.equal(sessions.find((session) => session.id === parent)?.subagents, 1);
+  assert.equal(sessions.find((session) => session.id === codexParent)?.subagents, 1);
+
+  const detail = await Effect.runPromise(getSession(fixture.root, parent));
+  assert.deepEqual(
+    detail.agents.map((agent) => [
+      agent.id,
+      agent.title,
+      agent.agentType,
+      agent.model,
+      agent.toolCalls,
+    ]),
+    [["a5039b71e24177612", "Find the file", "Explore", "claude-haiku-5-5", 1]],
+  );
+  const step = detail.steps.find((item) => item.kind === "tool");
+  assert.equal(step?.kind === "tool" ? step.agent : undefined, "a5039b71e24177612");
+
+  const agent = await Effect.runPromise(getSubagent(fixture.root, parent, "a5039b71e24177612"));
+  assert.equal(agent.parent, parent);
+  assert.equal(agent.endedAt, at);
+  assert.equal(agent.parentTitle, "Look around.");
+  assert.deepEqual(
+    agent.steps.map((item) => item.kind),
+    ["prompt", "tool", "reply"],
+  );
+  const codexAgent = await Effect.runPromise(getSubagent(fixture.root, codexParent, child));
+  assert.equal(codexAgent.title, "Locke");
+  assert.equal(codexAgent.agentType, "worker");
+  const wrong = await Effect.runPromise(Effect.flip(getSubagent(fixture.root, parent, child)));
+  assert.equal(wrong._tag, "SessionNotFound");
+});
+
+test("lists the sessions page by page, newest first, without repeats", async () => {
+  const all = (await Effect.runPromise(listSessions(fixture.root))).sessions.map((s) => s.id);
+  const paged: string[] = [];
+  let cursor: string | undefined;
+  do {
+    const page = await Effect.runPromise(listSessions(fixture.root, cursor, 1));
+    assert.ok(page.sessions.length <= 1);
+    paged.push(...page.sessions.map((session) => session.id));
+    cursor = page.next;
+  } while (cursor);
+  assert.deepEqual(paged, all);
+  assert.ok(all.length >= 3);
 });
 
 test("reading a SKILL.md elsewhere than where the session listed it is not a use", () => {

@@ -87,9 +87,9 @@ function HarnessFilePage() {
           </BreadcrumbList>
         </Breadcrumb>
         <PageHeader>
-          <PageTitle className="font-data">{path}</PageTitle>
+          <PageTitle>{path}</PageTitle>
           <PageMeta>
-            <span className="font-data">
+            <span>
               {file.root}/{path}
             </span>
             <FileState exists={file.exists} empty={file.text.trim() === ""} />

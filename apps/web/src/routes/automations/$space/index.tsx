@@ -15,7 +15,12 @@ import {
   EmptyTitle,
 } from "@opai/ui/components/ui/empty";
 import { Markdown } from "@opai/ui/components/ui/markdown";
-import { PageHeader, PageMeta, PageTitle } from "@opai/ui/components/ui/page-header";
+import {
+  PageDescription,
+  PageHeader,
+  PageMeta,
+  PageTitle,
+} from "@opai/ui/components/ui/page-header";
 import { ORPCError } from "@orpc/client";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Link, createFileRoute, notFound } from "@tanstack/react-router";
@@ -27,7 +32,7 @@ import { RouteError } from "@/components/shared/route-error";
 import { m } from "@/paraglide/messages.js";
 import { orpc } from "@/utils/orpc";
 
-export const Route = createFileRoute("/automations/$space")({
+export const Route = createFileRoute("/automations/$space/")({
   validateSearch: z.object({
     view: z.enum(["preview", "markdown"]).optional().catch(undefined),
   }),
@@ -85,8 +90,10 @@ function RegistryPage() {
         </Breadcrumb>
         <PageHeader>
           <PageTitle>{m.automations_registry_of({ space })}</PageTitle>
+          <PageDescription className="text-pretty">{m.automations_registry_hint()}</PageDescription>
           <PageMeta>
-            <span className="font-data">{registry.path}</span>
+            <span>{m.automations_registry_entries({ count: registry.entries })}</span>
+            <span className="wrap-anywhere">{registry.path}</span>
           </PageMeta>
         </PageHeader>
       </div>

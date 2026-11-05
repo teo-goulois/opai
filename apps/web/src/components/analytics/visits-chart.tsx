@@ -83,7 +83,7 @@ export function VisitsChart({ series, unit }: Pick<AppDetail, "series" | "unit">
       </div>
 
       {first && last ? (
-        <figcaption className="flex justify-between font-data text-xs text-neutral-7">
+        <figcaption className="flex justify-between font-ui text-xs text-neutral-7 tabular-nums">
           <span>{formatBucket(first.at, unit)}</span>
           <span>{formatBucket(last.at, unit)}</span>
         </figcaption>

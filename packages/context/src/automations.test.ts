@@ -9,13 +9,17 @@ import {
   archiveCodex,
   getCodexFile,
   getRegistry,
+  findEntry,
+  getEntry,
   listRegistries,
+  parseEntries,
   parseLaunchctlList,
   parseRemote,
   setCodexStatus,
   updateCodexFile,
   readCodexAutomations,
   readLaunchAgents,
+  updateEntry,
   updateRegistry,
 } from "./automations.ts";
 import { makeFixture } from "./fixture.ts";
@@ -47,17 +51,67 @@ test("finds the registry of each space", () => {
   assert.deepEqual(listRegistries(root), [{ space: "perso", path: "spaces/perso/context/ops.md" }]);
 });
 
-test("reads Codex automations, and which ones the registry names", () => {
-  const ops = "`daily-recap` writes the recap.";
-  const [recap, old] = readCodexAutomations([codex], ops, new Date("2026-11-04T12:00:00Z"));
+const ops = [
+  "# Ops",
+  "",
+  "## Automations",
+  "",
+  "One entry per routine:",
+  "",
+  "```markdown",
+  "### <Name>",
+  "",
+  "- **Trigger:** a time.",
+  "```",
+  "",
+  "### Daily recap",
+  "",
+  "- **What:** writes the recap,",
+  "  then stops.",
+  "- **Trigger:** Codex `daily-recap`, every day.",
+  "",
+  "### Sync",
+  "",
+  "- **Trigger:** launchd `dev.example.sync`, every 10 minutes.",
+  "- **Change it:** see `daily-recap` too.",
+  "",
+  "## Machines",
+  "",
+  "Two Macs.",
+  "",
+].join("\n");
+
+test("reads the entries of a registry, not its template or other sections", () => {
+  const entries = parseEntries("perso", ops);
+  assert.deepEqual(
+    entries.map((entry) => entry.id),
+    ["daily-recap", "sync"],
+  );
+  assert.deepEqual(entries[0]?.fields, [
+    { label: "What", text: "writes the recap, then stops." },
+    { label: "Trigger", text: "Codex `daily-recap`, every day." },
+  ]);
+  assert.match(entries[1]?.markdown ?? "", /^### Sync\n[\s\S]*10 minutes\.[\s\S]*too\.\n\n$/);
+  // The trigger names the automation; a mention in another field does not.
+  assert.deepEqual(findEntry(entries, ["daily-recap"]), { space: "perso", id: "daily-recap" });
+  assert.deepEqual(findEntry(entries, ["dev.example.sync"]), { space: "perso", id: "sync" });
+  assert.deepEqual(findEntry(entries, ["nothing"], "Sync"), { space: "perso", id: "sync" });
+  assert.equal(findEntry(entries, ["nothing"]), undefined);
+});
+
+test("reads Codex automations, and the entry of each", () => {
+  const known = { entries: parseEntries("perso", ops), text: `${ops}\nNot mine: \`old-check\`.` };
+  const [recap, old] = readCodexAutomations([codex], known, new Date("2026-11-04T12:00:00Z"));
   assert.equal(recap?.id, "daily-recap");
   assert.equal(recap?.status, "active");
   assert.equal(recap?.summary, "Write the recap.");
-  assert.equal(recap?.documented, true);
+  assert.equal(recap?.prompt, "Write the recap.\nThen stop.");
+  assert.deepEqual(recap?.entry, { space: "perso", id: "daily-recap" });
   assert.equal(old?.status, "paused");
   assert.equal(old?.schedule, "FREQ=HOURLY;INTERVAL=2;UNTIL=20260718T073623Z");
   assert.equal(old?.ended, true);
-  assert.equal(old?.documented, false);
+  assert.equal(old?.entry, undefined);
+  assert.equal(old?.documented, true);
 });
 
 test("reads launchctl list", () => {
@@ -88,18 +142,53 @@ test(
     const [vendor, sync] = readLaunchAgents(
       folder,
       "PID\tStatus\tLabel\n-\t0\tdev.example.sync\n",
-      "`dev.example.sync` syncs.",
+      { entries: parseEntries("perso", ops), text: ops },
     );
     assert.equal(sync?.command, "/usr/bin/env -i TOKEN=… /opt/tools/sync.sh");
     assert.doesNotMatch(sync?.command ?? "", /secret/);
     assert.deepEqual(sync?.schedule, { everySeconds: 600, atLoad: true, keepAlive: false });
     assert.deepEqual(sync?.state, { loaded: true, lastExit: 0 });
     assert.equal(sync?.fromApp, false);
+    assert.deepEqual(sync?.entry, { space: "perso", id: "sync" });
     assert.equal(sync?.documented, true);
+    assert.equal(vendor?.documented, false);
     assert.equal(vendor?.fromApp, true);
     assert.deepEqual(vendor?.state, { loaded: false });
   },
 );
+
+test("edits one entry, keeping the rest of the registry", async () => {
+  const path = join(root, "spaces", "perso", "context", "ops.md");
+  const before = readFileSync(path, "utf8");
+  writeFileSync(path, ops);
+  const entry = await Effect.runPromise(getEntry(root, "perso", "sync"));
+  assert.equal(entry.title, "Sync");
+  assert.match(entry.markdown, /^### Sync\n/);
+  const saved = await Effect.runPromise(
+    updateEntry(
+      root,
+      "perso",
+      "sync",
+      "### Opai sync\n\n- **Trigger:** launchd `dev.example.sync`, every 5 minutes.\n",
+      entry.hash,
+    ),
+  );
+  assert.equal(saved.id, "opai-sync");
+  assert.equal(
+    readFileSync(path, "utf8"),
+    ops.replace(
+      /### Sync[\s\S]*?too\.\n/,
+      "### Opai sync\n\n- **Trigger:** launchd `dev.example.sync`, every 5 minutes.\n",
+    ),
+  );
+  const invalid = await Effect.runPromise(
+    Effect.flip(updateEntry(root, "perso", "opai-sync", "Just text.", saved.hash)),
+  );
+  assert.equal(invalid._tag, "AutomationInvalid");
+  const missing = await Effect.runPromise(Effect.flip(getEntry(root, "perso", "sync")));
+  assert.equal(missing._tag, "EntryNotFound");
+  writeFileSync(path, before);
+});
 
 test("edits the registry, and refuses a stale edit", async () => {
   const registry = await Effect.runPromise(getRegistry(root, "perso"));

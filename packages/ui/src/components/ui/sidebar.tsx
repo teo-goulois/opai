@@ -57,14 +57,25 @@ export function SidebarGroup({ className, ...props }: React.ComponentProps<"div"
   );
 }
 
-export function SidebarGroupLabel({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="sidebar-group-label"
-      className={cn("px-s font-ui text-s font-medium text-neutral-7", className)}
-      {...props}
-    />
-  );
+/** A group's title. Pass a router link through `render` when the group has a page. */
+export function SidebarGroupLabel({
+  className,
+  render,
+  ...props
+}: useRender.ComponentProps<"div">) {
+  const defaultProps = {
+    "data-slot": "sidebar-group-label",
+    className: cn(
+      "w-fit rounded-xs px-s font-ui text-s font-medium text-neutral-7 outline-none",
+      "[a]:transition-colors [a]:hover:text-neutral-10 [a]:focus-visible:focus-ring",
+      className,
+    ),
+  };
+  return useRender({
+    defaultTagName: "div",
+    render,
+    props: mergeProps<"div">(defaultProps, props),
+  });
 }
 
 export function SidebarMenu({ className, ...props }: React.ComponentProps<"ul">) {
@@ -101,7 +112,7 @@ export function SidebarLinkMeta({ className, ...props }: React.ComponentProps<"s
   return (
     <span
       data-slot="sidebar-link-meta"
-      className={cn("ms-auto font-data text-s text-neutral-7", className)}
+      className={cn("ms-auto font-ui text-s text-neutral-7 tabular-nums", className)}
       {...props}
     />
   );

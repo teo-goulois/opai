@@ -4,7 +4,16 @@ import type {
   HarnessLayout,
   HarnessSkillFolder,
 } from "@opai/context/harness";
+import type { RuleSummary } from "@opai/context/rules";
 import { Badge } from "@opai/ui/components/ui/badge";
+import {
+  ItemDescription,
+  ItemEnd,
+  ItemList,
+  ItemMain,
+  ItemRow,
+  ItemTitle,
+} from "@opai/ui/components/ui/item-list";
 import {
   PageHeader,
   PageMeta,
@@ -15,23 +24,17 @@ import {
 import { Skeleton } from "@opai/ui/components/ui/skeleton";
 import { Link } from "@tanstack/react-router";
 
+import { Hint } from "@/components/spaces/space-ui";
 import { m } from "@/paraglide/messages.js";
 
-const rowClassName =
-  "flex flex-wrap items-center justify-between gap-x-m gap-y-xxs px-m py-s in-[li:not(:first-child)]:edge-top in-[li:not(:first-child)]:edge-neutral-4";
-const listClassName =
-  "flex flex-col overflow-hidden rounded-m bg-neutral-1 edge-outer dark:bg-neutral-2";
-const linkClassName =
-  "w-fit rounded-xs font-ui text-m font-medium text-neutral-10 underline decoration-transparent underline-offset-4 transition-colors hover:decoration-neutral-10";
-
-/** What Claude Code and Codex read in claude/ and codex/. */
-export function ConfigPage({ layout }: { layout: HarnessLayout }) {
+/** What Claude Code and Codex read in claude/ and codex/, and the instance's own rules. */
+export function ConfigPage({ layout, rules }: { layout: HarnessLayout; rules: RuleSummary[] }) {
   return (
     <div className="flex flex-col gap-xl">
       <PageHeader>
         <PageTitle>{m.config_title()}</PageTitle>
         <PageMeta>
-          <span className="font-data">{layout.root}</span>
+          <span>{layout.root}</span>
         </PageMeta>
       </PageHeader>
 
@@ -40,29 +43,55 @@ export function ConfigPage({ layout }: { layout: HarnessLayout }) {
           <PageSectionTitle id="config-instructions" count={layout.instructions.length}>
             {m.config_instructions()}
           </PageSectionTitle>
-          <p className="font-ui text-s text-neutral-7">{m.config_instructions_hint()}</p>
+          <Hint>{m.config_instructions_hint()}</Hint>
         </div>
-        <ul className={listClassName}>
+        <ItemList>
           {layout.instructions.map((file) => (
             <li key={file.path}>
               <InstructionsRow file={file} />
             </li>
           ))}
-        </ul>
+        </ItemList>
       </PageSection>
 
       <PageSection aria-labelledby="config-files">
         <PageSectionTitle id="config-files" count={layout.files.length}>
           {m.config_settings()}
         </PageSectionTitle>
-        <ul className={listClassName}>
+        <ItemList>
           {layout.files.map((file) => (
             <li key={file.path}>
               <FileRow file={file} />
             </li>
           ))}
-        </ul>
+        </ItemList>
       </PageSection>
+
+      {rules.length > 0 ? (
+        <PageSection aria-labelledby="config-rules">
+          <div className="flex flex-col gap-xxs">
+            <PageSectionTitle id="config-rules" count={rules.length}>
+              {m.config_rules()}
+            </PageSectionTitle>
+            <Hint>{m.rules_scope_repository_hint()}</Hint>
+          </div>
+          <ItemList>
+            {rules.map((rule) => (
+              <li key={rule.id}>
+                <ItemRow render={<Link to="/config/rules/$id" params={{ id: rule.id }} />}>
+                  <ItemMain>
+                    <ItemTitle>{rule.title}</ItemTitle>
+                    <ItemDescription>
+                      {rule.pointsTo ? m.rules_points_to({ file: rule.pointsTo }) : rule.summary}
+                    </ItemDescription>
+                  </ItemMain>
+                  <ItemEnd>{rule.path}</ItemEnd>
+                </ItemRow>
+              </li>
+            ))}
+          </ItemList>
+        </PageSection>
+      ) : null}
 
       <PageSection aria-labelledby="config-skills">
         <PageSectionTitle
@@ -71,65 +100,67 @@ export function ConfigPage({ layout }: { layout: HarnessLayout }) {
         >
           {m.config_skills()}
         </PageSectionTitle>
-        <ul className={listClassName}>
+        <div className="flex flex-col gap-l">
           {layout.skillFolders.map((folder) => (
-            <li key={folder.path}>
-              <SkillFolderRow folder={folder} />
-            </li>
+            <SkillFolder key={folder.path} folder={folder} />
           ))}
-        </ul>
+        </div>
       </PageSection>
     </div>
   );
 }
 
 function InstructionsRow({ file }: { file: HarnessInstructions }) {
+  const global = file.target === "spaces/global/AGENTS.md";
   return (
-    <div className={rowClassName}>
-      <div className="flex flex-col gap-xxs">
-        <span className="font-ui text-m font-medium text-neutral-10">{toolName(file.tool)}</span>
-        <span className="font-data text-s text-neutral-7">{file.path}</span>
-      </div>
-      {file.target === "spaces/global/AGENTS.md" ? (
-        <Link to="/rules/$id" params={{ id: "global-agents" }} className={linkClassName}>
-          {m.config_instructions_global()}
-        </Link>
-      ) : (
-        <Badge variant="warning">
-          {file.target ? m.config_instructions_other({ target: file.target }) : m.config_not_link()}
-        </Badge>
-      )}
-    </div>
+    <ItemRow
+      render={
+        global ? (
+          <Link to="/spaces/$name/rules/$id" params={{ name: "global", id: "global-agents" }} />
+        ) : undefined
+      }
+    >
+      <ItemMain>
+        <ItemTitle>{toolName(file.tool)}</ItemTitle>
+        <ItemDescription>{file.path}</ItemDescription>
+      </ItemMain>
+      <ItemEnd>
+        {global ? (
+          <span>{m.config_instructions_global()}</span>
+        ) : (
+          <Badge variant="warning">
+            {file.target
+              ? m.config_instructions_other({ target: file.target })
+              : m.config_not_link()}
+          </Badge>
+        )}
+      </ItemEnd>
+    </ItemRow>
   );
 }
 
 function FileRow({ file }: { file: HarnessFileSummary }) {
   return (
-    <div className={rowClassName}>
-      <div className="flex flex-col gap-xxs">
-        <Link to="/config/$" params={{ _splat: file.path }} className={linkClassName}>
+    <ItemRow render={<Link to="/config/$" params={{ _splat: file.path }} />}>
+      <ItemMain>
+        <ItemTitle>
           {toolName(file.tool)} · {file.path.split("/").at(-1)}
-        </Link>
-        <span className="font-data text-s text-neutral-7">{file.path}</span>
-      </div>
-      <FileState exists={file.exists} empty={file.empty} />
-    </div>
+        </ItemTitle>
+        <ItemDescription>{file.path}</ItemDescription>
+      </ItemMain>
+      <ItemEnd>
+        <FileState exists={file.exists} empty={file.empty} />
+      </ItemEnd>
+    </ItemRow>
   );
 }
 
-function SkillFolderRow({ folder }: { folder: HarnessSkillFolder }) {
+function SkillFolder({ folder }: { folder: HarnessSkillFolder }) {
   return (
-    <div className="flex flex-col gap-xs px-m py-s in-[li:not(:first-child)]:edge-top in-[li:not(:first-child)]:edge-neutral-4">
-      <div className="flex flex-wrap items-center justify-between gap-x-m gap-y-xxs">
-        <div className="flex flex-col gap-xxs">
-          <span className="font-ui text-m font-medium text-neutral-10">
-            {toolName(folder.tool)}
-          </span>
-          <span className="font-data text-s text-neutral-7">{folder.path}/</span>
-        </div>
-        {folder.skills.length === 0 ? (
-          <Badge variant="neutral">{m.config_skills_none()}</Badge>
-        ) : null}
+    <div className="flex flex-col gap-s">
+      <div className="flex flex-wrap items-baseline gap-x-s gap-y-xxs">
+        <span className="font-ui text-m font-medium text-neutral-10">{toolName(folder.tool)}</span>
+        <span className="font-ui text-s text-neutral-7">{folder.path}/</span>
       </div>
       {folder.skills.length > 0 ? (
         <ul className="flex flex-wrap gap-xxs">
@@ -151,7 +182,9 @@ function SkillFolderRow({ folder }: { folder: HarnessSkillFolder }) {
             </li>
           ))}
         </ul>
-      ) : null}
+      ) : (
+        <Hint>{m.config_skills_none()}</Hint>
+      )}
     </div>
   );
 }

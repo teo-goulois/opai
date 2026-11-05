@@ -67,7 +67,7 @@ export function PageSectionTitle({
     >
       {children}
       {count !== undefined ? (
-        <span className="font-data text-s font-regular text-neutral-7">{count}</span>
+        <span className="font-ui text-s font-regular text-neutral-7 tabular-nums">{count}</span>
       ) : null}
     </h2>
   );

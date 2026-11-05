@@ -9,6 +9,7 @@ import { o } from "../procedure.ts";
 import {
   addSkill,
   checkSkills,
+  configureSkill,
   listSkills,
   moveSkill,
   saveSkill,
@@ -83,6 +84,19 @@ export const skillsRouter = {
     .input(z.object({ name: Name, markdown: z.string().max(500_000), baseHash: z.string().min(1) }))
     .handler(({ context, input }) =>
       run(() => saveSkill(context.root, input.name, input.markdown, input.baseHash)),
+    ),
+  /** Changes the description or the invocation in the front matter. */
+  configure: o
+    .input(
+      z.object({
+        name: Name,
+        description: z.string().max(4000).optional(),
+        explicitOnly: z.boolean().optional(),
+        baseHash: z.string().min(1),
+      }),
+    )
+    .handler(({ context, input }) =>
+      run(() => configureSkill(context.root, input.name, input, input.baseHash)),
     ),
   add: o
     .input(

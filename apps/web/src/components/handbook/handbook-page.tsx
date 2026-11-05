@@ -73,7 +73,7 @@ export function HandbookPageView({
           </div>
           <PageDescription>{page.description}</PageDescription>
           <PageMeta>
-            <span className="font-data wrap-anywhere">{page.path}</span>
+            <span className="wrap-anywhere">{page.path}</span>
             {page.url ? (
               <a
                 href={page.url}

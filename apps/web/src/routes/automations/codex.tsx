@@ -84,9 +84,9 @@ function CodexFilePage() {
           </BreadcrumbList>
         </Breadcrumb>
         <PageHeader>
-          <PageTitle className="font-data">{file.id}</PageTitle>
+          <PageTitle>{file.id}</PageTitle>
           <PageMeta>
-            <span className="font-data wrap-anywhere">{file.path}</span>
+            <span className="wrap-anywhere">{file.path}</span>
             <span>{m.automations_edit_hint()}</span>
           </PageMeta>
         </PageHeader>

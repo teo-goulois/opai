@@ -66,7 +66,7 @@ export function AppAnalytics({
                 href={`https://${app.domain}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-xxs rounded-xs font-data text-neutral-8 transition-colors hover:text-neutral-10 focus-visible:focus-ring"
+                className="inline-flex items-center gap-xxs rounded-xs font-ui text-neutral-8 transition-colors hover:text-neutral-10 focus-visible:focus-ring"
               >
                 {app.domain}
                 <ExternalLinkIcon aria-hidden />
@@ -198,7 +198,7 @@ function Stat({ label, value, change }: { label: string; value: string; change?:
     <div className="flex flex-col gap-xxs bg-neutral-1 px-m py-s dark:bg-neutral-2">
       <dt className="font-ui text-s text-neutral-7">{label}</dt>
       <dd className="flex flex-wrap items-center gap-xs">
-        <span className="font-data text-l text-neutral-10 tabular-nums">{value}</span>
+        <span className="font-brand text-l text-neutral-10 tabular-nums">{value}</span>
         {change !== undefined ? <Trend value={change} /> : null}
       </dd>
     </div>

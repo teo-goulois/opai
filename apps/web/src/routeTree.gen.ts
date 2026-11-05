@@ -14,22 +14,30 @@ import { Route as DesignSystemRouteImport } from './routes/design-system'
 import { Route as AnalyticsIndexRouteImport } from './routes/analytics/index'
 import { Route as AnalyticsIdRouteImport } from './routes/analytics/$id'
 import { Route as AutomationsIndexRouteImport } from './routes/automations/index'
-import { Route as AutomationsSpaceRouteImport } from './routes/automations/$space'
 import { Route as AutomationsCodexRouteImport } from './routes/automations/codex'
 import { Route as ConfigIndexRouteImport } from './routes/config/index'
 import { Route as ConfigSplatRouteImport } from './routes/config/$'
 import { Route as HandbookIndexRouteImport } from './routes/handbook/index'
 import { Route as HandbookSplatRouteImport } from './routes/handbook/$'
 import { Route as HandbookPublishRouteImport } from './routes/handbook/publish'
-import { Route as RulesIndexRouteImport } from './routes/rules/index'
-import { Route as RulesIdRouteImport } from './routes/rules/$id'
 import { Route as SessionsIndexRouteImport } from './routes/sessions/index'
-import { Route as SessionsIdRouteImport } from './routes/sessions/$id'
 import { Route as SkillsIndexRouteImport } from './routes/skills/index'
-import { Route as SkillsNameRouteImport } from './routes/skills/$name'
 import { Route as SpacesIndexRouteImport } from './routes/spaces/index'
-import { Route as SpacesNameRouteImport } from './routes/spaces/$name'
+import { Route as SpacesNameRouteRouteImport } from './routes/spaces/$name/route'
 import { Route as ApiRpcSplatRouteImport } from './routes/api/rpc/$'
+import { Route as AutomationsSpaceIndexRouteImport } from './routes/automations/$space/index'
+import { Route as AutomationsSpaceEntryRouteImport } from './routes/automations/$space/$entry'
+import { Route as ConfigRulesIdRouteImport } from './routes/config/rules/$id'
+import { Route as SessionsIdIndexRouteImport } from './routes/sessions/$id/index'
+import { Route as SpacesNameIndexRouteImport } from './routes/spaces/$name/index'
+import { Route as SpacesNameIssuesRouteImport } from './routes/spaces/$name/issues'
+import { Route as SpacesNameJournalRouteImport } from './routes/spaces/$name/journal'
+import { Route as SpacesNameMemoryRouteImport } from './routes/spaces/$name/memory'
+import { Route as SessionsIdAgentsAgentRouteImport } from './routes/sessions/$id/agents/$agent'
+import { Route as SpacesNameRulesIndexRouteImport } from './routes/spaces/$name/rules/index'
+import { Route as SpacesNameRulesIdRouteImport } from './routes/spaces/$name/rules/$id'
+import { Route as SpacesNameSkillsIndexRouteImport } from './routes/spaces/$name/skills/index'
+import { Route as SpacesNameSkillsSkillRouteImport } from './routes/spaces/$name/skills/$skill'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -54,11 +62,6 @@ const AnalyticsIdRoute = AnalyticsIdRouteImport.update({
 const AutomationsIndexRoute = AutomationsIndexRouteImport.update({
   id: '/automations/',
   path: '/automations/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AutomationsSpaceRoute = AutomationsSpaceRouteImport.update({
-  id: '/automations/$space',
-  path: '/automations/$space',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AutomationsCodexRoute = AutomationsCodexRouteImport.update({
@@ -91,24 +94,9 @@ const HandbookPublishRoute = HandbookPublishRouteImport.update({
   path: '/handbook/publish',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RulesIndexRoute = RulesIndexRouteImport.update({
-  id: '/rules/',
-  path: '/rules/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RulesIdRoute = RulesIdRouteImport.update({
-  id: '/rules/$id',
-  path: '/rules/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SessionsIndexRoute = SessionsIndexRouteImport.update({
   id: '/sessions/',
   path: '/sessions/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SessionsIdRoute = SessionsIdRouteImport.update({
-  id: '/sessions/$id',
-  path: '/sessions/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SkillsIndexRoute = SkillsIndexRouteImport.update({
@@ -116,17 +104,12 @@ const SkillsIndexRoute = SkillsIndexRouteImport.update({
   path: '/skills/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SkillsNameRoute = SkillsNameRouteImport.update({
-  id: '/skills/$name',
-  path: '/skills/$name',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SpacesIndexRoute = SpacesIndexRouteImport.update({
   id: '/spaces/',
   path: '/spaces/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SpacesNameRoute = SpacesNameRouteImport.update({
+const SpacesNameRouteRoute = SpacesNameRouteRouteImport.update({
   id: '/spaces/$name',
   path: '/spaces/$name',
   getParentRoute: () => rootRouteImport,
@@ -136,171 +119,282 @@ const ApiRpcSplatRoute = ApiRpcSplatRouteImport.update({
   path: '/api/rpc/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AutomationsSpaceIndexRoute = AutomationsSpaceIndexRouteImport.update({
+  id: '/automations/$space/',
+  path: '/automations/$space/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AutomationsSpaceEntryRoute = AutomationsSpaceEntryRouteImport.update({
+  id: '/automations/$space/$entry',
+  path: '/automations/$space/$entry',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfigRulesIdRoute = ConfigRulesIdRouteImport.update({
+  id: '/config/rules/$id',
+  path: '/config/rules/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SessionsIdIndexRoute = SessionsIdIndexRouteImport.update({
+  id: '/sessions/$id/',
+  path: '/sessions/$id/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SpacesNameIndexRoute = SpacesNameIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SpacesNameRouteRoute,
+} as any)
+const SpacesNameIssuesRoute = SpacesNameIssuesRouteImport.update({
+  id: '/issues',
+  path: '/issues',
+  getParentRoute: () => SpacesNameRouteRoute,
+} as any)
+const SpacesNameJournalRoute = SpacesNameJournalRouteImport.update({
+  id: '/journal',
+  path: '/journal',
+  getParentRoute: () => SpacesNameRouteRoute,
+} as any)
+const SpacesNameMemoryRoute = SpacesNameMemoryRouteImport.update({
+  id: '/memory',
+  path: '/memory',
+  getParentRoute: () => SpacesNameRouteRoute,
+} as any)
+const SessionsIdAgentsAgentRoute = SessionsIdAgentsAgentRouteImport.update({
+  id: '/sessions/$id/agents/$agent',
+  path: '/sessions/$id/agents/$agent',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SpacesNameRulesIndexRoute = SpacesNameRulesIndexRouteImport.update({
+  id: '/rules/',
+  path: '/rules/',
+  getParentRoute: () => SpacesNameRouteRoute,
+} as any)
+const SpacesNameRulesIdRoute = SpacesNameRulesIdRouteImport.update({
+  id: '/rules/$id',
+  path: '/rules/$id',
+  getParentRoute: () => SpacesNameRouteRoute,
+} as any)
+const SpacesNameSkillsIndexRoute = SpacesNameSkillsIndexRouteImport.update({
+  id: '/skills/',
+  path: '/skills/',
+  getParentRoute: () => SpacesNameRouteRoute,
+} as any)
+const SpacesNameSkillsSkillRoute = SpacesNameSkillsSkillRouteImport.update({
+  id: '/skills/$skill',
+  path: '/skills/$skill',
+  getParentRoute: () => SpacesNameRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/design-system': typeof DesignSystemRoute
+  '/spaces/$name': typeof SpacesNameRouteRouteWithChildren
   '/analytics/$id': typeof AnalyticsIdRoute
-  '/automations/$space': typeof AutomationsSpaceRoute
   '/automations/codex': typeof AutomationsCodexRoute
   '/config/$': typeof ConfigSplatRoute
   '/handbook/$': typeof HandbookSplatRoute
   '/handbook/publish': typeof HandbookPublishRoute
-  '/rules/$id': typeof RulesIdRoute
-  '/sessions/$id': typeof SessionsIdRoute
-  '/skills/$name': typeof SkillsNameRoute
-  '/spaces/$name': typeof SpacesNameRoute
   '/analytics/': typeof AnalyticsIndexRoute
   '/automations/': typeof AutomationsIndexRoute
   '/config/': typeof ConfigIndexRoute
   '/handbook/': typeof HandbookIndexRoute
-  '/rules/': typeof RulesIndexRoute
   '/sessions/': typeof SessionsIndexRoute
   '/skills/': typeof SkillsIndexRoute
   '/spaces/': typeof SpacesIndexRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
+  '/automations/$space/$entry': typeof AutomationsSpaceEntryRoute
+  '/config/rules/$id': typeof ConfigRulesIdRoute
+  '/spaces/$name/issues': typeof SpacesNameIssuesRoute
+  '/spaces/$name/journal': typeof SpacesNameJournalRoute
+  '/spaces/$name/memory': typeof SpacesNameMemoryRoute
+  '/automations/$space/': typeof AutomationsSpaceIndexRoute
+  '/sessions/$id/': typeof SessionsIdIndexRoute
+  '/spaces/$name/': typeof SpacesNameIndexRoute
+  '/sessions/$id/agents/$agent': typeof SessionsIdAgentsAgentRoute
+  '/spaces/$name/rules/$id': typeof SpacesNameRulesIdRoute
+  '/spaces/$name/skills/$skill': typeof SpacesNameSkillsSkillRoute
+  '/spaces/$name/rules/': typeof SpacesNameRulesIndexRoute
+  '/spaces/$name/skills/': typeof SpacesNameSkillsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/design-system': typeof DesignSystemRoute
   '/analytics/$id': typeof AnalyticsIdRoute
-  '/automations/$space': typeof AutomationsSpaceRoute
   '/automations/codex': typeof AutomationsCodexRoute
   '/config/$': typeof ConfigSplatRoute
   '/handbook/$': typeof HandbookSplatRoute
   '/handbook/publish': typeof HandbookPublishRoute
-  '/rules/$id': typeof RulesIdRoute
-  '/sessions/$id': typeof SessionsIdRoute
-  '/skills/$name': typeof SkillsNameRoute
-  '/spaces/$name': typeof SpacesNameRoute
   '/analytics': typeof AnalyticsIndexRoute
   '/automations': typeof AutomationsIndexRoute
   '/config': typeof ConfigIndexRoute
   '/handbook': typeof HandbookIndexRoute
-  '/rules': typeof RulesIndexRoute
   '/sessions': typeof SessionsIndexRoute
   '/skills': typeof SkillsIndexRoute
   '/spaces': typeof SpacesIndexRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
+  '/automations/$space/$entry': typeof AutomationsSpaceEntryRoute
+  '/config/rules/$id': typeof ConfigRulesIdRoute
+  '/spaces/$name/issues': typeof SpacesNameIssuesRoute
+  '/spaces/$name/journal': typeof SpacesNameJournalRoute
+  '/spaces/$name/memory': typeof SpacesNameMemoryRoute
+  '/automations/$space': typeof AutomationsSpaceIndexRoute
+  '/sessions/$id': typeof SessionsIdIndexRoute
+  '/spaces/$name': typeof SpacesNameIndexRoute
+  '/sessions/$id/agents/$agent': typeof SessionsIdAgentsAgentRoute
+  '/spaces/$name/rules/$id': typeof SpacesNameRulesIdRoute
+  '/spaces/$name/skills/$skill': typeof SpacesNameSkillsSkillRoute
+  '/spaces/$name/rules': typeof SpacesNameRulesIndexRoute
+  '/spaces/$name/skills': typeof SpacesNameSkillsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/design-system': typeof DesignSystemRoute
+  '/spaces/$name': typeof SpacesNameRouteRouteWithChildren
   '/analytics/$id': typeof AnalyticsIdRoute
-  '/automations/$space': typeof AutomationsSpaceRoute
   '/automations/codex': typeof AutomationsCodexRoute
   '/config/$': typeof ConfigSplatRoute
   '/handbook/$': typeof HandbookSplatRoute
   '/handbook/publish': typeof HandbookPublishRoute
-  '/rules/$id': typeof RulesIdRoute
-  '/sessions/$id': typeof SessionsIdRoute
-  '/skills/$name': typeof SkillsNameRoute
-  '/spaces/$name': typeof SpacesNameRoute
   '/analytics/': typeof AnalyticsIndexRoute
   '/automations/': typeof AutomationsIndexRoute
   '/config/': typeof ConfigIndexRoute
   '/handbook/': typeof HandbookIndexRoute
-  '/rules/': typeof RulesIndexRoute
   '/sessions/': typeof SessionsIndexRoute
   '/skills/': typeof SkillsIndexRoute
   '/spaces/': typeof SpacesIndexRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
+  '/automations/$space/$entry': typeof AutomationsSpaceEntryRoute
+  '/config/rules/$id': typeof ConfigRulesIdRoute
+  '/spaces/$name/issues': typeof SpacesNameIssuesRoute
+  '/spaces/$name/journal': typeof SpacesNameJournalRoute
+  '/spaces/$name/memory': typeof SpacesNameMemoryRoute
+  '/automations/$space/': typeof AutomationsSpaceIndexRoute
+  '/sessions/$id/': typeof SessionsIdIndexRoute
+  '/spaces/$name/': typeof SpacesNameIndexRoute
+  '/sessions/$id/agents/$agent': typeof SessionsIdAgentsAgentRoute
+  '/spaces/$name/rules/$id': typeof SpacesNameRulesIdRoute
+  '/spaces/$name/skills/$skill': typeof SpacesNameSkillsSkillRoute
+  '/spaces/$name/rules/': typeof SpacesNameRulesIndexRoute
+  '/spaces/$name/skills/': typeof SpacesNameSkillsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/design-system'
+    | '/spaces/$name'
     | '/analytics/$id'
-    | '/automations/$space'
     | '/automations/codex'
     | '/config/$'
     | '/handbook/$'
     | '/handbook/publish'
-    | '/rules/$id'
-    | '/sessions/$id'
-    | '/skills/$name'
-    | '/spaces/$name'
     | '/analytics/'
     | '/automations/'
     | '/config/'
     | '/handbook/'
-    | '/rules/'
     | '/sessions/'
     | '/skills/'
     | '/spaces/'
     | '/api/rpc/$'
+    | '/automations/$space/$entry'
+    | '/config/rules/$id'
+    | '/spaces/$name/issues'
+    | '/spaces/$name/journal'
+    | '/spaces/$name/memory'
+    | '/automations/$space/'
+    | '/sessions/$id/'
+    | '/spaces/$name/'
+    | '/sessions/$id/agents/$agent'
+    | '/spaces/$name/rules/$id'
+    | '/spaces/$name/skills/$skill'
+    | '/spaces/$name/rules/'
+    | '/spaces/$name/skills/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/design-system'
     | '/analytics/$id'
-    | '/automations/$space'
     | '/automations/codex'
     | '/config/$'
     | '/handbook/$'
     | '/handbook/publish'
-    | '/rules/$id'
-    | '/sessions/$id'
-    | '/skills/$name'
-    | '/spaces/$name'
     | '/analytics'
     | '/automations'
     | '/config'
     | '/handbook'
-    | '/rules'
     | '/sessions'
     | '/skills'
     | '/spaces'
     | '/api/rpc/$'
+    | '/automations/$space/$entry'
+    | '/config/rules/$id'
+    | '/spaces/$name/issues'
+    | '/spaces/$name/journal'
+    | '/spaces/$name/memory'
+    | '/automations/$space'
+    | '/sessions/$id'
+    | '/spaces/$name'
+    | '/sessions/$id/agents/$agent'
+    | '/spaces/$name/rules/$id'
+    | '/spaces/$name/skills/$skill'
+    | '/spaces/$name/rules'
+    | '/spaces/$name/skills'
   id:
     | '__root__'
     | '/'
     | '/design-system'
+    | '/spaces/$name'
     | '/analytics/$id'
-    | '/automations/$space'
     | '/automations/codex'
     | '/config/$'
     | '/handbook/$'
     | '/handbook/publish'
-    | '/rules/$id'
-    | '/sessions/$id'
-    | '/skills/$name'
-    | '/spaces/$name'
     | '/analytics/'
     | '/automations/'
     | '/config/'
     | '/handbook/'
-    | '/rules/'
     | '/sessions/'
     | '/skills/'
     | '/spaces/'
     | '/api/rpc/$'
+    | '/automations/$space/$entry'
+    | '/config/rules/$id'
+    | '/spaces/$name/issues'
+    | '/spaces/$name/journal'
+    | '/spaces/$name/memory'
+    | '/automations/$space/'
+    | '/sessions/$id/'
+    | '/spaces/$name/'
+    | '/sessions/$id/agents/$agent'
+    | '/spaces/$name/rules/$id'
+    | '/spaces/$name/skills/$skill'
+    | '/spaces/$name/rules/'
+    | '/spaces/$name/skills/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DesignSystemRoute: typeof DesignSystemRoute
+  SpacesNameRouteRoute: typeof SpacesNameRouteRouteWithChildren
   AnalyticsIdRoute: typeof AnalyticsIdRoute
-  AutomationsSpaceRoute: typeof AutomationsSpaceRoute
   AutomationsCodexRoute: typeof AutomationsCodexRoute
   ConfigSplatRoute: typeof ConfigSplatRoute
   HandbookSplatRoute: typeof HandbookSplatRoute
   HandbookPublishRoute: typeof HandbookPublishRoute
-  RulesIdRoute: typeof RulesIdRoute
-  SessionsIdRoute: typeof SessionsIdRoute
-  SkillsNameRoute: typeof SkillsNameRoute
-  SpacesNameRoute: typeof SpacesNameRoute
   AnalyticsIndexRoute: typeof AnalyticsIndexRoute
   AutomationsIndexRoute: typeof AutomationsIndexRoute
   ConfigIndexRoute: typeof ConfigIndexRoute
   HandbookIndexRoute: typeof HandbookIndexRoute
-  RulesIndexRoute: typeof RulesIndexRoute
   SessionsIndexRoute: typeof SessionsIndexRoute
   SkillsIndexRoute: typeof SkillsIndexRoute
   SpacesIndexRoute: typeof SpacesIndexRoute
   ApiRpcSplatRoute: typeof ApiRpcSplatRoute
+  AutomationsSpaceEntryRoute: typeof AutomationsSpaceEntryRoute
+  ConfigRulesIdRoute: typeof ConfigRulesIdRoute
+  AutomationsSpaceIndexRoute: typeof AutomationsSpaceIndexRoute
+  SessionsIdIndexRoute: typeof SessionsIdIndexRoute
+  SessionsIdAgentsAgentRoute: typeof SessionsIdAgentsAgentRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -338,13 +432,6 @@ declare module '@tanstack/react-router' {
       path: '/automations'
       fullPath: '/automations/'
       preLoaderRoute: typeof AutomationsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/automations/$space': {
-      id: '/automations/$space'
-      path: '/automations/$space'
-      fullPath: '/automations/$space'
-      preLoaderRoute: typeof AutomationsSpaceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/automations/codex': {
@@ -389,20 +476,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HandbookPublishRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/rules/': {
-      id: '/rules/'
-      path: '/rules'
-      fullPath: '/rules/'
-      preLoaderRoute: typeof RulesIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/rules/$id': {
-      id: '/rules/$id'
-      path: '/rules/$id'
-      fullPath: '/rules/$id'
-      preLoaderRoute: typeof RulesIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/sessions/': {
       id: '/sessions/'
       path: '/sessions'
@@ -410,25 +483,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SessionsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/sessions/$id': {
-      id: '/sessions/$id'
-      path: '/sessions/$id'
-      fullPath: '/sessions/$id'
-      preLoaderRoute: typeof SessionsIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/skills/': {
       id: '/skills/'
       path: '/skills'
       fullPath: '/skills/'
       preLoaderRoute: typeof SkillsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/skills/$name': {
-      id: '/skills/$name'
-      path: '/skills/$name'
-      fullPath: '/skills/$name'
-      preLoaderRoute: typeof SkillsNameRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/spaces/': {
@@ -442,7 +501,7 @@ declare module '@tanstack/react-router' {
       id: '/spaces/$name'
       path: '/spaces/$name'
       fullPath: '/spaces/$name'
-      preLoaderRoute: typeof SpacesNameRouteImport
+      preLoaderRoute: typeof SpacesNameRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/rpc/$': {
@@ -452,31 +511,148 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiRpcSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/automations/$space/': {
+      id: '/automations/$space/'
+      path: '/automations/$space'
+      fullPath: '/automations/$space/'
+      preLoaderRoute: typeof AutomationsSpaceIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/automations/$space/$entry': {
+      id: '/automations/$space/$entry'
+      path: '/automations/$space/$entry'
+      fullPath: '/automations/$space/$entry'
+      preLoaderRoute: typeof AutomationsSpaceEntryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/config/rules/$id': {
+      id: '/config/rules/$id'
+      path: '/config/rules/$id'
+      fullPath: '/config/rules/$id'
+      preLoaderRoute: typeof ConfigRulesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sessions/$id/': {
+      id: '/sessions/$id/'
+      path: '/sessions/$id'
+      fullPath: '/sessions/$id/'
+      preLoaderRoute: typeof SessionsIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/spaces/$name/': {
+      id: '/spaces/$name/'
+      path: '/'
+      fullPath: '/spaces/$name/'
+      preLoaderRoute: typeof SpacesNameIndexRouteImport
+      parentRoute: typeof SpacesNameRouteRoute
+    }
+    '/spaces/$name/issues': {
+      id: '/spaces/$name/issues'
+      path: '/issues'
+      fullPath: '/spaces/$name/issues'
+      preLoaderRoute: typeof SpacesNameIssuesRouteImport
+      parentRoute: typeof SpacesNameRouteRoute
+    }
+    '/spaces/$name/journal': {
+      id: '/spaces/$name/journal'
+      path: '/journal'
+      fullPath: '/spaces/$name/journal'
+      preLoaderRoute: typeof SpacesNameJournalRouteImport
+      parentRoute: typeof SpacesNameRouteRoute
+    }
+    '/spaces/$name/memory': {
+      id: '/spaces/$name/memory'
+      path: '/memory'
+      fullPath: '/spaces/$name/memory'
+      preLoaderRoute: typeof SpacesNameMemoryRouteImport
+      parentRoute: typeof SpacesNameRouteRoute
+    }
+    '/sessions/$id/agents/$agent': {
+      id: '/sessions/$id/agents/$agent'
+      path: '/sessions/$id/agents/$agent'
+      fullPath: '/sessions/$id/agents/$agent'
+      preLoaderRoute: typeof SessionsIdAgentsAgentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/spaces/$name/rules/': {
+      id: '/spaces/$name/rules/'
+      path: '/rules'
+      fullPath: '/spaces/$name/rules/'
+      preLoaderRoute: typeof SpacesNameRulesIndexRouteImport
+      parentRoute: typeof SpacesNameRouteRoute
+    }
+    '/spaces/$name/rules/$id': {
+      id: '/spaces/$name/rules/$id'
+      path: '/rules/$id'
+      fullPath: '/spaces/$name/rules/$id'
+      preLoaderRoute: typeof SpacesNameRulesIdRouteImport
+      parentRoute: typeof SpacesNameRouteRoute
+    }
+    '/spaces/$name/skills/': {
+      id: '/spaces/$name/skills/'
+      path: '/skills'
+      fullPath: '/spaces/$name/skills/'
+      preLoaderRoute: typeof SpacesNameSkillsIndexRouteImport
+      parentRoute: typeof SpacesNameRouteRoute
+    }
+    '/spaces/$name/skills/$skill': {
+      id: '/spaces/$name/skills/$skill'
+      path: '/skills/$skill'
+      fullPath: '/spaces/$name/skills/$skill'
+      preLoaderRoute: typeof SpacesNameSkillsSkillRouteImport
+      parentRoute: typeof SpacesNameRouteRoute
+    }
   }
 }
+
+interface SpacesNameRouteRouteChildren {
+  SpacesNameIssuesRoute: typeof SpacesNameIssuesRoute
+  SpacesNameJournalRoute: typeof SpacesNameJournalRoute
+  SpacesNameMemoryRoute: typeof SpacesNameMemoryRoute
+  SpacesNameIndexRoute: typeof SpacesNameIndexRoute
+  SpacesNameRulesIdRoute: typeof SpacesNameRulesIdRoute
+  SpacesNameSkillsSkillRoute: typeof SpacesNameSkillsSkillRoute
+  SpacesNameRulesIndexRoute: typeof SpacesNameRulesIndexRoute
+  SpacesNameSkillsIndexRoute: typeof SpacesNameSkillsIndexRoute
+}
+
+const SpacesNameRouteRouteChildren: SpacesNameRouteRouteChildren = {
+  SpacesNameIssuesRoute: SpacesNameIssuesRoute,
+  SpacesNameJournalRoute: SpacesNameJournalRoute,
+  SpacesNameMemoryRoute: SpacesNameMemoryRoute,
+  SpacesNameIndexRoute: SpacesNameIndexRoute,
+  SpacesNameRulesIdRoute: SpacesNameRulesIdRoute,
+  SpacesNameSkillsSkillRoute: SpacesNameSkillsSkillRoute,
+  SpacesNameRulesIndexRoute: SpacesNameRulesIndexRoute,
+  SpacesNameSkillsIndexRoute: SpacesNameSkillsIndexRoute,
+}
+
+const SpacesNameRouteRouteWithChildren = SpacesNameRouteRoute._addFileChildren(
+  SpacesNameRouteRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DesignSystemRoute: DesignSystemRoute,
+  SpacesNameRouteRoute: SpacesNameRouteRouteWithChildren,
   AnalyticsIdRoute: AnalyticsIdRoute,
-  AutomationsSpaceRoute: AutomationsSpaceRoute,
   AutomationsCodexRoute: AutomationsCodexRoute,
   ConfigSplatRoute: ConfigSplatRoute,
   HandbookSplatRoute: HandbookSplatRoute,
   HandbookPublishRoute: HandbookPublishRoute,
-  RulesIdRoute: RulesIdRoute,
-  SessionsIdRoute: SessionsIdRoute,
-  SkillsNameRoute: SkillsNameRoute,
-  SpacesNameRoute: SpacesNameRoute,
   AnalyticsIndexRoute: AnalyticsIndexRoute,
   AutomationsIndexRoute: AutomationsIndexRoute,
   ConfigIndexRoute: ConfigIndexRoute,
   HandbookIndexRoute: HandbookIndexRoute,
-  RulesIndexRoute: RulesIndexRoute,
   SessionsIndexRoute: SessionsIndexRoute,
   SkillsIndexRoute: SkillsIndexRoute,
   SpacesIndexRoute: SpacesIndexRoute,
   ApiRpcSplatRoute: ApiRpcSplatRoute,
+  AutomationsSpaceEntryRoute: AutomationsSpaceEntryRoute,
+  ConfigRulesIdRoute: ConfigRulesIdRoute,
+  AutomationsSpaceIndexRoute: AutomationsSpaceIndexRoute,
+  SessionsIdIndexRoute: SessionsIdIndexRoute,
+  SessionsIdAgentsAgentRoute: SessionsIdAgentsAgentRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

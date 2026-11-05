@@ -11,13 +11,16 @@ import {
   controlAgent,
   getAutomations,
   getCodexFile,
+  getEntry,
   getRegistry,
   readMachine,
   setCodexStatus,
   updateCodexFile,
+  updateEntry,
   updateRegistry,
   type AutomationInvalid,
   type AutomationNotFound,
+  type EntryNotFound,
   type MachineUnreachable,
   type RegistryNotFound,
 } from "../automations.ts";
@@ -27,6 +30,7 @@ import { SpaceName } from "../space-view.ts";
 
 type Failure =
   | RegistryNotFound
+  | EntryNotFound
   | AutomationNotFound
   | AutomationInvalid
   | MachineUnreachable
@@ -39,6 +43,10 @@ function toORPCError(error: Failure) {
     case "RegistryNotFound":
       return new ORPCError("NOT_FOUND", {
         message: `The space ${error.space} has no context/ops.md.`,
+      });
+    case "EntryNotFound":
+      return new ORPCError("NOT_FOUND", {
+        message: `The registry of ${error.space} has no entry ${error.id}.`,
       });
     case "AutomationNotFound":
       return new ORPCError("NOT_FOUND", {
@@ -69,6 +77,7 @@ function run<A>(program: Effect.Effect<A, Failure>) {
 }
 
 const FilePath = z.string().min(1).max(1024);
+const EntryId = z.string().min(1).max(200);
 
 export const automationsRouter = {
   list: o.handler(({ context }) => Effect.runPromise(getAutomations(context.root))),
@@ -85,6 +94,23 @@ export const automationsRouter = {
     .input(z.object({ space: SpaceName, markdown: z.string().max(500_000), baseHash: z.string() }))
     .handler(({ context, input }) =>
       run(updateRegistry(context.root, input.space, input.markdown, input.baseHash)),
+    ),
+
+  entry: o
+    .input(z.object({ space: SpaceName, id: EntryId }))
+    .handler(({ context, input }) => run(getEntry(context.root, input.space, input.id))),
+
+  updateEntry: o
+    .input(
+      z.object({
+        space: SpaceName,
+        id: EntryId,
+        markdown: z.string().max(200_000),
+        baseHash: z.string(),
+      }),
+    )
+    .handler(({ context, input }) =>
+      run(updateEntry(context.root, input.space, input.id, input.markdown, input.baseHash)),
     ),
 
   codexFile: o

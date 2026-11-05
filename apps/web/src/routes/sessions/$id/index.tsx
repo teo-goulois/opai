@@ -17,7 +17,7 @@ import { orpc } from "@/utils/orpc";
 
 const sessionQuery = (id: string) => orpc.sessions.get.queryOptions({ input: { id } });
 
-export const Route = createFileRoute("/sessions/$id")({
+export const Route = createFileRoute("/sessions/$id/")({
   loader: async ({ context, params }) => {
     try {
       await context.queryClient.ensureQueryData(sessionQuery(params.id));

@@ -7,7 +7,6 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarLink,
-  SidebarLinkMeta,
   SidebarMenu,
   SidebarMenuItem,
 } from "@opai/ui/components/ui/sidebar";
@@ -19,18 +18,17 @@ import {
   OpsIcon,
   MoonIcon,
   PaletteIcon,
-  RulesIcon,
   SearchIcon,
   SessionsIcon,
   SkillIcon,
-  SpacesIcon,
   SunIcon,
 } from "@opai/ui/icon";
 import { formatForDisplay, useAppHotkeys } from "@tanstack/react-hotkeys";
 import { useQuery } from "@tanstack/react-query";
 import { Link, type LinkProps } from "@tanstack/react-router";
-import type { ComponentType, ReactNode, SVGProps } from "react";
+import type { ComponentType, SVGProps } from "react";
 
+import { orderSpaces, SpaceDot } from "@/components/spaces/space-ui";
 import { m } from "@/paraglide/messages.js";
 import { getLocale } from "@/paraglide/runtime.js";
 import { orpc } from "@/utils/orpc";
@@ -42,27 +40,27 @@ type NavItem = {
   to: LinkProps["to"];
   label: string;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
-  /** A count shown at the end of the row, when known. */
-  meta?: ReactNode;
 };
 
-type NavGroup = { id: string; label?: string; items: NavItem[] };
+type NavGroup = { id: string; label: string; items: NavItem[] };
 
-/** Every destination of the app. A new section is one more item or group here. */
+/** The destinations past the spaces. A new section is one more item or group here. */
 function useNavGroups(): NavGroup[] {
-  const spaces = useQuery(orpc.spaces.list.queryOptions());
-  const rules = useQuery(orpc.rules.list.queryOptions());
-
   return [
     {
-      id: "main",
+      id: "across",
+      label: m.nav_group_across(),
       items: [
-        { to: "/spaces", label: m.nav_spaces(), icon: SpacesIcon, meta: spaces.data?.length },
-        { to: "/rules", label: m.nav_rules(), icon: RulesIcon, meta: rules.data?.length },
         { to: "/skills", label: m.nav_skills(), icon: SkillIcon },
-        { to: "/automations", label: m.nav_automations(), icon: OpsIcon },
-        { to: "/config", label: m.nav_config(), icon: FolderIcon },
         { to: "/sessions", label: m.nav_sessions(), icon: SessionsIcon },
+        { to: "/automations", label: m.nav_automations(), icon: OpsIcon },
+      ],
+    },
+    {
+      id: "instance",
+      label: m.nav_group_instance(),
+      items: [
+        { to: "/config", label: m.nav_config(), icon: FolderIcon },
         { to: "/handbook", label: m.nav_handbook(), icon: HandbookIcon },
         { to: "/analytics", label: m.nav_analytics(), icon: AnalyticsIcon },
       ],
@@ -79,6 +77,36 @@ function useNavGroups(): NavGroup[] {
   ];
 }
 
+/** Every space, the base one first: the root of the navigation. */
+function SpaceLinks({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
+  const spaces = useQuery(orpc.spaces.list.queryOptions());
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel
+        render={<Link to="/spaces" activeOptions={{ exact: true }} onClick={onNavigate} />}
+      >
+        {m.nav_spaces()}
+      </SidebarGroupLabel>
+      <SidebarMenu>
+        {orderSpaces(spaces.data ?? []).map((space, index) => (
+          <SidebarMenuItem key={space.name}>
+            <SidebarLink
+              render={
+                <Link to="/spaces/$name" params={{ name: space.name }} onClick={onNavigate} />
+              }
+            >
+              <span className="flex size-l items-center justify-center" aria-hidden>
+                <SpaceDot index={index} />
+              </span>
+              <span className="truncate">{space.name}</span>
+            </SidebarLink>
+          </SidebarMenuItem>
+        ))}
+      </SidebarMenu>
+    </SidebarGroup>
+  );
+}
+
 export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const groups = useNavGroups();
   const { openCommandPalette } = useCommandPalette();
@@ -93,7 +121,7 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
         <Link
           to="/"
           onClick={onNavigate}
-          className="rounded-xs font-data text-m font-medium text-neutral-10"
+          className="rounded-xs font-brand text-m font-medium text-neutral-10"
         >
           {m.app_name()}
         </Link>
@@ -101,18 +129,16 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
 
       <SidebarContent>
         <nav aria-label={m.nav_main()} className="flex flex-col gap-l">
+          <SpaceLinks onNavigate={onNavigate} />
           {groups.map((group) => (
             <SidebarGroup key={group.id}>
-              {group.label ? <SidebarGroupLabel>{group.label}</SidebarGroupLabel> : null}
+              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
               <SidebarMenu>
                 {group.items.map((item) => (
                   <SidebarMenuItem key={item.to}>
                     <SidebarLink render={<Link to={item.to} onClick={onNavigate} />}>
                       <item.icon aria-hidden />
                       <span className="truncate">{item.label}</span>
-                      {item.meta !== undefined ? (
-                        <SidebarLinkMeta>{item.meta}</SidebarLinkMeta>
-                      ) : null}
                     </SidebarLink>
                   </SidebarMenuItem>
                 ))}

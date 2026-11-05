@@ -44,7 +44,7 @@ export function HandbookIndex({ handbook }: { handbook: Handbook }) {
         </div>
         <PageMeta>
           <span>{m.handbook_pages_count({ count: handbook.pages.length })}</span>
-          <span className="font-data">handbook/</span>
+          <span>handbook/</span>
           {handbook.site ? (
             <a
               href={handbook.site}
@@ -64,7 +64,7 @@ export function HandbookIndex({ handbook }: { handbook: Handbook }) {
           <PageSectionTitle id={`handbook-section-${index}`} count={section.entries.length}>
             {section.title}
           </PageSectionTitle>
-          <ul className="flex flex-col overflow-hidden rounded-m bg-neutral-1 edge-outer dark:bg-neutral-2">
+          <ul className="-mx-s flex flex-col gap-xxs">
             {section.entries.map((entry) => (
               <li key={entry.kind === "page" ? entry.page.slug : entry.url}>
                 <EntryRow entry={entry} />
@@ -86,7 +86,7 @@ const indent = ["", "ps-xl", "ps-[calc(var(--space-xl)*2)]"];
 
 function EntryRow({ entry }: { entry: HandbookEntry }) {
   const row = cn(
-    "flex flex-col gap-xxs px-m py-s in-[li:not(:first-child)]:edge-top in-[li:not(:first-child)]:edge-neutral-4",
+    "flex flex-col gap-xxs rounded-s px-s py-xs",
     indent[Math.min(entry.depth, indent.length - 1)],
   );
   const title =
@@ -119,7 +119,7 @@ function EntryRow({ entry }: { entry: HandbookEntry }) {
         </Link>
         <GeneratedBadge page={page} />
       </div>
-      <span className="font-data text-s text-neutral-7 wrap-anywhere">{page.path}</span>
+      <span className="font-ui text-s text-neutral-7 wrap-anywhere">{page.path}</span>
       <p className="max-w-prose font-ui text-s text-neutral-8">{page.description}</p>
     </div>
   );
@@ -136,7 +136,7 @@ function HandbookMissing() {
         <EmptyDescription>{m.handbook_missing_description()}</EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
-        <span className="font-data text-s text-neutral-8">handbook/index.md</span>
+        <span className="font-ui text-s text-neutral-8">handbook/index.md</span>
       </EmptyContent>
     </Empty>
   );

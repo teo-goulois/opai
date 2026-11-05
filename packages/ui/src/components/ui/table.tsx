@@ -1,16 +1,13 @@
 import { cn } from "@opai/ui/lib/utils";
 import type * as React from "react";
 
-// No Graphical specification: composed from the theme's tokens, like the lists
-// of the rules and skills pages. A filled, outlined container; rows separated
-// (and from the header) by a neutral-4 edge; numbers in the data font, aligned right.
+// No Graphical specification: composed from the theme's tokens. No frame: rows
+// separated (and from the header) by a neutral-4 edge; numbers in tabular
+// figures, aligned right.
 
 export function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
-    <div
-      data-slot="table-container"
-      className="w-full overflow-x-auto rounded-m bg-neutral-1 edge-outer dark:bg-neutral-2"
-    >
+    <div data-slot="table-container" className="w-full overflow-x-auto">
       <table
         data-slot="table"
         className={cn("w-full border-collapse font-ui text-s", className)}
@@ -48,7 +45,7 @@ export function TableHead({
       data-slot="table-head"
       scope="col"
       className={cn(
-        "px-s py-xs text-start font-medium whitespace-nowrap text-neutral-7",
+        "px-s py-xs text-start font-regular whitespace-nowrap text-neutral-7 first:ps-zero last:pe-zero",
         numeric && "text-end",
         className,
       )}
@@ -66,8 +63,8 @@ export function TableCell({
     <td
       data-slot="table-cell"
       className={cn(
-        "px-s py-xs align-middle text-neutral-10",
-        numeric && "text-end font-data whitespace-nowrap tabular-nums",
+        "px-s py-s align-middle text-neutral-10 first:ps-zero last:pe-zero",
+        numeric && "text-end whitespace-nowrap tabular-nums",
         className,
       )}
       {...props}

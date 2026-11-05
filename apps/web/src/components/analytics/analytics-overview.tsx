@@ -139,7 +139,7 @@ function AppName({ app, period }: { app: AppRow["app"]; period: Period }) {
       >
         {app.name}
       </Link>
-      {app.domain ? <span className="font-data text-xs text-neutral-7">{app.domain}</span> : null}
+      {app.domain ? <span className="font-ui text-xs text-neutral-7">{app.domain}</span> : null}
     </div>
   );
 }
@@ -176,7 +176,7 @@ function UntrackedTable({ rows }: { rows: AppRow[] }) {
             <TableCell>
               <div className="flex min-w-40 flex-col">
                 <span className="font-medium">{app.name}</span>
-                <span className="font-data text-xs text-neutral-7">{app.domain ?? app.repo}</span>
+                <span className="font-ui text-xs text-neutral-7">{app.domain ?? app.repo}</span>
               </div>
             </TableCell>
             <TableCell>

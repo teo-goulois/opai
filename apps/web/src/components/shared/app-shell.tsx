@@ -36,12 +36,12 @@ export function AppShell({ children }: { children: ReactNode }) {
               <AppSidebar onNavigate={() => setSheetOpen(false)} />
             </SidebarSheetPopup>
           </SidebarSheet>
-          <Link to="/" className="rounded-xs font-data text-m font-medium">
+          <Link to="/" className="rounded-xs font-brand text-m font-medium">
             {m.app_name()}
           </Link>
         </header>
 
-        <main className="mx-auto w-full max-w-6xl flex-1 px-m py-l sm:px-xl sm:py-xl">
+        <main className="mx-auto w-full min-w-0 max-w-6xl flex-1 px-m py-l sm:px-xl sm:py-xl">
           {children}
         </main>
       </div>

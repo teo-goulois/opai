@@ -1,5 +1,10 @@
 import type { Source } from "@opai/context/origins";
-import type { ContextPart, SessionDetail as Session, Step } from "@opai/context/sessions";
+import type {
+  ContextPart,
+  SessionDetail as Session,
+  SessionSummary,
+  Step,
+} from "@opai/context/sessions";
 import { Badge } from "@opai/ui/components/ui/badge";
 import {
   Breadcrumb,
@@ -15,6 +20,14 @@ import {
   CollapsibleTrigger,
 } from "@opai/ui/components/ui/collapsible";
 import { DescriptionItem, DescriptionList } from "@opai/ui/components/ui/description-list";
+import {
+  ItemDescription,
+  ItemEnd,
+  ItemList,
+  ItemMain,
+  ItemRow,
+  ItemTitle,
+} from "@opai/ui/components/ui/item-list";
 import {
   PageHeader,
   PageMeta,
@@ -32,7 +45,8 @@ import { m } from "@/paraglide/messages.js";
 import { getLocale } from "@/paraglide/runtime.js";
 import { formatRelative } from "@/utils/format";
 
-import { approxTokens, harnessLabel } from "./session-list";
+import { approxTokens, SessionSources } from "./session-list";
+import { clientSource, modelSource, SourceTag } from "./session-source";
 
 const cardClassName = "rounded-m bg-neutral-1 edge-outer dark:bg-neutral-2";
 const preClassName =
@@ -115,25 +129,51 @@ function OriginSummary({ origins, total }: { origins: Source[]; total: number })
   );
 }
 
+/** Sessions › the session that started it › this one. */
+function SessionCrumbs({ session }: { session: Session }) {
+  return (
+    <Breadcrumb aria-label={m.breadcrumb()}>
+      <BreadcrumbList>
+        <BreadcrumbItem>
+          <BreadcrumbLink render={<Link to="/sessions" />}>{m.nav_sessions()}</BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />
+        {session.parent ? (
+          <>
+            <BreadcrumbItem className="min-w-0">
+              <BreadcrumbLink
+                className="truncate"
+                render={<Link to="/sessions/$id" params={{ id: session.parent }} />}
+              >
+                {session.parentTitle ?? session.parent}
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+          </>
+        ) : null}
+        <BreadcrumbItem className="min-w-0">
+          <BreadcrumbPage className="truncate">{session.title}</BreadcrumbPage>
+        </BreadcrumbItem>
+      </BreadcrumbList>
+    </Breadcrumb>
+  );
+}
+
 export function SessionDetail({ session }: { session: Session }) {
+  const agents = new Map(session.agents.map((agent) => [agent.id, agent]));
   return (
     <article className="flex flex-col gap-xl">
       <div className="flex flex-col gap-m">
-        <Breadcrumb aria-label={m.breadcrumb()}>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink render={<Link to="/sessions" />}>{m.nav_sessions()}</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage className="truncate">{session.title}</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+        <SessionCrumbs session={session} />
         <PageHeader>
-          <PageTitle className="text-pretty">{session.title}</PageTitle>
-          <PageMeta>
-            <Badge variant="neutral">{harnessLabel(session.harness)}</Badge>
+          <div className="flex flex-wrap items-center gap-xs">
+            <PageTitle className="text-pretty">{session.title}</PageTitle>
+            {session.parent ? (
+              <Badge variant="neutral">{session.agentType ?? m.session_subagent()}</Badge>
+            ) : null}
+          </div>
+          <PageMeta className="items-center">
+            <SessionSources session={session} />
             <span>
               {[
                 m.session_prompts({ count: session.prompts }),
@@ -146,10 +186,18 @@ export function SessionDetail({ session }: { session: Session }) {
       </div>
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-xl lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <Tabs defaultValue="context">
+        <Tabs defaultValue={session.parent ? "timeline" : "context"}>
           <TabsList>
             <TabsTab value="context">{m.session_tab_context()}</TabsTab>
             <TabsTab value="timeline">{m.session_tab_timeline()}</TabsTab>
+            {session.agents.length > 0 ? (
+              <TabsTab value="agents">
+                {m.session_tab_agents()}
+                <span className="font-ui text-s text-neutral-6 tabular-nums">
+                  {session.agents.length}
+                </span>
+              </TabsTab>
+            ) : null}
           </TabsList>
           <TabsPanel value="context" className="flex flex-col gap-l">
             {session.origins.length > 0 ? (
@@ -173,7 +221,13 @@ export function SessionDetail({ session }: { session: Session }) {
               <ol className="flex flex-col gap-xs">
                 {session.steps.map((step, index) => (
                   <li key={index}>
-                    <StepRow step={step} />
+                    <StepRow
+                      step={step}
+                      session={session.id}
+                      agent={
+                        step.kind === "tool" && step.agent ? agents.get(step.agent) : undefined
+                      }
+                    />
                   </li>
                 ))}
               </ol>
@@ -181,6 +235,20 @@ export function SessionDetail({ session }: { session: Session }) {
               <p className="font-ui text-s text-neutral-7">{m.session_timeline_none()}</p>
             )}
           </TabsPanel>
+          {session.agents.length > 0 ? (
+            <TabsPanel value="agents" className="flex flex-col gap-s">
+              <p className="max-w-prose font-ui text-s text-pretty text-neutral-7">
+                {m.session_agents_hint()}
+              </p>
+              <ItemList>
+                {session.agents.map((agent) => (
+                  <li key={agent.id}>
+                    <AgentRow session={session.id} agent={agent} />
+                  </li>
+                ))}
+              </ItemList>
+            </TabsPanel>
+          ) : null}
         </Tabs>
 
         <aside className="flex flex-col gap-l lg:sticky lg:top-xl lg:self-start">
@@ -200,14 +268,18 @@ export function SessionDetail({ session }: { session: Session }) {
               ) : null}
               {session.cwd ? (
                 <DescriptionItem label={m.session_folder()}>
-                  <span className="font-data break-all">{session.cwd}</span>
+                  <span className="break-all">{session.cwd}</span>
                 </DescriptionItem>
               ) : null}
               {session.model ? (
-                <DescriptionItem label={m.session_model()}>{session.model}</DescriptionItem>
+                <DescriptionItem label={m.session_model()}>
+                  <SourceTag source={modelSource(session.model)} title={session.model} />
+                </DescriptionItem>
               ) : null}
               {session.client ? (
-                <DescriptionItem label={m.session_client()}>{session.client}</DescriptionItem>
+                <DescriptionItem label={m.session_client()}>
+                  <SourceTag source={clientSource(session)} title={session.client} />
+                </DescriptionItem>
               ) : null}
               {session.startedAt ? (
                 <DescriptionItem label={m.session_started()}>
@@ -215,7 +287,7 @@ export function SessionDetail({ session }: { session: Session }) {
                 </DescriptionItem>
               ) : null}
               <DescriptionItem label={m.session_file()}>
-                <span className="font-data break-all">{session.file}</span>
+                <span className="break-all">{session.file}</span>
               </DescriptionItem>
             </DescriptionList>
           </PageSection>
@@ -283,18 +355,77 @@ function ContextRow({ part }: { part: ContextPart }) {
   );
 }
 
-function StepRow({ step }: { step: Step }) {
+/** How long a subagent ran: from its first line to its last step. */
+function duration(agent: SessionSummary) {
+  if (!agent.startedAt || !agent.endedAt) return "";
+  const seconds = Math.max(
+    0,
+    Math.round((Date.parse(agent.endedAt) - Date.parse(agent.startedAt)) / 1000),
+  );
+  return seconds < 60
+    ? m.session_seconds({ count: seconds })
+    : m.session_minutes({ count: Math.round(seconds / 60) });
+}
+
+function AgentRow({ session, agent }: { session: string; agent: SessionSummary }) {
+  return (
+    <ItemRow
+      render={<Link to="/sessions/$id/agents/$agent" params={{ id: session, agent: agent.id }} />}
+    >
+      <ItemMain>
+        <ItemTitle>
+          <span className="min-w-0 truncate">{agent.title}</span>
+          {agent.agentType ? <Badge variant="neutral">{agent.agentType}</Badge> : null}
+        </ItemTitle>
+        <ItemDescription className="flex flex-wrap items-center gap-x-s gap-y-xxs">
+          {agent.model ? <SourceTag source={modelSource(agent.model)} /> : null}
+          <span>
+            {[m.session_tool_calls({ count: agent.toolCalls }), duration(agent)]
+              .filter(Boolean)
+              .join(" · ")}
+          </span>
+        </ItemDescription>
+      </ItemMain>
+      <ItemEnd>
+        {agent.startedAt ? new Date(agent.startedAt).toLocaleTimeString(getLocale()) : null}
+      </ItemEnd>
+    </ItemRow>
+  );
+}
+
+function StepRow({
+  step,
+  session,
+  agent,
+}: {
+  step: Step;
+  session: string;
+  /** For a call that started a subagent. */
+  agent?: SessionSummary | undefined;
+}) {
   if (step.kind === "tool") {
     return (
       <Collapsible className={cardClassName}>
         <CollapsibleTrigger className="w-full px-m py-xs">
           <StepHeading at={step.at}>
-            <span className="min-w-0 font-data text-s font-medium break-all text-neutral-10">
+            <span className="min-w-0 font-ui text-s font-medium break-all text-neutral-10">
               {step.name}
             </span>
+            {agent ? (
+              <span className="min-w-0 truncate font-ui text-s text-neutral-8">{agent.title}</span>
+            ) : null}
             {step.error ? <Badge variant="error">{m.session_tool_error()}</Badge> : null}
           </StepHeading>
         </CollapsibleTrigger>
+        {agent ? (
+          <Link
+            to="/sessions/$id/agents/$agent"
+            params={{ id: session, agent: agent.id }}
+            className="mx-m mb-xs flex w-fit items-center gap-xxs rounded-xs font-ui text-s text-neutral-8 underline decoration-neutral-5 underline-offset-4 transition-colors hover:text-neutral-10 hover:decoration-neutral-10 focus-visible:focus-ring"
+          >
+            {m.session_open_agent()}
+          </Link>
+        ) : null}
         <CollapsiblePanel variant="plain">
           <div className="flex flex-col gap-xs px-m pb-s">
             <span className="font-ui text-s text-neutral-7">{m.session_tool_input()}</span>
@@ -354,7 +485,7 @@ function StepHeading({ at, children }: { at: string | undefined; children: React
     <span className="flex min-w-0 flex-1 flex-wrap items-center gap-xs text-start">
       {children}
       {at ? (
-        <time dateTime={at} className="ms-auto font-data text-xs text-neutral-7">
+        <time dateTime={at} className="ms-auto font-ui text-xs text-neutral-7 tabular-nums">
           {new Date(at).toLocaleTimeString(getLocale())}
         </time>
       ) : null}

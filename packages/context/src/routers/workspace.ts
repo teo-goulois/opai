@@ -16,6 +16,7 @@ import {
 import { o } from "../procedure.ts";
 import { getRule, listRules, RuleId, updateRule, type RuleNotFound } from "../rules.ts";
 import { getSpace, listSpaces, SpaceName, type SpaceNotFound } from "../space-view.ts";
+import { loadSpaces, setModule } from "../spaces.ts";
 
 type Failure =
   | InventoryError
@@ -82,6 +83,16 @@ export const workspaceRouter = {
       })
       .input(z.object({ name: SpaceName }))
       .handler(({ context, input }) => run(getSpace(context.root, input.name))),
+    /** Turns a global module on or off in a space (the `disable` list of its space.yaml). */
+    setModule: o
+      .input(z.object({ name: SpaceName, module: SpaceName, enabled: z.boolean() }))
+      .handler(({ context, input }) => {
+        if (!loadSpaces(context.root).some((space) => space.name === input.name)) {
+          throw new ORPCError("NOT_FOUND", { message: `No space named ${input.name}.` });
+        }
+        setModule(context.root, input.name, input.module, input.enabled);
+        return run(getSpace(context.root, input.name));
+      }),
   },
 
   rules: {

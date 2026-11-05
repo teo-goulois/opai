@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { after, test } from "node:test";
 
 import { makeFixture } from "./fixture.ts";
-import { readYaml, sessionContext, which } from "./spaces.ts";
+import { loadSpaces, readYaml, sessionContext, setModule, which } from "./spaces.ts";
 
 const fixture = makeFixture();
 after(fixture.cleanup);
@@ -61,4 +61,18 @@ test("OPAI_HOME points the engine to an instance outside its repository", () => 
 
 test("an empty instance has no space, and no error", () => {
   assert.equal(which(fixture.outside, fixture.work), undefined);
+});
+
+test("turns a module on and off in a space, keeping the other lines", () => {
+  const file = join(fixture.root, "spaces", "billing", "space.yaml");
+  const disabled = (name: string) => loadSpaces(fixture.root).find((s) => s.name === name)?.disable;
+  setModule(fixture.root, "billing", "workflows", false);
+  assert.deepEqual(disabled("billing"), ["handbook", "workflows"]);
+  setModule(fixture.root, "billing", "handbook", true);
+  setModule(fixture.root, "billing", "workflows", true);
+  assert.deepEqual(disabled("billing"), []);
+  assert.doesNotMatch(readFileSync(file, "utf8"), /disable/);
+  assert.match(readFileSync(file, "utf8"), /paths:\n {2}- /);
+  setModule(fixture.root, "billing", "handbook", false);
+  assert.deepEqual(disabled("billing"), ["handbook"]);
 });

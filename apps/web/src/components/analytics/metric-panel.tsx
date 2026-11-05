@@ -131,10 +131,10 @@ function MetricRows({ metric }: { metric: AppMetric }) {
                 {dimension === "country" && row.value ? `${flag(row.value)} ` : null}
                 {label}
               </span>
-              <span className="relative font-data text-neutral-10 tabular-nums">
+              <span className="relative font-ui text-neutral-10 tabular-nums">
                 {formatNumber(row.count)}
               </span>
-              <span className="relative w-10 text-right font-data text-neutral-7 tabular-nums">
+              <span className="relative w-10 text-right font-ui text-neutral-7 tabular-nums">
                 {formatShare(share)}
               </span>
             </li>

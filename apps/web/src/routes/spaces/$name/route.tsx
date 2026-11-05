@@ -7,20 +7,18 @@ import {
   EmptyTitle,
 } from "@opai/ui/components/ui/empty";
 import { ORPCError } from "@orpc/client";
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { Link, createFileRoute, notFound } from "@tanstack/react-router";
+import { Link, Outlet, createFileRoute, notFound } from "@tanstack/react-router";
 
 import { RouteError } from "@/components/shared/route-error";
-import { SpaceDetail, SpaceDetailSkeleton } from "@/components/spaces/space-detail";
+import { loadSpaceData } from "@/components/spaces/space-data";
+import { SpacePageSkeleton } from "@/components/spaces/space-overview";
 import { m } from "@/paraglide/messages.js";
-import { orpc } from "@/utils/orpc";
 
-const spaceQuery = (name: string) => orpc.spaces.get.queryOptions({ input: { name } });
-
+/** Every page of a space: its overview, its tabs, and its rules and skills. */
 export const Route = createFileRoute("/spaces/$name")({
   loader: async ({ context, params }) => {
     try {
-      await context.queryClient.ensureQueryData(spaceQuery(params.name));
+      await loadSpaceData(context.queryClient, params.name);
     } catch (error) {
       if (
         error instanceof ORPCError &&
@@ -31,17 +29,11 @@ export const Route = createFileRoute("/spaces/$name")({
       throw error;
     }
   },
-  pendingComponent: SpaceDetailSkeleton,
+  pendingComponent: SpacePageSkeleton,
   errorComponent: RouteError,
   notFoundComponent: SpaceNotFound,
-  component: SpacePage,
+  component: Outlet,
 });
-
-function SpacePage() {
-  const { name } = Route.useParams();
-  const { data: space } = useSuspenseQuery(spaceQuery(name));
-  return <SpaceDetail space={space} />;
-}
 
 function SpaceNotFound() {
   return (

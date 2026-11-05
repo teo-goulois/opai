@@ -13,7 +13,14 @@ import {
 import { Field, FieldLabel } from "@opai/ui/components/ui/field";
 import { Input } from "@opai/ui/components/ui/input";
 import {
-  PageDescription,
+  ItemDescription,
+  ItemEnd,
+  ItemList,
+  ItemMain,
+  ItemRow,
+  ItemTitle,
+} from "@opai/ui/components/ui/item-list";
+import {
   PageHeader,
   PageMeta,
   PageSection,
@@ -21,6 +28,14 @@ import {
   PageTitle,
 } from "@opai/ui/components/ui/page-header";
 import { Skeleton } from "@opai/ui/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@opai/ui/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@opai/ui/components/ui/toggle-group";
 import { AddIcon, WarningIcon } from "@opai/ui/icon";
 import { ORPCError } from "@orpc/client";
@@ -29,12 +44,14 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { approxTokens } from "@/components/sessions/session-list";
+import { useSpaceData } from "@/components/spaces/space-data";
+import { Hint, orderSpaces, SpaceDot, SpaceHeader } from "@/components/spaces/space-ui";
 import { m } from "@/paraglide/messages.js";
 import { formatDate, formatRelative } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
 export type SkillRow = Skill & { usage: SkillUsage };
-type SpaceRef = { name: string; base: boolean };
+type SpaceRef = { name: string; base: boolean; default?: boolean };
 
 /** Where an imported skill comes from, as skills.ts describeSource writes it. */
 export function sourceLabel(source: SkillSource) {
@@ -57,32 +74,117 @@ export function usageLine(usage: SkillUsage) {
     .join(" · ");
 }
 
-/** What a skill's name and description cost in every session; nothing when on request. */
-export function costLine(skill: Skill) {
-  if (skill.explicitOnly) return "";
-  return m.skill_cost({ tokens: approxTokens(skill.name.length + skill.description.length + 4) });
+/** What the agent reads of a skill in every session: its name and description. */
+export function skillChars(skill: Pick<Skill, "name" | "description">) {
+  return skill.name.length + skill.description.length + 4;
 }
 
-export function SkillBadges({ skill }: { skill: Skill }) {
-  return (
-    <>
-      {skill.explicitOnly ? (
-        <Badge variant="neutral" title={m.skill_explicit_hint()}>
-          {m.skill_explicit()}
-        </Badge>
-      ) : null}
-      {skill.modified ? (
-        <Badge variant="warning" title={m.skill_modified_hint()}>
-          {m.skill_modified()}
-        </Badge>
-      ) : null}
-    </>
+/** What that costs in every session; nothing when on request. */
+export function costLine(skill: Skill) {
+  if (skill.explicitOnly) return "";
+  return m.skill_cost({ tokens: approxTokens(skillChars(skill)) });
+}
+
+/** How the skill starts: picked by the agent, or only when asked for. */
+export function SkillTrigger({ skill, compact }: { skill: Skill; compact?: boolean }) {
+  if (skill.explicitOnly && compact) {
+    return <span className="text-neutral-7">{m.skill_explicit()}</span>;
+  }
+  if (skill.explicitOnly) {
+    return (
+      <Badge variant="neutral" title={m.skill_explicit_hint()}>
+        {m.skill_explicit()}
+      </Badge>
+    );
+  }
+  return compact ? null : (
+    <span className="font-ui text-s text-neutral-7" title={m.skill_auto_hint()}>
+      {m.skill_auto()}
+    </span>
   );
 }
 
-export function SkillList({
+export function SkillModified({ skill }: { skill: Skill }) {
+  return skill.modified ? (
+    <Badge variant="warning" title={m.skill_modified_hint()}>
+      {m.skill_modified()}
+    </Badge>
+  ) : null;
+}
+
+/** The skills tab of a space: its own, then those it gets from the base space. */
+export function SpaceSkills({ name }: { name: string }) {
+  const { space, spaces, skills, ownSkills } = useSpaceData(name);
+  const base = spaces.find((item) => item.base);
+  const inherited = space.base ? [] : skills.filter((skill) => skill.space === base?.name);
+
+  return (
+    <div className="flex flex-col gap-xl">
+      <SpaceHeader
+        space={space}
+        skills={ownSkills.length}
+        actions={<ImportDialog spaces={spaces} defaultSpace={name} />}
+      />
+
+      <PageSection aria-labelledby="skills-own">
+        <PageSectionTitle id="skills-own" count={ownSkills.length || undefined}>
+          {space.base ? m.skills_every_session() : m.skills_own({ space: name })}
+        </PageSectionTitle>
+        {ownSkills.length > 0 ? (
+          <SkillItems skills={ownSkills} />
+        ) : (
+          <Hint>{m.skills_space_none()}</Hint>
+        )}
+      </PageSection>
+
+      {inherited.length > 0 && base ? (
+        <PageSection aria-labelledby="skills-inherited">
+          <PageSectionTitle id="skills-inherited" count={inherited.length}>
+            {m.rules_inherited({ space: base.name })}
+          </PageSectionTitle>
+          <SkillItems skills={inherited} />
+        </PageSection>
+      ) : null}
+    </div>
+  );
+}
+
+function SkillItems({ skills }: { skills: SkillRow[] }) {
+  return (
+    <ItemList>
+      {skills.map((skill) => (
+        <li key={skill.name}>
+          <ItemRow
+            className="items-start"
+            render={
+              <Link
+                to="/spaces/$name/skills/$skill"
+                params={{ name: skill.space, skill: skill.name }}
+              />
+            }
+          >
+            <ItemMain>
+              <ItemTitle>
+                {skill.name}
+                <SkillModified skill={skill} />
+              </ItemTitle>
+              <ItemDescription className="line-clamp-1">{skill.description}</ItemDescription>
+            </ItemMain>
+            <ItemEnd className="pt-xxs">
+              <span className="hidden sm:inline">{usageLine(skill.usage)}</span>
+              <SkillTrigger skill={skill} />
+            </ItemEnd>
+          </ItemRow>
+        </li>
+      ))}
+    </ItemList>
+  );
+}
+
+/** Every skill of the instance, to compare their use and cost across spaces. */
+export function AllSkills({
   skills,
-  spaces,
+  spaces: unordered,
   since,
   problems,
 }: {
@@ -91,14 +193,22 @@ export function SkillList({
   since: string | undefined;
   problems: string[];
 }) {
+  const spaces = orderSpaces(unordered.map((space) => ({ default: false, ...space })));
+  const [filter, setFilter] = useState<"all" | "auto" | "manual">("all");
+  const rank = (skill: SkillRow) => spaces.findIndex((space) => space.name === skill.space);
+  const rows = skills
+    .filter((skill) =>
+      filter === "all" ? true : filter === "manual" ? skill.explicitOnly : !skill.explicitOnly,
+    )
+    .sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
+
   return (
     <div className="flex flex-col gap-xl">
       <PageHeader>
-        <div className="flex flex-wrap items-start justify-between gap-s">
+        <div className="flex flex-wrap items-center justify-between gap-s">
           <PageTitle>{m.skills_title()}</PageTitle>
           <ImportDialog spaces={spaces} />
         </div>
-        <PageDescription className="text-pretty">{m.skills_hint()}</PageDescription>
         <PageMeta>
           <span>{m.skills_count({ count: skills.length })}</span>
           <span>{since ? m.skills_since({ date: formatDate(since) }) : m.skills_since_none()}</span>
@@ -118,7 +228,7 @@ export function SkillList({
             {m.skills_problems()}
           </h2>
           <p className="font-ui text-s text-neutral-8">{m.skills_problems_hint()}</p>
-          <ul className="flex flex-col gap-xxs font-data text-s text-neutral-10">
+          <ul className="flex flex-col gap-xxs font-ui text-s text-neutral-10">
             {problems.map((problem) => (
               <li key={problem} className="break-words">
                 {problem}
@@ -128,55 +238,77 @@ export function SkillList({
         </section>
       ) : null}
 
-      {spaces.map((space) => {
-        const list = skills.filter((skill) => skill.space === space.name);
-        if (list.length === 0 && !space.base) return null;
-        return (
-          <PageSection key={space.name} aria-labelledby={`skills-${space.name}`}>
-            <PageSectionTitle id={`skills-${space.name}`} count={list.length}>
-              {space.name}
-            </PageSectionTitle>
-            {list.length > 0 ? (
-              <ul className="flex flex-col overflow-hidden rounded-m bg-neutral-1 edge-outer dark:bg-neutral-2">
-                {list.map((skill) => (
-                  <li key={skill.name}>
-                    <SkillRowLink skill={skill} />
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="font-ui text-s text-neutral-7">{m.skills_space_none()}</p>
-            )}
-          </PageSection>
-        );
-      })}
+      <div className="flex flex-col gap-s">
+        <ToggleGroup
+          aria-label={m.skill_trigger()}
+          value={[filter]}
+          onValueChange={(value) => {
+            const next = value[0];
+            if (next === "all" || next === "auto" || next === "manual") setFilter(next);
+          }}
+        >
+          <ToggleGroupItem value="all">{m.skills_filter_all()}</ToggleGroupItem>
+          <ToggleGroupItem value="auto">{m.skill_auto()}</ToggleGroupItem>
+          <ToggleGroupItem value="manual">{m.skill_explicit()}</ToggleGroupItem>
+        </ToggleGroup>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{m.skills_column_skill()}</TableHead>
+              <TableHead>{m.skill_space()}</TableHead>
+              <TableHead>{m.skill_trigger()}</TableHead>
+              <TableHead numeric>{m.skills_column_uses()}</TableHead>
+              <TableHead numeric>{m.skills_column_cost()}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map((skill) => (
+              <TableRow key={skill.name}>
+                <TableCell className="max-w-md">
+                  <div className="flex min-w-0 flex-col gap-xxs">
+                    <Link
+                      to="/spaces/$name/skills/$skill"
+                      params={{ name: skill.space, skill: skill.name }}
+                      className="flex w-fit items-center gap-xs rounded-xs font-medium text-neutral-10 underline decoration-transparent underline-offset-4 transition-colors hover:decoration-neutral-10 focus-visible:focus-ring"
+                    >
+                      {skill.name}
+                      <SkillModified skill={skill} />
+                    </Link>
+                    <span className="line-clamp-1 text-neutral-7">{skill.description}</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className="flex items-center gap-xs whitespace-nowrap">
+                    <SpaceDot index={rank(skill)} />
+                    {skill.space}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <SkillTrigger skill={skill} />
+                </TableCell>
+                <TableCell numeric>
+                  <span title={usageLine(skill.usage)}>{skill.usage.uses}</span>
+                </TableCell>
+                <TableCell numeric className="text-neutral-7">
+                  {skill.explicitOnly ? "—" : `≈ ${approxTokens(skillChars(skill))}`}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }
 
-function SkillRowLink({ skill }: { skill: SkillRow }) {
-  return (
-    <Link
-      to="/skills/$name"
-      params={{ name: skill.name }}
-      className="flex flex-col gap-xs px-m py-s outline-none transition-colors in-[li:not(:first-child)]:edge-top in-[li:not(:first-child)]:edge-neutral-4 hover:bg-neutral-3 focus-visible:focus-ring focus-visible:-outline-offset-2"
-    >
-      <span className="flex min-w-0 flex-wrap items-center gap-xs">
-        <span className="font-data text-m font-medium text-neutral-10">{skill.name}</span>
-        <SkillBadges skill={skill} />
-      </span>
-      <span className="line-clamp-2 font-ui text-s text-pretty text-neutral-8">
-        {skill.description}
-      </span>
-      <span className="font-ui text-s text-neutral-7">
-        {[usageLine(skill.usage), costLine(skill)].filter(Boolean).join(" · ")}
-      </span>
-    </Link>
-  );
-}
-
-function ImportDialog({ spaces }: { spaces: SpaceRef[] }) {
-  const base = spaces.find((space) => space.base)?.name ?? "global";
+export function ImportDialog({
+  spaces,
+  defaultSpace,
+}: {
+  spaces: SpaceRef[];
+  defaultSpace?: string;
+}) {
+  const base = defaultSpace ?? spaces.find((space) => space.base)?.name ?? "global";
   const [open, setOpen] = useState(false);
   const [source, setSource] = useState("");
   const [space, setSpace] = useState(base);
@@ -190,14 +322,23 @@ function ImportDialog({ spaces }: { spaces: SpaceRef[] }) {
         setOpen(false);
         setSource("");
         setName("");
-        void navigate({ to: "/skills/$name", params: { name: skill.name } });
+        void navigate({
+          to: "/spaces/$name/skills/$skill",
+          params: { name: skill.space, skill: skill.name },
+        });
       },
     }),
   );
   const error = add.error instanceof ORPCError ? add.error.message : add.error?.message;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (next) setSpace(base);
+        setOpen(next);
+      }}
+    >
       <DialogTrigger render={<Button variant="outline" />}>
         <AddIcon data-slot="icon" aria-hidden />
         {m.skills_import()}
@@ -266,8 +407,8 @@ export function SkillListSkeleton() {
         <Skeleton className="h-(--line-s) w-64" />
       </div>
       <div className="flex flex-col gap-s">
-        {Array.from({ length: 5 }, (_, index) => (
-          <Skeleton key={index} className="h-20 w-full" />
+        {Array.from({ length: 6 }, (_, index) => (
+          <Skeleton key={index} className="h-12 w-full" />
         ))}
       </div>
     </div>

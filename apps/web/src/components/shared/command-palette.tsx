@@ -23,10 +23,10 @@ import {
   RulesIcon,
   SessionsIcon,
   SkillIcon,
-  SpacesIcon,
   SunIcon,
 } from "@opai/ui/icon";
 import { formatForDisplay, useAppHotkeys, useHotkey } from "@tanstack/react-hotkeys";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import {
   createContext,
@@ -38,13 +38,17 @@ import {
   type ReactNode,
 } from "react";
 
+import { orderSpaces, SpaceDot } from "@/components/spaces/space-ui";
 import { m } from "@/paraglide/messages.js";
+import { orpc } from "@/utils/orpc";
 
 import { toggleLocale, useThemeToggle } from "./app-preferences";
 
 type PaletteAction = {
   value: string;
   label: string;
+  /** Where the item lives, shown at the end of its row. */
+  hint?: string;
   icon: ReactNode;
   shortcut?: string;
   run: () => void;
@@ -88,6 +92,9 @@ function CommandPalette({
   const toggleTheme = useThemeToggle();
   const hotkeys = useAppHotkeys();
   const [query, setQuery] = useState("");
+  const spaces = useQuery(orpc.spaces.list.queryOptions());
+  const skills = useQuery(orpc.skills.list.queryOptions());
+  const rules = useQuery(orpc.rules.list.queryOptions());
   // Ignore extra Enter presses while the dialog animates closed.
   const committedRef = useRef(false);
 
@@ -107,28 +114,69 @@ function CommandPalette({
     const display = (hotkey: (typeof hotkeys)[keyof typeof hotkeys]) =>
       hotkey.hotkey ? formatForDisplay(hotkey.hotkey) : undefined;
 
+    const spaceList = orderSpaces(spaces.data ?? []);
     const result: PaletteGroup[] = [
+      {
+        value: "spaces",
+        label: m.nav_spaces(),
+        items: spaceList.map((space, index) => ({
+          value: `space ${space.name} espace ${space.description}`,
+          label: space.name,
+          icon: (
+            <span className="flex size-l items-center justify-center">
+              <SpaceDot index={index} />
+            </span>
+          ),
+          run: () => void navigate({ to: "/spaces/$name", params: { name: space.name } }),
+        })),
+      },
+      {
+        value: "skills",
+        label: m.nav_skills(),
+        items: (skills.data?.skills ?? []).map((skill) => ({
+          value: `skill ${skill.name} ${skill.space} ${skill.description}`,
+          label: skill.name,
+          hint: skill.space,
+          icon: <SkillIcon aria-hidden />,
+          run: () =>
+            void navigate({
+              to: "/spaces/$name/skills/$skill",
+              params: { name: skill.space, skill: skill.name },
+            }),
+        })),
+      },
+      {
+        value: "rules",
+        label: m.space_rules(),
+        items: (rules.data ?? []).map((rule) => ({
+          value: `rule règle ${rule.title} ${rule.space ?? ""} ${rule.path}`,
+          label: rule.title,
+          hint: rule.space ?? m.nav_config(),
+          icon: <RulesIcon aria-hidden />,
+          run: () =>
+            void (rule.space
+              ? navigate({
+                  to: "/spaces/$name/rules/$id",
+                  params: { name: rule.space, id: rule.id },
+                })
+              : navigate({ to: "/config/rules/$id", params: { id: rule.id } })),
+        })),
+      },
       {
         value: "pages",
         label: m.palette_pages(),
         items: [
           {
-            value: `${m.nav_spaces()} spaces espaces global perso memory mémoire journal issues`,
-            label: m.nav_spaces(),
-            icon: <SpacesIcon aria-hidden />,
-            run: () => void navigate({ to: "/spaces" }),
-          },
-          {
-            value: `${m.nav_rules()} rules règles agents claude`,
-            label: m.nav_rules(),
-            icon: <RulesIcon aria-hidden />,
-            run: () => void navigate({ to: "/rules" }),
-          },
-          {
             value: `${m.nav_skills()} skills import importer update`,
             label: m.nav_skills(),
             icon: <SkillIcon aria-hidden />,
             run: () => void navigate({ to: "/skills" }),
+          },
+          {
+            value: `${m.nav_sessions()} sessions debug context contexte tools skills usage`,
+            label: m.nav_sessions(),
+            icon: <SessionsIcon aria-hidden />,
+            run: () => void navigate({ to: "/sessions" }),
           },
           {
             value: `${m.nav_automations()} automations automatisations ops launchd codex cron`,
@@ -141,12 +189,6 @@ function CommandPalette({
             label: m.nav_config(),
             icon: <FolderIcon aria-hidden />,
             run: () => void navigate({ to: "/config" }),
-          },
-          {
-            value: `${m.nav_sessions()} sessions debug context contexte tools skills usage`,
-            label: m.nav_sessions(),
-            icon: <SessionsIcon aria-hidden />,
-            run: () => void navigate({ to: "/sessions" }),
           },
           {
             value: `${m.nav_handbook()} handbook code docs`,
@@ -193,8 +235,8 @@ function CommandPalette({
       },
     ];
 
-    return result;
-  }, [hotkeys, navigate, toggleTheme]);
+    return result.filter((group) => group.items.length > 0);
+  }, [hotkeys, navigate, toggleTheme, spaces.data, skills.data, rules.data]);
 
   function runAction(action: PaletteAction) {
     if (committedRef.current) return;
@@ -229,6 +271,11 @@ function CommandPalette({
                           {action.icon}
                         </span>
                         <span className="flex-1 truncate">{action.label}</span>
+                        {action.hint ? (
+                          <span className="shrink-0 font-ui text-s text-neutral-7">
+                            {action.hint}
+                          </span>
+                        ) : null}
                         {action.shortcut ? (
                           <CommandShortcut>{action.shortcut}</CommandShortcut>
                         ) : null}

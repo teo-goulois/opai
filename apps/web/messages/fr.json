@@ -1,7 +1,6 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
   "app_name": "Opai",
-  "nav_rules": "Règles",
   "nav_analytics": "Analytics",
   "nav_design_system": "Design system",
   "nav_main": "Navigation principale",
@@ -19,20 +18,7 @@
   "palette_actions": "Actions",
   "breadcrumb": "Fil d'Ariane",
   "on_this_page": "Sur cette page",
-  "rules_title": "Règles",
-  "rules_count": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} fichier",
-        "countPlural=*": "{count} fichiers"
-      }
-    }
-  ],
   "rules_scope_global": "Instructions globales",
-  "rules_scope_global_hint": "Les règles de tous les projets, et les modules optionnels qu'elles citent.",
-  "rules_scope_repository": "Ce dépôt",
   "rules_scope_repository_hint": "Pour les agents qui travaillent dans l'instance elle-même.",
   "rules_points_to": "Importe {file}",
   "rules_back": "Toutes les règles",
@@ -201,16 +187,6 @@
   "prompt_handbook_steps": "Lis d'abord la page et celles qu'elle lie, propose le changement, et attends mon accord avant d'écrire. Modifie le fichier dans l'instance ; la publication sur le site est une étape à part.",
   "nav_spaces": "Espaces",
   "spaces_title": "Espaces",
-  "spaces_count": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} espace",
-        "countPlural=*": "{count} espaces"
-      }
-    }
-  ],
   "space_base": "Base",
   "space_base_hint": "Chargé par tous les agents, dans tous les espaces.",
   "space_default": "Par défaut",
@@ -240,8 +216,6 @@
     }
   ],
   "space_rules": "Règles",
-  "rules_scope_space": "Espace {space}",
-  "rules_scope_space_hint": "Lues en plus des globales dans les projets {space}.",
   "space_folders_none": "Aucun dossier : aucune session ne lui appartient.",
   "nav_config": "Config",
   "config_title": "Config",
@@ -304,7 +278,6 @@
       }
     }
   ],
-  "space_modules_off": "Modules désactivés",
   "spaces_back": "Tous les espaces",
   "space_not_found_title": "Aucun espace à ce nom",
   "space_not_found_description": "Il a peut-être été renommé ou retiré de l'instance.",
@@ -462,7 +435,6 @@
       }
     }
   ],
-  "skills_hint": "Chaque skill vit une seule fois, dans spaces/<space>/skills/. Ceux de global sont dans toutes les sessions ; ceux d’un space, seulement dans les sessions de ce space.",
   "skills_since": "Utilisations observées depuis le {date}, sur toutes les machines.",
   "skills_since_none": "Aucune utilisation observée pour l’instant.",
   "skills_back": "Tous les skills",
@@ -485,7 +457,6 @@
   "skills_import_space": "Space",
   "skills_import_name": "Nom, si ce n’est pas celui de son SKILL.md",
   "skills_import_submit": "Importer",
-  "skill_details": "Détails",
   "skill_space": "Space",
   "skill_move": "Déplacer vers",
   "skill_source": "Source",
@@ -494,7 +465,6 @@
   "skill_updated": "Importé ou mis à jour",
   "skill_notes": "Notes",
   "skill_files": "Autres fichiers",
-  "skill_usage": "Utilisation",
   "skill_compare": "Comparer avec la source",
   "skill_compare_same": "Identique à sa source.",
   "skill_compare_local": "La source n’a pas changé : le diff montre tes propres modifications.",
@@ -506,27 +476,7 @@
   "prompt_handbook_generated": "Une partie de la page est remplie depuis l'instance entre des marqueurs <!-- opai:… --> : change la source d'où elle vient, pas le bloc.",
   "nav_automations": "Automatisations",
   "automations_title": "Automatisations",
-  "automations_description": "Ce qui tourne sur cette machine, face au registre que tu en tiens.",
-  "automations_codex_count": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} automatisation Codex",
-        "countPlural=*": "{count} automatisations Codex"
-      }
-    }
-  ],
-  "automations_launchd_count": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} agent launchd",
-        "countPlural=*": "{count} agents launchd"
-      }
-    }
-  ],
+  "automations_description": "Tout ce qui tourne pour toi, sur chaque machine, à côté de son entrée dans le registre ops : ce qu'elle fait et comment la changer.",
   "automations_missing": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -537,14 +487,14 @@
       }
     }
   ],
-  "automations_registry": "Registre",
-  "automations_registry_hint": "Ce qui tourne pour toi, où, et comment le changer, écrit à la main. Le seul endroit qui connaît ce qu'Opai ne peut pas lire ici : les autres machines, les gestionnaires comme Grok Bot, les tâches planifiées d'autres apps.",
-  "automations_registry_of": "Registre de {space}",
+  "automations_registry": "Registre ops",
+  "automations_registry_hint": "Écrit à la main : ce qui tourne pour toi, où, et comment le changer. Tout agent qui gère tes automatisations le lit d'abord, pour qu'un autre puisse prendre le relais.",
+  "automations_registry_of": "Registre ops de {space}",
   "automations_registry_none": "Pas encore de registre. Commence-le dans un espace :",
   "automations_codex": "App Codex",
-  "automations_codex_hint": "Lues dans automations/ de ~/.codex et du codex/ de l'instance.",
+  "automations_codex_hint": "~/.codex/automations",
   "automations_launchd": "launchd",
-  "automations_launchd_hint": "Tes agents dans ~/Library/LaunchAgents, et s'ils tournent.",
+  "automations_launchd_hint": "~/Library/LaunchAgents",
   "automations_none": "Aucune.",
   "automations_apps": [
     {
@@ -566,13 +516,12 @@
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
       "match": {
-        "countPlural=one": "chaque minute",
-        "countPlural=*": "toutes les {count} minutes"
+        "countPlural=one": "Toutes les minutes",
+        "countPlural=*": "Toutes les {count} minutes"
       }
     }
   ],
-  "automations_every_seconds": "toutes les {count} s",
-  "automations_daily_at": "à {time}",
+  "automations_every_seconds": "Toutes les {count} secondes",
   "automations_calendar": "selon un calendrier",
   "automations_kept_alive": "maintenu en marche",
   "automations_at_load": "à l'ouverture de session",
@@ -583,23 +532,11 @@
   "automations_registry_not_found_title": "Pas de registre dans cet espace",
   "automations_registry_not_found_description": "Crée context/ops.md dans l'espace pour décrire ses automatisations.",
   "automations_back": "Retour aux automatisations",
-  "automations_machines_count": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} autre machine",
-        "countPlural=*": "{count} autres machines"
-      }
-    }
-  ],
   "automations_this_machine": "Ce Mac",
-  "automations_machine": "{name}",
   "automations_machine_reading": "Lecture par SSH…",
   "automations_machine_failed": "Impossible de lire cette machine par SSH : {message}",
   "automations_pause": "Mettre en pause",
   "automations_resume": "Reprendre",
-  "automations_edit": "Modifier",
   "automations_archive": "Archiver",
   "automations_archive_title": "Archiver {name} ?",
   "automations_archive_description": "Son dossier part dans .local/archive/codex-automations/ de l'instance : l'app Codex ne la lance plus. Remets-le à sa place pour la restaurer.",
@@ -611,5 +548,181 @@
   "automations_cancel": "Annuler",
   "automations_edit_hint": "L'app Codex lit ce fichier : le prompt, le planning (rrule) et le statut.",
   "automations_codex_not_found_title": "Automatisation introuvable",
-  "automations_codex_not_found_description": "Elle a peut-être été archivée ou supprimée."
+  "automations_codex_not_found_description": "Elle a peut-être été archivée ou supprimée.",
+  "space_overview": "Aperçu",
+  "space_overview_rules": "Règles qu'une session reçoit ici",
+  "space_overview_rules_base": "Toutes les sessions les reçoivent, dans tous les espaces.",
+  "space_overview_rules_hint": "Les règles globales, puis celles de cet espace. Les siennes l'emportent en cas de conflit.",
+  "space_overview_skills": "{automatic} automatiques · {manual} sur demande · ≈ {tokens} tokens à chaque session",
+  "space_recent": "Travail récent",
+  "space_journal_all": "Tout le journal",
+  "rule_module": "Module",
+  "rule_module_active_count": "Actif dans {count} espaces sur {total}",
+  "rule_module_active_in": "Actif dans",
+  "rule_module_in": "{module} dans {space}",
+  "rule_always": "Toujours",
+  "rules_own": "Règles de {space}",
+  "rules_inherited": "Hérité de {space}",
+  "rules_inherited_hint": "Un module peut être coupé pour cet espace seulement.",
+  "skill_auto": "Automatique",
+  "skill_auto_hint": "L'agent le choisit quand la tâche correspond à sa description.",
+  "skill_explicit_command": "Seulement quand tu le demandes : /{name} dans Claude Code, ${name} dans Codex. Ne coûte rien d'ici là.",
+  "skill_trigger": "Déclenchement",
+  "skill_when": "Quand l'utiliser",
+  "skill_when_hint": "Ce que l'agent lit à chaque session pour décider. ≈ {tokens} tokens.",
+  "skill_when_hint_manual": "Affiché dans la liste des commandes ; l'agent ne le lit pas avant que tu le demandes.",
+  "skill_settings_saved": "Enregistré. Claude Code et Codex suivent dès la prochaine session.",
+  "skill_tab_settings": "Réglages",
+  "skill_tab_instructions": "Instructions",
+  "skill_folder": "Dossier",
+  "skills_filter_all": "Tous",
+  "skills_column_skill": "Skill",
+  "skills_column_uses": "Utilisations",
+  "skills_column_cost": "Tokens par session",
+  "skills_every_session": "Dans toutes les sessions",
+  "skills_own": "Skills de {space}",
+  "nav_group_across": "Tous les espaces",
+  "nav_group_instance": "Instance",
+  "config_rules": "Règles de l'instance",
+  "session_client_via": "Par {harness}",
+  "session_subagents": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} sous-agent",
+        "countPlural=*": "{count} sous-agents"
+      }
+    }
+  ],
+  "session_subagent": "Sous-agent",
+  "session_tab_agents": "Sous-agents",
+  "session_agents_hint": "Les agents que cette session a lancés. Chacun a son propre contexte et sa chronologie ; la session n'a reçu que sa dernière réponse.",
+  "session_seconds": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} seconde",
+        "countPlural=*": "{count} secondes"
+      }
+    }
+  ],
+  "session_minutes": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} minute",
+        "countPlural=*": "{count} minutes"
+      }
+    }
+  ],
+  "session_open_agent": "Ouvrir ce sous-agent",
+  "session_agent_not_found_title": "Sous-agent introuvable",
+  "session_agent_not_found_description": "Cette session ne l'a pas lancé, ou son fichier n'existe plus.",
+  "session_agent_back": "Retour à la session",
+  "automations_summary_on": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} active",
+        "countPlural=*": "{count} actives"
+      }
+    }
+  ],
+  "automations_summary_off": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} en pause ou arrêtée",
+        "countPlural=*": "{count} en pause ou arrêtées"
+      }
+    }
+  ],
+  "automations_summary_failing": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} en échec",
+        "countPlural=*": "{count} en échec"
+      }
+    }
+  ],
+  "automations_registry_entries": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} entrée",
+        "countPlural=*": "{count} entrées"
+      }
+    }
+  ],
+  "automations_registry_only": "Seulement dans le registre",
+  "automations_registry_only_hint": "Opai ne les voit pas tourner : un gestionnaire comme Grok Bot les lance, ce sont des hooks d'agent, ou elles tournent sur une machine qu'Opai ne lit pas. Leur entrée est tout ce qu'il en sait.",
+  "automations_runs_on": "{runner} sur {machine}",
+  "automations_menu": "Actions",
+  "automations_edit_file": "Modifier le fichier",
+  "automations_where_title": "Où elle tourne",
+  "automations_unseen": "Opai ne la voit pas tourner : son entrée ci-dessous est tout ce qu'il en sait.",
+  "automations_unseen_manager": "Lancée par {manager}. Opai ne la voit pas tourner : son entrée ci-dessous est tout ce qu'il en sait.",
+  "automations_prompt": "Prompt",
+  "automations_entry_section": "Dans le registre",
+  "automations_entry_hint": "Son entrée dans {path}. Enregistrer ne change que cette entrée.",
+  "automations_open_registry": "Ouvrir tout le registre",
+  "automations_posts_in_chat": "Écrit dans un chat Codex",
+  "automations_runs_in_project": "Lance une tâche dans {folder}",
+  "automations_entry_not_found_title": "Entrée introuvable",
+  "automations_entry_not_found_description": "Le registre ne l'a plus : son titre a peut-être changé.",
+  "automations_at": "à {times}",
+  "automations_times_between": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} fois, à {from}",
+        "countPlural=*": "{count} fois, de {from} à {to}"
+      }
+    }
+  ],
+  "automations_weekdays": "En semaine",
+  "automations_every_weekday": "Chaque {days}",
+  "automations_every_week": "Chaque semaine",
+  "automations_every_day": "Tous les jours",
+  "automations_every_days": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Tous les jours",
+        "countPlural=*": "Tous les {count} jours"
+      }
+    }
+  ],
+  "automations_every_hours": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Toutes les heures",
+        "countPlural=*": "Toutes les {count} heures"
+      }
+    }
+  ],
+  "sessions_count_more": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count}+ sessions",
+        "countPlural=*": "{count}+ sessions"
+      }
+    }
+  ],
+  "sessions_more": "Charger la suite",
+  "sessions_more_failed": "Impossible de charger la suite : {message}"
 }

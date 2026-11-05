@@ -98,7 +98,7 @@ export function HandbookPublish({
           </div>
           {preview.status === "ready" ? (
             <PageMeta>
-              <span className="font-data" title={preview.preview.base.subject}>
+              <span title={preview.preview.base.subject}>
                 {m.handbook_publish_base({ sha: preview.preview.base.sha.slice(0, 7) })}
               </span>
             </PageMeta>

@@ -845,3 +845,36 @@ export function saveSkill(root: string, name: string, markdown: string, baseHash
   link(root);
   return skillDetail(root, name);
 }
+
+export type SkillSettings = {
+  description?: string | undefined;
+  explicitOnly?: boolean | undefined;
+};
+
+/**
+ * Changes a skill's description or invocation in its front matter, keeping the
+ * other keys and the body as they are, then relinks (Codex's policy follows).
+ */
+export function configureSkill(
+  root: string,
+  name: string,
+  settings: SkillSettings,
+  baseHash: string,
+) {
+  const skill = findSkill(root, name);
+  const file = join(root, skill.folder, "SKILL.md");
+  const text = readFileSync(file, "utf8");
+  const match = /^---\r?\n([\s\S]*?)\r?\n---(\r?\n|$)/.exec(text);
+  if (!match) throw new SkillError("A SKILL.md starts with front matter (name, description).");
+  const doc = parseDocument(match[1]!);
+  if (settings.description !== undefined) {
+    const description = settings.description.trim();
+    if (!description) throw new SkillError("A skill needs a description.");
+    doc.set("description", description);
+  }
+  if (settings.explicitOnly === true) doc.set("disable-model-invocation", true);
+  if (settings.explicitOnly === false) doc.delete("disable-model-invocation");
+  const head = doc.toString({ lineWidth: 0 }).trimEnd();
+  const markdown = `---\n${head}\n---${match[2]}${text.slice(match[0].length)}`;
+  return saveSkill(root, name, markdown, baseHash);
+}
