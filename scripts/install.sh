@@ -21,7 +21,15 @@ command -v git > /dev/null 2>&1 || fail "git is missing."
 command -v node > /dev/null 2>&1 || fail "node is missing: install Node 24 or later."
 major=$(node -p 'process.versions.node.split(".")[0]')
 [ "$major" -ge 24 ] || fail "node $major is too old: Opai runs TypeScript directly and needs Node 24 or later."
-command -v pnpm > /dev/null 2>&1 || fail "pnpm is missing: run corepack enable pnpm."
+# The pnpm version the engine pins (packageManager): corepack fetches it, where
+# another pnpm would refuse to install.
+if command -v corepack > /dev/null 2>&1; then
+  pnpm="corepack pnpm"
+elif command -v pnpm > /dev/null 2>&1; then
+  pnpm=pnpm
+else
+  fail "pnpm is missing: install corepack or pnpm."
+fi
 
 if [ -d "$dir/.git" ]; then
   echo "Updating the engine in $dir"
@@ -30,7 +38,7 @@ else
   echo "Cloning the engine into $dir"
   git clone -q "$repo" "$dir"
 fi
-pnpm --dir "$dir" install --frozen-lockfile --silent
+(cd "$dir" && $pnpm install --frozen-lockfile --silent)
 
 mkdir -p "$bin"
 ln -sf "$dir/opai" "$bin/opai"
