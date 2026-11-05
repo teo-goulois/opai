@@ -41,6 +41,7 @@ opai claude [arguments]   # Claude Code with CLAUDE_CONFIG_DIR=<instance>/claude
 opai codex [arguments]    # Codex with CODEX_HOME=<instance>/codex
 opai spaces [command]     # create, change and archive spaces (below)
 opai skills [command]     # manage the skills (below)
+opai mcp [command]        # manage the MCP servers (below)
 opai which [folder]       # the space of a folder
 opai sync [--install]     # sync the instance with its Git remote
 opai app                  # the local interface
@@ -67,6 +68,7 @@ Codex reads `~/.agents/skills` (`opai codex` turns each of those skills off).
 │   ├── space.yaml     the folders it claims, the modules it turns off (base, default)
 │   ├── AGENTS.md      its rules, if it has any
 │   ├── skills/        its skills
+│   ├── mcp.json       its MCP servers
 │   ├── context/       your notes: agents write only with your yes
 │   └── agents/        what agents write (journal, issues, skill uses)
 ├── handbook/          optional: your handbook, published to a site
@@ -274,6 +276,45 @@ changes without `--force`.
 The links only ever touch their own entries: `claude/skills/synced/` (the
 claude.ai account) and `codex/skills/.system/` (Codex) stay as they are, and
 anything else in the way is reported, not replaced.
+
+## MCP servers
+
+A space declares its MCP servers in `spaces/<space>/mcp.json`, in the shape of
+Claude Code's `.mcp.json`. Those of `global` are in every session; those of
+another space only in its sessions, where they win over a global server of the
+same name. `opai claude` and `opai codex` load them at launch, so a change
+applies from the next session:
+
+- Claude Code gets `--mcp-config=.local/mcp/<space>.json`, written then.
+- Codex gets one `-c mcp_servers.<name>={...}` per server. It has no SSE
+  transport and no `headersHelper`: an SSE server reaches Claude Code only,
+  and a `headersHelper` too.
+
+```sh
+opai mcp list                                         # every server, by space
+opai mcp add docs https://docs.example/mcp            # a remote server, in global
+opai mcp add stripe --space work -- npx -y @stripe/mcp
+opai mcp add api https://api.example/mcp --header 'Authorization: Bearer ${API_TOKEN}'
+opai mcp move <name> <space>
+opai mcp remove <name> [--space s]
+opai mcp import                                       # the servers the tools keep themselves
+opai mcp import <name>... [--space s]                 # copy them into a space
+opai mcp check
+```
+
+`mcp.json` is committed, so it holds no secret: a value can be `${NAME}` or
+`${NAME:-default}`, read from the environment the tool starts in, and `add`
+refuses a literal token. Name a secret after its own key (`"API_KEY":
+"${API_KEY}"`) or put it in `Authorization: Bearer ${TOKEN}`: Codex then
+reads it from the environment as well, instead of getting it in its
+arguments. `import` reads `~/.claude.json`, `~/.codex/config.toml` and the
+instance's own `claude/` and `codex/`, writes `${HOME}` for paths in the home
+folder, and swaps literal secrets for variables it names.
+
+The `opai` server is not in a space: `opai setup` writes it into the tools'
+configs, for plain `claude` and `codex` too. Servers you add with `claude mcp
+add` or in `codex/config.toml` keep working; `opai mcp check` reports one
+also declared in a space.
 
 ## Develop
 

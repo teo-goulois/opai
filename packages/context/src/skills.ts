@@ -314,7 +314,8 @@ export function link(root: string): LinkReport {
 
 // --- Launch ----------------------------------------------------------------
 
-const CLAUDE_COMMANDS = new Set([
+/** Claude Code commands that start no session: opai adds nothing to them. */
+export const CLAUDE_COMMANDS = new Set([
   "mcp",
   "plugin",
   "plugins",

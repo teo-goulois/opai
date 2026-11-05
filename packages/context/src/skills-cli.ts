@@ -1,5 +1,4 @@
-// opai skills: the command line of skills.ts. opai also calls `launch` to get
-// the arguments it adds when it starts Claude Code or Codex.
+// opai skills: the command line of skills.ts.
 //
 //   opai skills list
 //   opai skills add <source> [--space <name>] [--name <name>] [--notes <text>]
@@ -20,7 +19,6 @@ import {
   addSkill,
   checkSkills,
   describeSource,
-  launchArgs,
   link,
   listSkills,
   moveSkill,
@@ -52,20 +50,6 @@ function report(lines: string[], label: string) {
 
 async function main(argv: string[]) {
   const [command, ...rest] = argv;
-
-  if (command === "launch") {
-    // opai reads one argument per line.
-    const [tool, ...args] = rest;
-    if (tool !== "claude" && tool !== "codex") throw new SkillError("launch claude|codex");
-    const extra = launchArgs(
-      ROOT,
-      tool,
-      process.cwd(),
-      args.filter((arg) => arg !== "--"),
-    );
-    if (extra.length > 0) process.stdout.write(`${extra.join("\n")}\n`);
-    return;
-  }
 
   const { values, positionals } = parseArgs({
     args: rest,

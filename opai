@@ -6,6 +6,7 @@
 #   opai claude|codex [args]    run the tool on the instance's claude/ or codex/
 #   opai spaces [command]       manage the spaces (opai spaces help)
 #   opai skills [command]       manage the skills (opai skills help)
+#   opai mcp [command]          manage the MCP servers (opai mcp help)
 #   opai which [folder]         print a folder's space
 #   opai sync [--install]       sync the instance with its Git remote
 #   opai app                    start the local interface
@@ -25,7 +26,7 @@ node=${OPAI_NODE:-$(command -v node || true)}
 export OPAI_NODE="$node"
 
 usage() {
-  sed -n '4,12p' "$0" | sed 's/^# *//' >&2
+  sed -n '4,13p' "$0" | sed 's/^# *//' >&2
   exit 2
 }
 
@@ -37,10 +38,10 @@ need_instance() {
   [ -d "$home/spaces" ] || { echo "opai: no instance in $home. Run: opai init" >&2; exit 1; }
 }
 
-# The arguments that bring the session's space skills and keep the others
-# out (skills.ts launchArgs), one per line. Without them the tool still starts.
+# The arguments that bring the session's space skills and MCP servers and keep
+# the others out (launch-cli.ts), one per line. Without them the tool still starts.
 launch_args() {
-  [ -n "$node" ] && "$node" "$context/skills-cli.ts" launch "$@" 2> /dev/null || true
+  [ -n "$node" ] && "$node" "$context/launch-cli.ts" "$@" 2> /dev/null || true
 }
 
 run_tool() {
@@ -91,6 +92,12 @@ case "${1:-}" in
     shift
     need_node
     exec "$node" "$context/skills-cli.ts" "$@"
+    ;;
+  mcp)
+    shift
+    need_node
+    need_instance
+    exec "$node" "$context/mcp-cli.ts" "$@"
     ;;
   which)
     shift
