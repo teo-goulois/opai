@@ -2,7 +2,7 @@
 // starts fast; the MCP procedures use the same functions.
 
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, relative, resolve, sep } from "node:path";
 
@@ -74,7 +74,7 @@ function expandHome(path: string) {
 }
 
 /** The real path when it exists, so symlinked folders compare equal. */
-function real(path: string) {
+export function real(path: string) {
   try {
     return realpathSync(path);
   } catch {
@@ -109,36 +109,6 @@ export function loadSpaces(root: string): Space[] {
     });
   }
   return spaces;
-}
-
-/**
- * Turns a global module on or off in a space: rewrites the `disable` list of
- * its space.yaml and leaves the other lines as they are.
- */
-export function setModule(root: string, name: string, module: string, enabled: boolean) {
-  const file = join(root, "spaces", name, "space.yaml");
-  if (!existsSync(file)) throw new Error(`No space named ${name}.`);
-  const text = readFileSync(file, "utf8");
-  const current = list(readYaml(text).disable);
-  const next = enabled
-    ? current.filter((item) => item !== module)
-    : [...current.filter((item) => item !== module), module];
-  const lines = text.split("\n");
-  const start = lines.findIndex((line) => /^disable\s*:/.test(line));
-  let end = start + 1;
-  if (start !== -1) {
-    while (end < lines.length && /^\s+(- |#)/.test(lines[end]!)) end++;
-  }
-  const block = next.length > 0 ? ["disable:", ...next.map((item) => `  - ${item}`)] : [];
-  if (start === -1) {
-    if (block.length > 0) {
-      while (lines.length > 0 && lines.at(-1) === "") lines.pop();
-      lines.push(...block, "");
-    }
-  } else {
-    lines.splice(start, end - start, ...block);
-  }
-  writeFileSync(file, lines.join("\n"));
 }
 
 function git(folder: string, ...args: string[]) {

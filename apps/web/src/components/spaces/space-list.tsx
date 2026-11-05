@@ -7,12 +7,13 @@ import {
   ItemRow,
   ItemTitle,
 } from "@opai/ui/components/ui/item-list";
-import { PageHeader, PageTitle } from "@opai/ui/components/ui/page-header";
+import { PageDescription, PageHeader, PageTitle } from "@opai/ui/components/ui/page-header";
 import { Skeleton } from "@opai/ui/components/ui/skeleton";
 import { Link } from "@tanstack/react-router";
 
 import { m } from "@/paraglide/messages.js";
 
+import { NewSpaceDialog } from "./space-settings";
 import { orderSpaces, SpaceDot, SpaceRoleBadge, spaceFolders } from "./space-ui";
 
 /** What a space holds, as short counts. Zero counts are left out. */
@@ -30,7 +31,11 @@ export function SpaceList({ spaces }: { spaces: SpaceSummary[] }) {
   return (
     <div className="flex flex-col gap-xl">
       <PageHeader>
-        <PageTitle>{m.spaces_title()}</PageTitle>
+        <div className="flex flex-wrap items-center justify-between gap-s">
+          <PageTitle>{m.spaces_title()}</PageTitle>
+          <NewSpaceDialog />
+        </div>
+        <PageDescription className="text-pretty">{m.spaces_description()}</PageDescription>
       </PageHeader>
 
       <ItemList className="gap-xs">

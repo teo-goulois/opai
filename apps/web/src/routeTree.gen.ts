@@ -33,6 +33,7 @@ import { Route as SpacesNameIndexRouteImport } from './routes/spaces/$name/index
 import { Route as SpacesNameIssuesRouteImport } from './routes/spaces/$name/issues'
 import { Route as SpacesNameJournalRouteImport } from './routes/spaces/$name/journal'
 import { Route as SpacesNameMemoryRouteImport } from './routes/spaces/$name/memory'
+import { Route as SpacesNameSettingsRouteImport } from './routes/spaces/$name/settings'
 import { Route as SessionsIdAgentsAgentRouteImport } from './routes/sessions/$id/agents/$agent'
 import { Route as SpacesNameRulesIndexRouteImport } from './routes/spaces/$name/rules/index'
 import { Route as SpacesNameRulesIdRouteImport } from './routes/spaces/$name/rules/$id'
@@ -159,6 +160,11 @@ const SpacesNameMemoryRoute = SpacesNameMemoryRouteImport.update({
   path: '/memory',
   getParentRoute: () => SpacesNameRouteRoute,
 } as any)
+const SpacesNameSettingsRoute = SpacesNameSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => SpacesNameRouteRoute,
+} as any)
 const SessionsIdAgentsAgentRoute = SessionsIdAgentsAgentRouteImport.update({
   id: '/sessions/$id/agents/$agent',
   path: '/sessions/$id/agents/$agent',
@@ -207,6 +213,7 @@ export interface FileRoutesByFullPath {
   '/spaces/$name/issues': typeof SpacesNameIssuesRoute
   '/spaces/$name/journal': typeof SpacesNameJournalRoute
   '/spaces/$name/memory': typeof SpacesNameMemoryRoute
+  '/spaces/$name/settings': typeof SpacesNameSettingsRoute
   '/automations/$space/': typeof AutomationsSpaceIndexRoute
   '/sessions/$id/': typeof SessionsIdIndexRoute
   '/spaces/$name/': typeof SpacesNameIndexRoute
@@ -237,6 +244,7 @@ export interface FileRoutesByTo {
   '/spaces/$name/issues': typeof SpacesNameIssuesRoute
   '/spaces/$name/journal': typeof SpacesNameJournalRoute
   '/spaces/$name/memory': typeof SpacesNameMemoryRoute
+  '/spaces/$name/settings': typeof SpacesNameSettingsRoute
   '/automations/$space': typeof AutomationsSpaceIndexRoute
   '/sessions/$id': typeof SessionsIdIndexRoute
   '/spaces/$name': typeof SpacesNameIndexRoute
@@ -269,6 +277,7 @@ export interface FileRoutesById {
   '/spaces/$name/issues': typeof SpacesNameIssuesRoute
   '/spaces/$name/journal': typeof SpacesNameJournalRoute
   '/spaces/$name/memory': typeof SpacesNameMemoryRoute
+  '/spaces/$name/settings': typeof SpacesNameSettingsRoute
   '/automations/$space/': typeof AutomationsSpaceIndexRoute
   '/sessions/$id/': typeof SessionsIdIndexRoute
   '/spaces/$name/': typeof SpacesNameIndexRoute
@@ -302,6 +311,7 @@ export interface FileRouteTypes {
     | '/spaces/$name/issues'
     | '/spaces/$name/journal'
     | '/spaces/$name/memory'
+    | '/spaces/$name/settings'
     | '/automations/$space/'
     | '/sessions/$id/'
     | '/spaces/$name/'
@@ -332,6 +342,7 @@ export interface FileRouteTypes {
     | '/spaces/$name/issues'
     | '/spaces/$name/journal'
     | '/spaces/$name/memory'
+    | '/spaces/$name/settings'
     | '/automations/$space'
     | '/sessions/$id'
     | '/spaces/$name'
@@ -363,6 +374,7 @@ export interface FileRouteTypes {
     | '/spaces/$name/issues'
     | '/spaces/$name/journal'
     | '/spaces/$name/memory'
+    | '/spaces/$name/settings'
     | '/automations/$space/'
     | '/sessions/$id/'
     | '/spaces/$name/'
@@ -567,6 +579,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SpacesNameMemoryRouteImport
       parentRoute: typeof SpacesNameRouteRoute
     }
+    '/spaces/$name/settings': {
+      id: '/spaces/$name/settings'
+      path: '/settings'
+      fullPath: '/spaces/$name/settings'
+      preLoaderRoute: typeof SpacesNameSettingsRouteImport
+      parentRoute: typeof SpacesNameRouteRoute
+    }
     '/sessions/$id/agents/$agent': {
       id: '/sessions/$id/agents/$agent'
       path: '/sessions/$id/agents/$agent'
@@ -609,6 +628,7 @@ interface SpacesNameRouteRouteChildren {
   SpacesNameIssuesRoute: typeof SpacesNameIssuesRoute
   SpacesNameJournalRoute: typeof SpacesNameJournalRoute
   SpacesNameMemoryRoute: typeof SpacesNameMemoryRoute
+  SpacesNameSettingsRoute: typeof SpacesNameSettingsRoute
   SpacesNameIndexRoute: typeof SpacesNameIndexRoute
   SpacesNameRulesIdRoute: typeof SpacesNameRulesIdRoute
   SpacesNameSkillsSkillRoute: typeof SpacesNameSkillsSkillRoute
@@ -620,6 +640,7 @@ const SpacesNameRouteRouteChildren: SpacesNameRouteRouteChildren = {
   SpacesNameIssuesRoute: SpacesNameIssuesRoute,
   SpacesNameJournalRoute: SpacesNameJournalRoute,
   SpacesNameMemoryRoute: SpacesNameMemoryRoute,
+  SpacesNameSettingsRoute: SpacesNameSettingsRoute,
   SpacesNameIndexRoute: SpacesNameIndexRoute,
   SpacesNameRulesIdRoute: SpacesNameRulesIdRoute,
   SpacesNameSkillsSkillRoute: SpacesNameSkillsSkillRoute,

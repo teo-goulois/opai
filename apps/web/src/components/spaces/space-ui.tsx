@@ -66,7 +66,8 @@ export type SpacePath =
   | "/spaces/$name/skills"
   | "/spaces/$name/memory"
   | "/spaces/$name/journal"
-  | "/spaces/$name/issues";
+  | "/spaces/$name/issues"
+  | "/spaces/$name/settings";
 
 /** The title of a space and its sections. */
 export function SpaceHeader({
@@ -87,6 +88,7 @@ export function SpaceHeader({
     { to: "/spaces/$name/memory", label: m.space_memory(), count: space.counts.facts },
     { to: "/spaces/$name/journal", label: m.space_journal(), count: space.counts.journal },
     { to: "/spaces/$name/issues", label: m.space_issues_title(), count: space.counts.issues },
+    { to: "/spaces/$name/settings", label: m.space_settings() },
   ];
 
   return (

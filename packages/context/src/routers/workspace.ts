@@ -16,7 +16,14 @@ import {
 import { o } from "../procedure.ts";
 import { getRule, listRules, RuleId, updateRule, type RuleNotFound } from "../rules.ts";
 import { getSpace, listSpaces, SpaceName, type SpaceNotFound } from "../space-view.ts";
-import { loadSpaces, setModule } from "../spaces.ts";
+import {
+  archiveSpace,
+  createSpace,
+  previewFolder,
+  setModule,
+  SpaceError,
+  updateSpace,
+} from "../space-edit.ts";
 
 type Failure =
   | InventoryError
@@ -54,6 +61,24 @@ function run<A>(program: Effect.Effect<A, Failure>) {
   return Effect.runPromise(program.pipe(Effect.catch((error) => Effect.die(toORPCError(error)))));
 }
 
+/** A change to a space: its errors are messages for the person who asked. */
+function edit<A>(work: () => A) {
+  try {
+    return work();
+  } catch (error) {
+    if (!(error instanceof SpaceError)) throw error;
+    const code = error.message.startsWith("No space named")
+      ? "NOT_FOUND"
+      : /already/.test(error.message)
+        ? "CONFLICT"
+        : "BAD_REQUEST";
+    throw new ORPCError(code, { message: error.message });
+  }
+}
+
+const Folder = z.string().min(1).max(1024);
+const Description = z.string().max(500);
+
 const readOnly = { readOnlyHint: true, idempotentHint: true };
 const replacesFile = { readOnlyHint: false, destructiveHint: true, idempotentHint: true };
 
@@ -83,16 +108,51 @@ export const workspaceRouter = {
       })
       .input(z.object({ name: SpaceName }))
       .handler(({ context, input }) => run(getSpace(context.root, input.name))),
+    // The procedures below change spaces: the app's, never offered to agents.
+
     /** Turns a global module on or off in a space (the `disable` list of its space.yaml). */
     setModule: o
       .input(z.object({ name: SpaceName, module: SpaceName, enabled: z.boolean() }))
       .handler(({ context, input }) => {
-        if (!loadSpaces(context.root).some((space) => space.name === input.name)) {
-          throw new ORPCError("NOT_FOUND", { message: `No space named ${input.name}.` });
-        }
-        setModule(context.root, input.name, input.module, input.enabled);
+        edit(() => setModule(context.root, input.name, input.module, input.enabled));
         return run(getSpace(context.root, input.name));
       }),
+    create: o
+      .input(
+        z.object({
+          name: z.string().max(64),
+          description: Description.optional(),
+          paths: z.array(Folder).max(50).optional(),
+        }),
+      )
+      .handler(({ context, input }) => {
+        const { name, ...options } = input;
+        edit(() => createSpace(context.root, name, options));
+        return run(getSpace(context.root, name));
+      }),
+    update: o
+      .input(
+        z.object({
+          name: SpaceName,
+          description: Description.optional(),
+          paths: z.array(Folder).max(50).optional(),
+          makeDefault: z.boolean().optional(),
+        }),
+      )
+      .handler(({ context, input }) => {
+        const { name, ...changes } = input;
+        edit(() => updateSpace(context.root, name, changes));
+        return run(getSpace(context.root, name));
+      }),
+    archive: o.input(z.object({ name: SpaceName })).handler(({ context, input }) => ({
+      archivedTo: edit(() => archiveSpace(context.root, input.name)),
+    })),
+    /** What claiming a folder would change: whose it is today, and what stays elsewhere. */
+    previewFolder: o
+      .input(z.object({ name: z.string().max(64), folder: Folder }))
+      .handler(({ context, input }) =>
+        edit(() => previewFolder(context.root, input.name, input.folder)),
+      ),
   },
 
   rules: {

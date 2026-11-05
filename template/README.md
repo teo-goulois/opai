@@ -18,8 +18,8 @@ codex/             Codex's config folder (CODEX_HOME)
 - `global` is the base: its `AGENTS.md` holds the rules for every project,
   and `claude/CLAUDE.md` and `codex/AGENTS.md` link to it.
 - `personal` is the default, for any folder no other space claims. Add a
-  space by adding a folder with a `space.yaml` that lists the `paths` it
-  claims.
+  space with `opai spaces new <name> --path <folder>`, or New space in the app
+  (`opai app`); `opai spaces help` lists the rest.
 
 `opai claude` and `opai codex` run the tools on this folder. `opai setup`
 points the hooks and the MCP server to the engine again, after the engine or

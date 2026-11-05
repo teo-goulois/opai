@@ -39,6 +39,7 @@ opai init [folder]        # create an instance (default ~/.opai) and set it up
 opai setup                # point the instance's hooks and MCP to this engine again
 opai claude [arguments]   # Claude Code with CLAUDE_CONFIG_DIR=<instance>/claude
 opai codex [arguments]    # Codex with CODEX_HOME=<instance>/codex
+opai spaces [command]     # create, change and archive spaces (below)
 opai skills [command]     # manage the skills (below)
 opai which [folder]       # the space of a folder
 opai sync [--install]     # sync the instance with its Git remote
@@ -85,6 +86,22 @@ client, personal projects.
 - A folder belongs to the space with the longest path containing it. In a Git
   worktree, the same folder of the main repository counts too.
 
+Create and change spaces with `opai spaces` or on the app's Spaces page (New
+space, and each space's Settings tab). Both say what a folder change moves
+before it happens, refuse a folder another space already claims, and rewrite
+only their own lines of `space.yaml`. A change applies from the next session.
+
+```sh
+opai spaces list
+opai spaces new client-x --description "Client X" --path ~/code/client-x
+opai spaces edit client-x --add-path ~/code/x-api --remove-path ~/code/old
+opai spaces edit client-x --default        # the default space, in place of the current one
+opai spaces archive client-x               # to .local/archive/spaces/; move it back to restore it
+```
+
+The base space claims no folder, and neither the base nor the default space
+can be archived.
+
 `packages/context/src/hook.ts` runs at the start of each session (hook in
 `claude/settings.json` and `codex/hooks.json`). It tells the agent its space
 and gives it that space's `AGENTS.md`. Codex runs the hook only after you
@@ -123,7 +140,9 @@ is installed, on `127.0.0.1:4748` otherwise. Its pages call the same oRPC proced
   skills a session there gets, its own and those of `global`, with what they
   cost), then its rules, skills, memory, journal and issues. A rule or a skill
   opens under its space. A space turns a module of `global` on or off
-  (`disable` in its `space.yaml`).
+  (`disable` in its `space.yaml`). New space creates one; a space's Settings
+  tab changes its description and folders, makes it the default space, or
+  archives it.
 - Skills, across spaces: every skill with its space, trigger, observed uses
   and what its description costs in every session. A skill's page sets its
   trigger (automatic, or only on request: `disable-model-invocation`) and the

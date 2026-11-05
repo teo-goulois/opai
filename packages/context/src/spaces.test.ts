@@ -5,7 +5,8 @@ import { join } from "node:path";
 import { after, test } from "node:test";
 
 import { makeFixture } from "./fixture.ts";
-import { loadSpaces, readYaml, sessionContext, setModule, which } from "./spaces.ts";
+import { setModule } from "./space-edit.ts";
+import { loadSpaces, readYaml, sessionContext, which } from "./spaces.ts";
 
 const fixture = makeFixture();
 after(fixture.cleanup);

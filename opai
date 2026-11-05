@@ -4,6 +4,7 @@
 #   opai init [folder]          create an instance (default ~/.opai) and set it up
 #   opai setup                  point the instance's hooks and MCP to this engine again
 #   opai claude|codex [args]    run the tool on the instance's claude/ or codex/
+#   opai spaces [command]       manage the spaces (opai spaces help)
 #   opai skills [command]       manage the skills (opai skills help)
 #   opai which [folder]         print a folder's space
 #   opai sync [--install]       sync the instance with its Git remote
@@ -24,7 +25,7 @@ node=${OPAI_NODE:-$(command -v node || true)}
 export OPAI_NODE="$node"
 
 usage() {
-  sed -n '4,11p' "$0" | sed 's/^# *//' >&2
+  sed -n '4,12p' "$0" | sed 's/^# *//' >&2
   exit 2
 }
 
@@ -79,6 +80,12 @@ case "${1:-}" in
     ;;
   claude | codex)
     run_tool "$@"
+    ;;
+  spaces)
+    shift
+    need_node
+    need_instance
+    exec "$node" "$context/space-cli.ts" "$@"
     ;;
   skills)
     shift
