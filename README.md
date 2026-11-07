@@ -316,6 +316,7 @@ opai mcp status                                       # whether Claude Code reac
 opai mcp login <name> [--space s]                     # sign in to a remote one, in the browser
 opai mcp logout <name>
 opai mcp refresh                                      # renew the tokens about to expire
+opai mcp refresh --install                            # on one machine: every 10 minutes, with launchd
 ```
 
 `status` asks Claude Code itself: a headless `claude -p`, with the
@@ -329,8 +330,10 @@ browser coming back to localhost) and keeps the tokens in Infisical, folder
 `opai mcp token <name>` as its `headersHelper` (Claude Code) and
 `http_headers_helper` (Codex), which prints its `Authorization` header. A
 refresh token often works once, so one machine renews the tokens ahead of
-time with `opai mcp refresh`, every few minutes; the others renew one only
-once it has expired, one session at a time. A server whose sign-in service
+time (`opai mcp refresh --install`, a launchd agent every 10 minutes); the
+others renew one only once it has expired, one session at a time. A machine
+reads Infisical through its login keychain: a session started over SSH,
+where macOS keeps it locked, needs `security unlock-keychain` first. A server whose sign-in service
 registers no new client still signs in through each tool (`/mcp` in Claude
 Code, `opai codex mcp login <name>`), for that tool on that machine.
 
