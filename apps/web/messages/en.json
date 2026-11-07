@@ -800,5 +800,22 @@
   "mcp_found_hint": "Plain claude and codex use these. Import one to give it to Opai sessions; its tokens go to Infisical.",
   "mcp_found_into": "Import into",
   "mcp_import": "Import",
-  "mcp_applies_next": "Changes apply from the next session."
+  "mcp_applies_next": "Changes apply from the next session.",
+  "mcp_status_connected": "Connected",
+  "mcp_status_needs_auth": "Not signed in",
+  "mcp_status_failed": "Failed",
+  "mcp_status_pending": "Still starting",
+  "mcp_status_disabled": "Disabled",
+  "mcp_status_unknown": "Claude Code could not check the servers: {reason}",
+  "mcp_checking": "Checking…",
+  "mcp_checked": "Checked by Claude Code {when}",
+  "mcp_check_again": "Check again",
+  "mcp_connect": "Sign in",
+  "mcp_connect_again": "Sign in again",
+  "mcp_connect_waiting": "Waiting for the sign-in…",
+  "mcp_connect_open": "Open the sign-in page",
+  "mcp_signed_in": "Signed in through Opai, from {by}; token renewed {when}",
+  "mcp_sign_out": "Sign out",
+  "mcp_tool_only": "Signed in by Claude Code for itself: Codex and the other machines don't have it.",
+  "mcp_connect_everywhere": "Sign in everywhere"
 }

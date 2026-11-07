@@ -20,6 +20,15 @@ import {
   removeServer,
   type Server,
 } from "../mcp-servers.ts";
+import {
+  canSignIn,
+  describeRecord,
+  loginState,
+  records,
+  signOut,
+  startLogin,
+} from "../mcp-oauth.ts";
+import { cachedStatus, forgetStatus } from "../mcp-status.ts";
 import { o } from "../procedure.ts";
 import { loadSpaces } from "../spaces.ts";
 
@@ -30,42 +39,44 @@ const Name = z
 const Space = z.string().regex(/^[a-z0-9][a-z0-9-]*$/, "A space name");
 const Variable = z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/, "A variable name");
 
+/** An McpError as the HTTP error it means. */
+function rethrow(error: unknown): never {
+  if (!(error instanceof McpError)) throw error;
+  const code = /^no (server|space) named/.test(error.message)
+    ? "NOT_FOUND"
+    : /already in/.test(error.message)
+      ? "CONFLICT"
+      : "BAD_REQUEST";
+  throw new ORPCError(code, { message: error.message });
+}
+
 function run<A>(work: () => A) {
   try {
     return work();
   } catch (error) {
-    if (!(error instanceof McpError)) throw error;
-    const code = /^no (server|space) named/.test(error.message)
-      ? "NOT_FOUND"
-      : /already in/.test(error.message)
-        ? "CONFLICT"
-        : "BAD_REQUEST";
-    throw new ORPCError(code, { message: error.message });
+    rethrow(error);
   }
 }
 
 export type SecretState = "infisical" | "environment" | "missing";
 
-/** The names Infisical holds; undefined, with the reason, when it can't be read. */
-function stored(root: string): { names: Set<string>; error?: string | undefined } {
-  if (!infisicalEnv(root)) return { names: new Set(), error: "no Infisical project" };
+/** What Infisical holds; empty, with the reason, when it can't be read. Values stay here. */
+function stored(root: string): { values: Record<string, string>; error?: string | undefined } {
+  if (!infisicalEnv(root)) return { values: {}, error: "no Infisical project" };
   try {
-    return { names: new Set(Object.keys(readSecrets(root))) };
+    return { values: readSecrets(root) };
   } catch (error) {
-    return { names: new Set(), error: (error as Error).message };
+    return { values: {}, error: (error as Error).message };
   }
 }
 
-/** What a server reaches: Codex lacks SSE and headersHelper. */
+/** What a server reaches: Codex lacks SSE. */
 function reach(server: Server) {
   const codex = codexServer(server);
   return {
     claude: true,
     codex: !!codex,
-    claudeOnly: [
-      ...(server.type === "sse" ? ["SSE"] : []),
-      ...(server.headersHelper ? ["headersHelper"] : []),
-    ],
+    claudeOnly: server.type === "sse" ? ["SSE"] : [],
     transport: claudeServer(server).type!,
   };
 }
@@ -83,14 +94,21 @@ function preview(text: string, name?: string) {
 
 export const mcpRouter = {
   list: o.handler(({ context }) => {
-    const { names, error } = stored(context.root);
+    const { values, error } = stored(context.root);
+    const names = new Set(Object.keys(values));
+    const signIns = records(values);
     const state = (name: string): SecretState =>
       names.has(name) ? "infisical" : process.env[name] ? "environment" : "missing";
-    const servers = listServers(context.root).map((entry) => ({
-      ...entry,
-      ...reach(entry.server),
-      secrets: variables(entry.server).map((name) => ({ name, state: state(name) })),
-    }));
+    const servers = listServers(context.root).map((entry) => {
+      const signIn = signIns.get(entry.name);
+      return {
+        ...entry,
+        ...reach(entry.server),
+        secrets: variables(entry.server).map((name) => ({ name, state: state(name) })),
+        canSignIn: canSignIn(entry.server),
+        signIn: signIn && signIn.url === entry.server.url ? describeRecord(signIn) : undefined,
+      };
+    });
     const declared = new Set(servers.map((entry) => entry.name));
     const known = Object.fromEntries([...names].map((name) => [name, "stored"]));
     return {
@@ -155,11 +173,33 @@ export const mcpRouter = {
         return imported.map(({ name, space }) => ({ name, space }));
       }),
     ),
+  /** Whether Claude Code reaches each server: a check under 5 minutes old, or a new one. */
+  status: o
+    .input(z.object({ refresh: z.boolean().optional() }))
+    .handler(({ context, input }) => cachedStatus(context.root, input.refresh)),
+  /** Starts a sign-in to a remote server: the page the browser opens. */
+  connect: o
+    .input(z.object({ name: Name, space: Space }))
+    .handler(({ context, input }) =>
+      startLogin(context.root, input.name, input.space).catch(rethrow),
+    ),
+  /** Where the sign-in started by connect stands. */
+  connection: o
+    .input(z.object({ name: Name, space: Space }))
+    .handler(({ input }) => loginState(input.space, input.name) ?? null),
+  /** Forgets Opai's sign-in to a server, on every machine. */
+  signOut: o.input(z.object({ name: Name })).handler(({ context, input }) =>
+    run(() => {
+      signOut(context.root, input.name);
+      return { name: input.name };
+    }),
+  ),
   setSecret: o
     .input(z.object({ name: Variable, value: z.string().min(1).max(20_000) }))
     .handler(({ context, input }) =>
       run(() => {
         storeSecrets(context.root, { [input.name]: input.value });
+        forgetStatus();
         return { name: input.name };
       }),
     ),

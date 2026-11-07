@@ -12,5 +12,7 @@ README.md describes the layout.
 - Add, move or remove an MCP server with `opai mcp`, in the space it serves
   (`global` for every session): `opai mcp paste '<what its docs say>'`. Its
   tokens go to Infisical (`opai mcp secret set`), never into `mcp.json`.
+  `opai mcp status` says which servers Claude Code reaches; a remote one
+  that is not signed in waits for the user's `opai mcp login <name>`.
 - Never commit what Claude Code or Codex write into `claude/` and `codex/`
   (sessions, caches, logs, credentials): `.gitignore` lists what is tracked.

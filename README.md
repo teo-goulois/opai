@@ -156,6 +156,10 @@ is installed, on `127.0.0.1:4748` otherwise. Its pages call the same oRPC proced
   its docs give (`claude mcp add ...`, `codex mcp add ...`, JSON, `npx ...`,
   a URL): a preview shows what it becomes and which tokens go to Infisical.
   Move or remove a server, or import one plain `claude` and `codex` have.
+  Each server shows whether Claude Code reaches it (connected, not signed
+  in, failed with its error). A remote one signs in from its Sign in button,
+  for every tool and machine; one signed in by Claude Code for itself offers
+  to sign in everywhere.
 - Config: what Claude Code and Codex read in `claude/` and `codex/`, and the
   instance's own `AGENTS.md` and `CLAUDE.md`, editable.
 - Sessions: each session Claude Code and Codex ran on the instance, with the
@@ -291,9 +295,9 @@ same name. `opai claude` and `opai codex` load them at launch, so a change
 applies from the next session:
 
 - Claude Code gets `--mcp-config=.local/mcp/<space>.json`, written then.
-- Codex gets one `-c mcp_servers.<name>={...}` per server. It has no SSE
-  transport and no `headersHelper`: an SSE server reaches Claude Code only,
-  and a `headersHelper` too.
+- Codex gets one `-c mcp_servers.<name>={...}` per server, a `headersHelper`
+  as its `http_headers_helper`. It has no SSE transport: an SSE server
+  reaches Claude Code only.
 
 ```sh
 opai mcp list                                         # every server, by space
@@ -308,7 +312,27 @@ opai mcp import <name>... [--space s]                 # copy them into a space
 opai mcp secrets                                      # the secrets they name: stored or missing
 opai mcp secret set <NAME>                            # store one, typed or piped in
 opai mcp check
+opai mcp status                                       # whether Claude Code reaches each one
+opai mcp login <name> [--space s]                     # sign in to a remote one, in the browser
+opai mcp logout <name>
+opai mcp refresh                                      # renew the tokens about to expire
 ```
+
+`status` asks Claude Code itself: a headless `claude -p`, with the
+instance's `claude/` and one space's servers as a session gets them, answers
+the Agent SDK's `mcp_status` request. No prompt is sent and no session is kept.
+
+`login` signs Opai in, once for Claude Code, Codex and every machine: Opai
+registers itself with the server's sign-in service (OAuth with PKCE, the
+browser coming back to localhost) and keeps the tokens in Infisical, folder
+`/mcp`, as `OAUTH_<NAME>`. At launch, a server signed in this way gets
+`opai mcp token <name>` as its `headersHelper` (Claude Code) and
+`http_headers_helper` (Codex), which prints its `Authorization` header. A
+refresh token often works once, so one machine renews the tokens ahead of
+time with `opai mcp refresh`, every few minutes; the others renew one only
+once it has expired, one session at a time. A server whose sign-in service
+registers no new client still signs in through each tool (`/mcp` in Claude
+Code, `opai codex mcp login <name>`), for that tool on that machine.
 
 `mcp.json` is committed, so it holds no secret: a value can be `${NAME}` or
 `${NAME:-default}`, and `add` refuses a literal token. The values live in the

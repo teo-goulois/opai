@@ -800,5 +800,22 @@
   "mcp_found_hint": "claude et codex lancés directement les utilisent. Importe-en un pour le donner aux sessions Opai ; ses tokens vont dans Infisical.",
   "mcp_found_into": "Importer dans",
   "mcp_import": "Importer",
-  "mcp_applies_next": "Un changement s’applique à la session suivante."
+  "mcp_applies_next": "Un changement s’applique à la session suivante.",
+  "mcp_status_connected": "Connecté",
+  "mcp_status_needs_auth": "Non connecté",
+  "mcp_status_failed": "En échec",
+  "mcp_status_pending": "Démarrage lent",
+  "mcp_status_disabled": "Désactivé",
+  "mcp_status_unknown": "Claude Code n’a pas pu vérifier les serveurs : {reason}",
+  "mcp_checking": "Vérification…",
+  "mcp_checked": "Vérifié par Claude Code {when}",
+  "mcp_check_again": "Vérifier à nouveau",
+  "mcp_connect": "Se connecter",
+  "mcp_connect_again": "Se reconnecter",
+  "mcp_connect_waiting": "En attente de la connexion…",
+  "mcp_connect_open": "Ouvrir la page de connexion",
+  "mcp_signed_in": "Connecté via Opai, depuis {by} ; jeton renouvelé {when}",
+  "mcp_sign_out": "Se déconnecter",
+  "mcp_tool_only": "Connecté par Claude Code pour lui seul : Codex et les autres machines ne l’ont pas.",
+  "mcp_connect_everywhere": "Connecter partout"
 }

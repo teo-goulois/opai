@@ -201,7 +201,10 @@ test("import copies a server from the tools' configs, its secrets left behind", 
     url: "https://desk/mcp",
     headersHelper: "${HOME}/bin/auth desk",
   });
-  assert.deepEqual(codexServer(desk!.server), { url: "https://desk/mcp" });
+  assert.deepEqual(codexServer(desk!.server, { HOME: "/home/me" }), {
+    url: "https://desk/mcp",
+    http_headers_helper: "/home/me/bin/auth desk",
+  });
   removeServer(root, "crm");
   removeServer(root, "desk");
 });

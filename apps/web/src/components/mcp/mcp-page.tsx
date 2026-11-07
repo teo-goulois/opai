@@ -31,19 +31,22 @@ import { Skeleton } from "@opai/ui/components/ui/skeleton";
 import { Switch } from "@opai/ui/components/ui/switch";
 import { Textarea } from "@opai/ui/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@opai/ui/components/ui/toggle-group";
-import { AddIcon, MoreIcon, WarningIcon } from "@opai/ui/icon";
+import { AddIcon, MoreIcon, RefreshIcon, WarningIcon } from "@opai/ui/icon";
 import { ORPCError } from "@orpc/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useDeferredValue, useState } from "react";
+import { useDeferredValue, useEffect, useState } from "react";
 
 import { Hint, orderSpaces, SpaceDot } from "@/components/spaces/space-ui";
 import { m } from "@/paraglide/messages.js";
+import { formatRelative } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
 type McpData = Awaited<ReturnType<AppRouterClient["mcp"]["list"]>>;
 type ServerRow = McpData["servers"][number];
 type Server = ServerRow["server"];
 type SpaceRef = { name: string; base: boolean; default: boolean };
+type StatusData = Awaited<ReturnType<AppRouterClient["mcp"]["status"]>>;
+type ServerStatus = StatusData["servers"][number];
 
 function errorText(error: unknown) {
   if (!error) return undefined;
@@ -72,6 +75,21 @@ function ClaudeOnly({ what }: { what: string[] }) {
 export function McpPage({ data }: { data: McpData }) {
   const spaces = orderSpaces(data.spaces.map((space) => ({ default: false, ...space })));
   const notDeclared = data.found.filter((found) => !found.declared);
+  const queryClient = useQueryClient();
+  // Claude Code starts every server to answer, so the server keeps it 5 minutes.
+  const status = useQuery({
+    ...orpc.mcp.status.queryOptions({ input: {} }),
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+  const recheck = useMutation({
+    mutationFn: () => orpc.mcp.status.call({ refresh: true }),
+    onSuccess: (fresh) => queryClient.setQueryData(orpc.mcp.status.queryKey({ input: {} }), fresh),
+  });
+  const statuses = new Map(
+    (status.data?.servers ?? []).map((item) => [`${item.space}/${item.name}`, item]),
+  );
+  const checking = status.isFetching || recheck.isPending;
   return (
     <div className="flex flex-col gap-xl">
       <PageHeader>
@@ -82,8 +100,31 @@ export function McpPage({ data }: { data: McpData }) {
         <PageMeta>
           <span>{m.mcp_count({ count: data.servers.length })}</span>
           <span>{m.mcp_applies_next()}</span>
+          <span className="flex items-center gap-xxs">
+            {checking
+              ? m.mcp_checking()
+              : status.data
+                ? m.mcp_checked({
+                    when: formatRelative(new Date(status.data.checkedAt).toISOString()),
+                  })
+                : null}
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={m.mcp_check_again()}
+              title={m.mcp_check_again()}
+              isPending={checking}
+              onClick={() => recheck.mutate()}
+            >
+              <RefreshIcon aria-hidden />
+            </Button>
+          </span>
         </PageMeta>
       </PageHeader>
+
+      {errorText(recheck.error ?? status.error) ? (
+        <Hint>{m.mcp_status_unknown({ reason: errorText(recheck.error ?? status.error)! })}</Hint>
+      ) : null}
 
       {data.infisical.error ? (
         <Hint>{m.mcp_infisical_off({ reason: data.infisical.error })}</Hint>
@@ -130,7 +171,12 @@ export function McpPage({ data }: { data: McpData }) {
               <ItemList>
                 {rows.map((row) => (
                   <li key={row.name}>
-                    <ServerItem row={row} spaces={spaces} />
+                    <ServerItem
+                      row={row}
+                      spaces={spaces}
+                      status={statuses.get(`${row.space}/${row.name}`)}
+                      checking={checking}
+                    />
                   </li>
                 ))}
               </ItemList>
@@ -146,8 +192,84 @@ export function McpPage({ data }: { data: McpData }) {
   );
 }
 
-function ServerItem({ row, spaces }: { row: ServerRow; spaces: SpaceRef[] }) {
+const STATUS_BADGE = {
+  connected: "success",
+  "needs-auth": "warning",
+  failed: "error",
+  pending: "neutral",
+  disabled: "neutral",
+} as const;
+
+function statusLabel(status: ServerStatus["status"]) {
+  return {
+    connected: m.mcp_status_connected,
+    "needs-auth": m.mcp_status_needs_auth,
+    failed: m.mcp_status_failed,
+    pending: m.mcp_status_pending,
+    disabled: m.mcp_status_disabled,
+  }[status]();
+}
+
+/**
+ * A sign-in of Opai's, from the page: the provider's page opens in a new tab,
+ * the app waits for its return on localhost and keeps the tokens in Infisical,
+ * for Claude Code, Codex and every machine; the page asks until it is over.
+ */
+function useConnect(row: ServerRow) {
+  const queryClient = useQueryClient();
+  const input = { name: row.name, space: row.space };
+  const [started, setStarted] = useState(false);
+  const connect = useMutation(orpc.mcp.connect.mutationOptions());
+  const login = useQuery({
+    ...orpc.mcp.connection.queryOptions({ input }),
+    enabled: started,
+    refetchInterval: (query) => (query.state.data?.state === "waiting" ? 1500 : false),
+  });
+  // null: the app restarted and forgot the sign-in.
+  const state = started ? (login.data === null ? "failed" : login.data?.state) : undefined;
+  useEffect(() => {
+    if (state === "connected" || state === "failed") {
+      void queryClient.invalidateQueries({ queryKey: orpc.mcp.key() });
+    }
+  }, [state, queryClient]);
+  return {
+    waiting: connect.isPending || (started && (!state || state === "waiting")),
+    authUrl: connect.data?.authUrl,
+    error: errorText(connect.error) ?? (state === "failed" ? login.data?.error : undefined),
+    start() {
+      // Opened now, while the click allows it; the address comes after.
+      const tab = window.open("", "_blank");
+      connect.mutate(input, {
+        onSuccess: ({ authUrl }) => {
+          if (authUrl && tab) tab.location.href = authUrl;
+          else tab?.close();
+          // The last sign-in's answer must not end this one.
+          void queryClient.resetQueries({ queryKey: orpc.mcp.connection.queryKey({ input }) });
+          setStarted(true);
+        },
+        onError: () => tab?.close(),
+      });
+    },
+  };
+}
+
+function ServerItem({
+  row,
+  spaces,
+  status,
+  checking,
+}: {
+  row: ServerRow;
+  spaces: SpaceRef[];
+  status: ServerStatus | undefined;
+  checking: boolean;
+}) {
   const refresh = useRefresh();
+  const connect = useConnect(row);
+  const signOut = useMutation(orpc.mcp.signOut.mutationOptions({ onSuccess: refresh }));
+  // Signed in by a tool for itself: that tool only, on this machine.
+  const toolOnly =
+    row.canSignIn && !row.signIn && status?.status === "connected" && status.protected;
   const move = useMutation(orpc.mcp.move.mutationOptions({ onSuccess: refresh }));
   const remove = useMutation(orpc.mcp.remove.mutationOptions({ onSuccess: refresh }));
   return (
@@ -157,8 +279,35 @@ function ServerItem({ row, spaces }: { row: ServerRow; spaces: SpaceRef[] }) {
           {row.name}
           <Badge variant="neutral">{row.transport}</Badge>
           <ClaudeOnly what={row.claudeOnly} />
+          {status ? (
+            <Badge variant={STATUS_BADGE[status.status]}>{statusLabel(status.status)}</Badge>
+          ) : checking ? (
+            <Badge variant="neutral">{m.mcp_checking()}</Badge>
+          ) : null}
         </ItemTitle>
         <ItemDescription className="line-clamp-1 font-mono">{target(row.server)}</ItemDescription>
+        {status?.error ? (
+          <ItemDescription className="line-clamp-2 text-error">{status.error}</ItemDescription>
+        ) : null}
+        {toolOnly ? <ItemDescription>{m.mcp_tool_only()}</ItemDescription> : null}
+        {row.signIn ? (
+          <ItemDescription>
+            {m.mcp_signed_in({
+              by: row.signIn.by,
+              when: formatRelative(new Date(row.signIn.refreshedAt).toISOString()),
+            })}
+          </ItemDescription>
+        ) : null}
+        {connect.waiting && connect.authUrl ? (
+          <ItemDescription>
+            <a href={connect.authUrl} target="_blank" rel="noreferrer" className="underline">
+              {m.mcp_connect_open()}
+            </a>
+          </ItemDescription>
+        ) : null}
+        {connect.error ? (
+          <ItemDescription className="text-error">{connect.error}</ItemDescription>
+        ) : null}
         {row.secrets.length > 0 ? (
           <span className="flex flex-wrap gap-xxs pt-xxs">
             {row.secrets.map((secret) =>
@@ -176,6 +325,15 @@ function ServerItem({ row, spaces }: { row: ServerRow; spaces: SpaceRef[] }) {
         ) : null}
       </ItemMain>
       <ItemEnd>
+        {row.canSignIn && (status?.status === "needs-auth" || toolOnly || connect.waiting) ? (
+          <Button variant="outline" isPending={connect.waiting} onClick={connect.start}>
+            {connect.waiting
+              ? m.mcp_connect_waiting()
+              : toolOnly
+                ? m.mcp_connect_everywhere()
+                : m.mcp_connect()}
+          </Button>
+        ) : null}
         <Menu>
           <MenuTrigger
             render={
@@ -183,13 +341,26 @@ function ServerItem({ row, spaces }: { row: ServerRow; spaces: SpaceRef[] }) {
                 variant="ghost"
                 size="icon"
                 aria-label={m.mcp_actions({ name: row.name })}
-                isPending={move.isPending || remove.isPending}
+                isPending={move.isPending || remove.isPending || signOut.isPending}
               />
             }
           >
             <MoreIcon aria-hidden />
           </MenuTrigger>
           <MenuPopup>
+            {row.canSignIn ? (
+              <>
+                <MenuItem onClick={connect.start}>
+                  {row.signIn ? m.mcp_connect_again() : m.mcp_connect()}
+                </MenuItem>
+                {row.signIn ? (
+                  <MenuItem onClick={() => signOut.mutate({ name: row.name })}>
+                    {m.mcp_sign_out()}
+                  </MenuItem>
+                ) : null}
+                <MenuSeparator />
+              </>
+            ) : null}
             {spaces
               .filter((space) => space.name !== row.space)
               .map((space) => (

@@ -1,8 +1,8 @@
 // The secrets of the MCP servers: the ${NAME} their mcp.json holds. They live
 // in the instance's Infisical project (.infisical.yaml), folder /mcp, in its
-// default environment. At launch, opai claude and opai codex read from there
-// the ones the session's servers name and the environment lacks, and nothing
-// else of the project.
+// default environment, next to the sign-ins of mcp-oauth.ts. At launch, opai
+// claude and opai codex read from there the ones the session's servers name
+// and the environment lacks, and nothing else of the project.
 
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -43,12 +43,22 @@ function infisical(root: string, args: string[]) {
       stdio: ["ignore", "pipe", "pipe"],
     });
   } catch (error) {
-    const stderr = String((error as { stderr?: unknown }).stderr ?? "");
-    const reason = stderr
+    const lines = String((error as { stderr?: unknown }).stderr ?? "")
       .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line && !/^warning|new release|to update|using profile/i.test(line))
-      .at(-1);
+      .map((line) => line.trim());
+    // The API's message when there is one; else the last line that says something.
+    const reason =
+      lines
+        .find((line) => line.startsWith("Message:"))
+        ?.slice("Message:".length)
+        .trim() ??
+      lines
+        .filter(
+          (line) =>
+            line &&
+            !/^(warning|new release|to update|using profile|if this issue continues)/i.test(line),
+        )
+        .at(-1);
     throw new McpError(`Infisical: ${reason ?? (error as Error).message}`);
   }
 }
@@ -83,22 +93,7 @@ export function storeSecrets(root: string, values: Record<string, string>) {
   }
 }
 
-/**
- * The secrets a launch adds to the environment: those the servers name, the
- * environment lacks and Infisical has. A failure is reported, never fatal.
- */
-export function launchSecrets(
-  root: string,
-  servers: Server[],
-  env: NodeJS.ProcessEnv,
-  warn: (message: string) => void = () => {},
-) {
-  const missing = [...new Set(servers.flatMap(variables))].filter((name) => !env[name]);
-  if (missing.length === 0 || !infisicalEnv(root)) return {};
-  try {
-    return readSecrets(root, missing);
-  } catch (error) {
-    warn(`opai: the MCP secrets were not loaded (${(error as Error).message})`);
-    return {};
-  }
+/** Removes a secret from the folder. */
+export function deleteSecret(root: string, name: string) {
+  infisical(root, ["secrets", "delete", name, `--path=${SECRETS_FOLDER}`, "--type=shared"]);
 }

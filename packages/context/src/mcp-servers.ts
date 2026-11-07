@@ -4,8 +4,8 @@
 // server of the same name. opai passes them when it starts a tool:
 //
 // - Claude Code: --mcp-config=.local/mcp/<space>.json, written at launch.
-// - Codex: one -c mcp_servers.<name>={...} per server, without what Codex
-//   lacks: SSE servers and headersHelper.
+// - Codex: one -c mcp_servers.<name>={...} per server, without the SSE
+//   servers, which it lacks; a headersHelper becomes its http_headers_helper.
 //
 // Secrets stay out of mcp.json: a value can hold ${NAME} or ${NAME:-default},
 // read from the environment the tool starts in, where opai puts those stored
@@ -219,6 +219,7 @@ export function codexServer(server: Server, env = process.env) {
   }
   if (Object.keys(literal).length > 0) table.http_headers = literal;
   if (Object.keys(fromEnv).length > 0) table.env_http_headers = fromEnv;
+  if (server.headersHelper) table.http_headers_helper = expand(server.headersHelper, env);
   return table;
 }
 

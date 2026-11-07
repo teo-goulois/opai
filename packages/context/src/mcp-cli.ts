@@ -10,7 +10,13 @@
 //   opai mcp secrets
 //   opai mcp secret set <NAME>
 //   opai mcp check
+//   opai mcp status
+//   opai mcp login <name> [--space s]
+//   opai mcp logout <name>
+//   opai mcp refresh
+//   opai mcp token <name>          (the headers helper of a signed-in server)
 
+import { execFile } from "node:child_process";
 import { parseArgs } from "node:util";
 
 import {
@@ -27,6 +33,8 @@ import {
 } from "./mcp-servers.ts";
 import { parsePaste } from "./mcp-paste.ts";
 import { readSecrets, storeSecrets, variables } from "./mcp-secrets.ts";
+import { accessToken, loginState, refreshAll, signOut, startLogin } from "./mcp-oauth.ts";
+import { checkStatus } from "./mcp-status.ts";
 import { homePath, ROOT } from "./spaces.ts";
 
 /** The names stored in Infisical, or undefined when it can't be read. */
@@ -81,6 +89,12 @@ const USAGE = `usage: opai mcp <command>
   secrets                                       the secrets the servers name, stored or missing
   secret set <NAME>                             store one in Infisical, typed or piped in
   check                                         report what is wrong
+  status                                        whether Claude Code reaches each server
+  login <name> [--space s]                      sign in to a remote server, in the browser, for
+                                                Claude Code, Codex and every machine (Infisical)
+  logout <name>                                 forget that sign-in
+  refresh                                       renew the tokens about to expire: run it on
+                                                one machine, every few minutes
 
 Servers of global are in every session; those of another space only in its
 sessions. opai claude and opai codex load them at launch, so a change applies
@@ -241,6 +255,65 @@ async function main(argv: string[]) {
       for (const problem of problems) console.log(problem);
       if (problems.length > 0) process.exitCode = 1;
       else console.log("MCP servers are in order.");
+      return;
+    }
+    case "status": {
+      const statuses = await checkStatus(ROOT);
+      let space = "";
+      for (const item of statuses) {
+        if (item.space !== space) {
+          space = item.space;
+          console.log(`\n${space}`);
+        }
+        console.log(`  ${item.name}  ${item.status}${item.error ? `  (${item.error})` : ""}`);
+      }
+      if (statuses.some((item) => item.status === "needs-auth")) {
+        console.log("\nSign in to a needs-auth server with: opai mcp login <name>");
+      }
+      return;
+    }
+    case "login": {
+      const [name] = positionals;
+      if (!name) throw new McpError("login <name>");
+      const login = await startLogin(ROOT, name, values.space);
+      if (!login.authUrl) throw new McpError(`${name} gave no page to sign in on`);
+      console.log(`Sign in to ${login.name} in the browser:\n  ${login.authUrl}`);
+      console.log("The sign-in serves Claude Code, Codex and every machine of the instance.");
+      if (process.platform === "darwin") execFile("open", [login.authUrl]);
+      for (;;) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        const state = loginState(login.space, login.name);
+        if (state?.state === "connected") {
+          console.log(`${login.name} is connected.`);
+          process.exit(0);
+        }
+        if (state?.state !== "waiting") throw new McpError(state?.error ?? "the sign-in failed");
+      }
+    }
+    case "logout": {
+      const [name] = positionals;
+      if (!name) throw new McpError("logout <name>");
+      signOut(ROOT, name);
+      console.log(`Opai is signed out of ${name}.`);
+      return;
+    }
+    case "refresh": {
+      for (const result of await refreshAll(ROOT)) {
+        if (result.error) process.exitCode = 1;
+        console.log(
+          `${result.name}  ${result.error ? `failed: ${result.error}` : result.renewed ? "renewed" : "still valid"}`,
+        );
+      }
+      return;
+    }
+    case "token": {
+      // Claude Code and Codex read the headers on stdout: nothing else goes there.
+      const [name] = positionals;
+      if (!name) throw new McpError("token <name>");
+      const token = await accessToken(ROOT, name);
+      process.stdout.write(
+        `${JSON.stringify(token ? { Authorization: `Bearer ${token}` } : {})}\n`,
+      );
       return;
     }
     default:

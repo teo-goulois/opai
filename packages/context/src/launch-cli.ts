@@ -1,12 +1,12 @@
 // What opai adds when it starts Claude Code or Codex in the current folder:
-// the space's skills (skills.ts), its MCP servers (mcp-servers.ts) and their
-// secrets (mcp-secrets.ts). It prints a shell script that opai evaluates:
+// the space's skills (skills.ts), its MCP servers (mcp-servers.ts), their
+// secrets (mcp-secrets.ts) and sign-ins (mcp-oauth.ts). It prints a shell script that opai evaluates:
 // warnings as `echo ... >&2`, `export NAME='value'` lines, then
 // `set -- <arguments> "$@"`.
 //
 //   launch-cli.ts claude|codex [-- <the tool's arguments>]
 
-import { launchSecrets } from "./mcp-secrets.ts";
+import { prepareLaunch } from "./mcp-oauth.ts";
 import { mcpLaunchArgs, sessionServers } from "./mcp-servers.ts";
 import { CLAUDE_COMMANDS, launchArgs } from "./skills.ts";
 import { ROOT } from "./spaces.ts";
@@ -24,10 +24,12 @@ if (tool !== "claude" && tool !== "codex") {
 const args = rest.filter((arg) => arg !== "--");
 const cwd = process.cwd();
 const session = tool === "codex" || !CLAUDE_COMMANDS.has(args[0] ?? "");
-const servers = session ? sessionServers(ROOT, cwd) : {};
 const warnings: string[] = [];
-const secrets = launchSecrets(ROOT, Object.values(servers), process.env, (message) =>
-  warnings.push(message),
+const { secrets, servers } = prepareLaunch(
+  ROOT,
+  session ? sessionServers(ROOT, cwd) : {},
+  process.env,
+  (message) => warnings.push(message),
 );
 const env = { ...process.env, ...secrets };
 const extra = [
