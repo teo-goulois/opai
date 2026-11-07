@@ -15,9 +15,11 @@ import {
   claudeServer,
   codexServer,
   findToolServers,
+  forgetToolServers,
   importServers,
   McpError,
   moveServer,
+  removeProjectServer,
   removeServer,
   type Server,
 } from "../mcp-servers.ts";
@@ -113,7 +115,6 @@ export const mcpRouter = {
         signIn: signIn && signIn.url === entry.server.url ? describeRecord(signIn) : undefined,
       };
     });
-    const declared = new Set(servers.map((entry) => entry.name));
     const known = Object.fromEntries([...names].map((name) => [name, "stored"]));
     return {
       servers,
@@ -123,7 +124,6 @@ export const mcpRouter = {
         where: found.where,
         server: found.server,
         secrets: Object.keys(found.secrets),
-        declared: declared.has(found.name),
       })),
       infisical: { configured: !!infisicalEnv(context.root), error },
       problems: checkServers(context.root, { ...process.env, ...known }),
@@ -160,6 +160,20 @@ export const mcpRouter = {
     .handler(({ context, input }) =>
       run(() => removeServer(context.root, input.name, input.space)),
     ),
+  /** Takes a server out of its project's .mcp.json. */
+  removeFromProject: o
+    .input(z.object({ name: Name, project: z.string().max(1024) }))
+    .handler(({ context, input }) =>
+      run(() => {
+        const entry = removeProjectServer(context.root, input.name, input.project);
+        forgetStatus();
+        return { name: entry.name, space: entry.space };
+      }),
+    ),
+  /** Takes servers out of the configs of Claude Code and Codex, wherever they are. */
+  forget: o
+    .input(z.object({ names: z.array(z.string().max(64)).min(1).max(100) }))
+    .handler(({ context, input }) => run(() => forgetToolServers(context.root, input.names))),
   move: o
     .input(z.object({ name: Name, from: Space, to: Space }))
     .handler(({ context, input }) =>

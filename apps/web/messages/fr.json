@@ -797,7 +797,7 @@
   "mcp_problems_hint": "Corrige les fichiers indiqués, ou renseigne les secrets manquants.",
   "mcp_infisical_off": "Les secrets MCP ne peuvent pas être lus dans Infisical : {reason}",
   "mcp_found_title": "Dans les configs de Claude Code et Codex",
-  "mcp_found_hint": "claude et codex lancés directement les utilisent. Importe-en un pour le donner aux sessions Opai ; ses tokens vont dans Infisical.",
+  "mcp_found_hint": "claude et codex lancés directement les utilisent. Importe-en un pour le donner aux sessions Opai ; ses tokens vont dans Infisical. Ou retire-le de ces configs.",
   "mcp_found_into": "Importer dans",
   "mcp_import": "Importer",
   "mcp_applies_next": "Un changement s’applique à la session suivante.",
@@ -818,7 +818,7 @@
   "mcp_sign_out": "Se déconnecter",
   "mcp_tool_only": "Connecté par Claude Code pour lui seul : Codex et les autres machines ne l’ont pas.",
   "mcp_connect_everywhere": "Connecter partout",
-  "mcp_project_hint": "Les serveurs de chacun viennent de son .mcp.json : seules les sessions de ce projet les ont, dans Claude Code et Codex. On les change dans ce fichier.",
+  "mcp_project_hint": "Les serveurs de chacun viennent de son .mcp.json : seules les sessions de ce projet les ont, dans Claude Code et Codex. On en retire un ici, ou on les change dans ce fichier.",
   "mcp_projects": "Projets de {space}",
   "mcp_filter_label": "Filtrer les serveurs",
   "mcp_filter_all": "Tous",
@@ -831,5 +831,11 @@
   "mcp_filter_ready": "Opérationnels",
   "mcp_filter_ready_hint": "Connectés partout, rien ne manque",
   "mcp_filter_none": "Aucun serveur ne correspond à ce filtre.",
-  "mcp_filter_clear": "Tout afficher"
+  "mcp_filter_clear": "Tout afficher",
+  "mcp_remove_from_project": "Retirer du .mcp.json",
+  "mcp_found_remove": "Retirer de ces configs",
+  "mcp_copies_title": "Déjà dans Opai",
+  "mcp_copies_hint": "Les sessions Opai reçoivent ces serveurs d’Opai. Ces copies ne servent qu’à claude et codex lancés hors d’Opai, comme leurs apps de bureau : retire-les pour n’avoir qu’une source.",
+  "mcp_copies_remove_all": "Retirer toutes les copies",
+  "mcp_copy_of": "Dans {where}"
 }

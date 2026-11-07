@@ -156,11 +156,14 @@ is installed, on `127.0.0.1:4748` otherwise. Its pages call the same oRPC proced
   from its badge). Add one by pasting what
   its docs give (`claude mcp add ...`, `codex mcp add ...`, JSON, `npx ...`,
   a URL): a preview shows what it becomes and which tokens go to Infisical.
-  Move or remove a server, or import one plain `claude` and `codex` have.
-  Each server shows whether Claude Code reaches it (connected, not signed
-  in, failed with its error). A remote one signs in from its Sign in button,
-  for every tool and machine; one signed in by Claude Code for itself offers
-  to sign in everywhere.
+  Move or remove a server (a project's one leaves its `.mcp.json`). Import
+  one plain `claude` and `codex` have, or take it out of their configs; the
+  copies of a server Opai already has can all go at once. Each server shows
+  whether Claude Code reaches it (connected, not signed in, failed with its
+  error), and filters keep those left to sign in, missing a secret, failing,
+  or ready. A remote one signs in from its Sign in button, for every tool
+  and machine; one signed in by Claude Code for itself offers to sign in
+  everywhere.
 - Config: what Claude Code and Codex read in `claude/` and `codex/`, and the
   instance's own `AGENTS.md` and `CLAUDE.md`, editable.
 - Sessions: each session Claude Code and Codex ran on the instance, with the
@@ -315,6 +318,7 @@ opai mcp move <name> <space>
 opai mcp remove <name> [--space s]
 opai mcp import                                       # the servers the tools keep themselves
 opai mcp import <name>... [--space s]                 # copy them into a space
+opai mcp forget <name>...                             # take them out of the tools' configs
 opai mcp secrets                                      # the secrets they name: stored or missing
 opai mcp secret set <NAME>                            # store one, typed or piped in
 opai mcp check

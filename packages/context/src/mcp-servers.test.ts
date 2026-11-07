@@ -10,6 +10,7 @@ import {
   checkServers,
   codexServer,
   findToolServers,
+  forgetToolServers,
   importServers,
   inlineToml,
   listProjectServers,
@@ -18,6 +19,7 @@ import {
   mcpLaunchArgs,
   moveServer,
   projectOf,
+  removeProjectServer,
   removeServer,
   sessionServers,
 } from "./mcp-servers.ts";
@@ -211,6 +213,54 @@ test("import copies a server from the tools' configs, its secrets left behind", 
   removeServer(root, "desk");
 });
 
+test("forget takes a server out of every tool config, the rest left as written", () => {
+  const home = join(base, "home-forget");
+  const claude = join(home, ".claude.json");
+  const codex = join(home, ".codex", "config.toml");
+  write(
+    claude,
+    JSON.stringify(
+      {
+        numStartups: 3,
+        mcpServers: { sentry: { url: "https://sentry/mcp" }, keep: { command: "keep" } },
+        projects: { [client]: { mcpServers: { sentry: { command: "old" } } } },
+      },
+      null,
+      2,
+    ),
+  );
+  const toml = [
+    "# my settings",
+    'model = "gpt"',
+    "",
+    "[mcp_servers.sentry]",
+    'url = "https://sentry/mcp"',
+    "",
+    "[mcp_servers.sentry.http_headers]",
+    'X-Team = "a"',
+    "",
+    "[mcp_servers.keep]",
+    'command = "keep"',
+    "startup_timeout_sec = 120",
+    "",
+  ].join("\n");
+  write(codex, toml);
+  assert.deepEqual(forgetToolServers(root, ["sentry"], home)[0]!.where.length, 3);
+  const data = JSON.parse(readFileSync(claude, "utf8"));
+  assert.deepEqual(data.mcpServers, { keep: { command: "keep" } });
+  assert.deepEqual(data.projects[client].mcpServers, {});
+  assert.equal(data.numStartups, 3);
+  assert.equal(
+    readFileSync(codex, "utf8"),
+    '# my settings\nmodel = "gpt"\n\n[mcp_servers.keep]\ncommand = "keep"\nstartup_timeout_sec = 120\n',
+  );
+  assert.throws(() => forgetToolServers(root, ["sentry"], home), /no server named sentry/);
+  // Written inline, it is left to the user rather than rewritten.
+  write(codex, '[mcp_servers]\ninline = { command = "x" }\n');
+  assert.throws(() => forgetToolServers(root, ["inline"], home), /remove it by hand/);
+  assert.equal(readFileSync(codex, "utf8"), '[mcp_servers]\ninline = { command = "x" }\n');
+});
+
 test("check reports broken files, unset variables and servers defined twice", () => {
   write(mcpFile(root, "billing"), "{ not json");
   addServer(
@@ -263,4 +313,15 @@ test("a project's .mcp.json serves the sessions of that project, over its space'
   assert.equal(servers.crm!.url, "https://crm.example/mcp");
   assert.equal(sessionServers(root, client, base).crm, undefined);
   assert.equal(sessionServers(root, client, base).docs!.url, "https://docs.example/mcp");
+
+  removeProjectServer(root, "crm", app);
+  assert.deepEqual(
+    Object.keys(JSON.parse(readFileSync(join(app, ".mcp.json"), "utf8")).mcpServers),
+    ["docs", "bad.name"],
+  );
+  assert.throws(() => removeProjectServer(root, "crm", app), /no server named crm/);
+  assert.throws(() => removeProjectServer(root, "docs", outside), /no project at/);
+  write(join(app, ".mcp.json"), JSON.stringify({ mcpServers: { docs: { url: "https://x" } } }));
+  removeProjectServer(root, "docs", app);
+  assert.ok(!existsSync(join(app, ".mcp.json")));
 });

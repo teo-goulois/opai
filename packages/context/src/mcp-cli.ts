@@ -7,6 +7,7 @@
 //   opai mcp remove <name> [--space s]
 //   opai mcp move <name> <space> [--from s]
 //   opai mcp import [<name>...] [--space s] [--replace]
+//   opai mcp forget <name>...
 //   opai mcp secrets
 //   opai mcp secret set <NAME>
 //   opai mcp check
@@ -26,6 +27,7 @@ import {
   addServer,
   checkServers,
   findToolServers,
+  forgetToolServers,
   importServers,
   listServers,
   McpError,
@@ -89,6 +91,7 @@ const USAGE = `usage: opai mcp <command>
   move <name> <space> [--from s]                move it to another space
   import [<name>...] [--space s] [--replace]    copy servers Claude Code or Codex keep
                                                 in their own configs; with no name, list them
+  forget <name>...                              take them out of those configs, everywhere
   secrets                                       the secrets the servers name, stored or missing
   secret set <NAME>                             store one in Infisical, typed or piped in
   check                                         report what is wrong
@@ -294,6 +297,13 @@ async function main(argv: string[]) {
           }
         }
         if (source.dropped.length > 0) console.log(`  left behind: ${source.dropped.join(", ")}`);
+      }
+      return;
+    }
+    case "forget": {
+      if (positionals.length === 0) throw new McpError("forget <name>...");
+      for (const { name, where } of forgetToolServers(ROOT, positionals)) {
+        console.log(`Took ${name} out of ${where.join(", ")}`);
       }
       return;
     }

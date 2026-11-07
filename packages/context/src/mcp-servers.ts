@@ -18,7 +18,16 @@
 // own configs, so plain claude and codex have it too.
 
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join, sep } from "node:path";
 
@@ -241,6 +250,25 @@ export function listProjectServers(root: string): Entry[] {
 }
 
 /**
+ * Takes a server out of a project's .mcp.json, which keeps its other settings;
+ * a file left with nothing goes.
+ */
+export function removeProjectServer(root: string, name: string, project: string): Entry {
+  if (!projectFolders(root).some((item) => item.folder === project)) {
+    throw new McpError(`no project at ${homePath(project)}`);
+  }
+  const file = join(project, ".mcp.json");
+  const data = JSON.parse(readFileSync(file, "utf8")) as { mcpServers?: Record<string, Server> };
+  const server = data.mcpServers?.[name];
+  if (!server) throw new McpError(`no server named ${name} in ${homePath(file)}`);
+  delete data.mcpServers![name];
+  if (Object.keys(data.mcpServers!).length === 0) delete data.mcpServers;
+  if (Object.keys(data).length === 0) rmSync(file);
+  else writeFileSync(file, `${JSON.stringify(data, null, 2)}\n`);
+  return { name, space: which(root, project)?.space.name ?? baseSpace(root), server, project };
+}
+
+/**
  * The servers of a session in `cwd`: the base space's, then its space's, then
  * its project's; on a name clash, the later wins.
  */
@@ -430,6 +458,8 @@ export type Found = {
   name: string;
   /** The file, and for a Claude server bound to a folder, the folder. */
   where: string;
+  /** Where to take it out: the tool's file, and for Claude a folder's servers. */
+  place: { tool: "claude" | "codex"; file: string; folder?: string };
   server: Server;
   /** Settings mcp.json has no place for, left behind on import. */
   dropped: string[];
@@ -483,7 +513,12 @@ export function portable(name: string, server: Server) {
   return { server: result, secrets };
 }
 
-function fromClaude(name: string, where: string, raw: Record<string, unknown>): Found {
+function fromClaude(
+  name: string,
+  where: string,
+  place: Found["place"],
+  raw: Record<string, unknown>,
+): Found {
   const server: Server = {};
   const dropped: string[] = [];
   for (const [key, value] of Object.entries(raw)) {
@@ -498,10 +533,15 @@ function fromClaude(name: string, where: string, raw: Record<string, unknown>): 
   if (server.env && Object.keys(server.env).length === 0) delete server.env;
   if (server.args && server.args.length === 0) delete server.args;
   const hidden = portable(name, server);
-  return { name, where, server: hidden.server, dropped, secrets: hidden.secrets };
+  return { name, where, place, server: hidden.server, dropped, secrets: hidden.secrets };
 }
 
-function fromCodex(name: string, where: string, raw: Record<string, unknown>): Found {
+function fromCodex(
+  name: string,
+  where: string,
+  place: Found["place"],
+  raw: Record<string, unknown>,
+): Found {
   const server: Server = {};
   const dropped: string[] = [];
   for (const [key, value] of Object.entries(raw)) {
@@ -538,7 +578,7 @@ function fromCodex(name: string, where: string, raw: Record<string, unknown>): F
     }
   }
   const hidden = portable(name, server);
-  return { name, where, server: hidden.server, dropped, secrets: hidden.secrets };
+  return { name, where, place, server: hidden.server, dropped, secrets: hidden.secrets };
 }
 
 function readJson(file: string): Record<string, unknown> | undefined {
@@ -552,15 +592,24 @@ function readJson(file: string): Record<string, unknown> | undefined {
 function claudeConfig(file: string): Found[] {
   const data = readJson(file);
   if (!data) return [];
-  const scopes: [string, unknown][] = [[homePath(file), data.mcpServers]];
+  const scopes: [string, string | undefined, unknown][] = [
+    [homePath(file), undefined, data.mcpServers],
+  ];
   for (const [folder, project] of Object.entries((data.projects as object) ?? {})) {
     const servers = (project as Record<string, unknown>).mcpServers;
-    scopes.push([`${homePath(file)} (${homePath(folder)})`, servers]);
+    scopes.push([`${homePath(file)} (${homePath(folder)})`, folder, servers]);
   }
-  return scopes.flatMap(([where, servers]) =>
+  return scopes.flatMap(([where, folder, servers]) =>
     Object.entries((servers as object) ?? {})
       .filter(([name]) => !RESERVED.has(name))
-      .map(([name, raw]) => fromClaude(name, where, raw as Record<string, unknown>)),
+      .map(([name, raw]) =>
+        fromClaude(
+          name,
+          where,
+          { tool: "claude", file, ...(folder && { folder }) },
+          raw as Record<string, unknown>,
+        ),
+      ),
   );
 }
 
@@ -573,7 +622,9 @@ function codexConfig(file: string): Found[] {
   }
   return Object.entries((data.mcp_servers as object) ?? {})
     .filter(([name]) => !RESERVED.has(name))
-    .map(([name, raw]) => fromCodex(name, homePath(file), raw as Record<string, unknown>));
+    .map(([name, raw]) =>
+      fromCodex(name, homePath(file), { tool: "codex", file }, raw as Record<string, unknown>),
+    );
 }
 
 /** The servers the instance's claude/ and codex/ keep in their own configs. */
@@ -594,6 +645,96 @@ export function findToolServers(root: string, home = homedir()): Found[] {
     ...claudeConfig(join(home, ".claude.json")),
     ...codexConfig(join(home, ".codex", "config.toml")),
   ];
+}
+
+/** Writes a file whole or not at all, with the mode it had. */
+function replaceFile(file: string, text: string) {
+  const temporary = `${file}.opai-${process.pid}`;
+  writeFileSync(temporary, text, { mode: statSync(file).mode & 0o777 });
+  renameSync(temporary, file);
+}
+
+/** Takes a server out of a Claude Code config, as Claude Code writes it. */
+function forgetClaude(file: string, folder: string | undefined, name: string) {
+  const text = readFileSync(file, "utf8");
+  const data = JSON.parse(text) as Record<string, unknown>;
+  const scope = (folder ? (data.projects as Record<string, unknown>)?.[folder] : data) as
+    | { mcpServers?: Record<string, unknown> }
+    | undefined;
+  if (!scope?.mcpServers || !(name in scope.mcpServers)) return;
+  delete scope.mcpServers[name];
+  replaceFile(file, `${JSON.stringify(data, null, 2)}${text.endsWith("\n") ? "\n" : ""}`);
+}
+
+/** The keys a TOML table header names: [a."b.c".d] gives a, b.c, d. */
+function headerKeys(line: string) {
+  if (!/^\s*\[[^[]/.test(line)) return undefined;
+  let value: unknown;
+  try {
+    value = parseToml(line);
+  } catch {
+    return undefined;
+  }
+  const keys: string[] = [];
+  while (value && typeof value === "object" && Object.keys(value).length === 1) {
+    const [key, next] = Object.entries(value)[0]!;
+    keys.push(key);
+    value = next;
+  }
+  return keys;
+}
+
+/**
+ * A Codex config without one server: its [mcp_servers.<name>] tables go, and
+ * every other line stays as written (`codex mcp remove` rewrites them all).
+ */
+export function withoutCodexServer(text: string, name: string) {
+  let skipping = false;
+  const kept = text.split("\n").filter((line) => {
+    if (/^\s*\[/.test(line)) {
+      const keys = headerKeys(line);
+      skipping = keys?.[0] === "mcp_servers" && keys[1] === name;
+    }
+    return !skipping;
+  });
+  const result = kept.join("\n").replace(/\n*$/, "\n");
+  // The rest must read the same: a server written another way is left to the user.
+  const before = parseToml(text) as Record<string, Record<string, unknown> | undefined>;
+  const after = parseToml(result) as Record<string, Record<string, unknown> | undefined>;
+  if (before.mcp_servers) delete before.mcp_servers[name];
+  for (const data of [before, after]) {
+    if (data.mcp_servers && Object.keys(data.mcp_servers).length === 0) delete data.mcp_servers;
+  }
+  if (JSON.stringify(before) !== JSON.stringify(after)) return undefined;
+  return result;
+}
+
+function forgetCodex(file: string, name: string) {
+  const result = withoutCodexServer(readFileSync(file, "utf8"), name);
+  if (!result) {
+    throw new McpError(
+      `${homePath(file)}: ${name} is not written as [mcp_servers.${name}]; remove it by hand`,
+    );
+  }
+  replaceFile(file, result);
+}
+
+/** Takes servers out of every Claude Code and Codex config that has them. */
+export function forgetToolServers(root: string, names: string[], home = homedir()) {
+  const found = findToolServers(root, home);
+  for (const name of names) {
+    if (!found.some((item) => item.name === name)) {
+      throw new McpError(`no server named ${name} in Claude Code's or Codex's configs`);
+    }
+  }
+  return names.map((name) => {
+    const places = found.filter((item) => item.name === name);
+    for (const { place } of places) {
+      if (place.tool === "claude") forgetClaude(place.file, place.folder, name);
+      else forgetCodex(place.file, name);
+    }
+    return { name, where: places.map((item) => item.where) };
+  });
 }
 
 /** Copy servers from the tools' configs into a space; the first found of each name. */

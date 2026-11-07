@@ -167,7 +167,6 @@ export function McpPage({
   onFilter: (filter: Filter | undefined) => void;
 }) {
   const spaces = orderSpaces(data.spaces.map((space) => ({ default: false, ...space })));
-  const notDeclared = data.found.filter((found) => !found.declared);
   const queryClient = useQueryClient();
   // Claude Code starts every server to answer, so the server keeps it 5 minutes.
   const status = useQuery({
@@ -293,7 +292,9 @@ export function McpPage({
         );
       })}
 
-      {notDeclared.length > 0 ? <FoundSection found={notDeclared} spaces={spaces} /> : null}
+      {data.found.length > 0 ? (
+        <FoundSection found={data.found} servers={data.servers} spaces={spaces} />
+      ) : null}
     </div>
   );
 }
@@ -588,6 +589,10 @@ function ServerItem({
   const toolOnly = isToolOnly(row, status);
   const move = useMutation(orpc.mcp.move.mutationOptions({ onSuccess: refresh }));
   const remove = useMutation(orpc.mcp.remove.mutationOptions({ onSuccess: refresh }));
+  const removeFromProject = useMutation(
+    orpc.mcp.removeFromProject.mutationOptions({ onSuccess: refresh }),
+  );
+  const removeError = errorText(remove.error ?? removeFromProject.error ?? move.error);
   return (
     <ItemRow className="items-start">
       <ItemMain>
@@ -624,6 +629,9 @@ function ServerItem({
         {connect.error ? (
           <ItemDescription className="text-error">{connect.error}</ItemDescription>
         ) : null}
+        {removeError ? (
+          <ItemDescription className="text-error">{removeError}</ItemDescription>
+        ) : null}
         {row.secrets.length > 0 ? (
           <span className="flex flex-wrap gap-xxs pt-xxs">
             {row.secrets.map((secret) =>
@@ -650,61 +658,70 @@ function ServerItem({
                 : m.mcp_connect()}
           </Button>
         ) : null}
-        {row.project && !row.canSignIn ? null : (
-          <Menu>
-            <MenuTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label={m.mcp_actions({ name: row.name })}
-                  isPending={move.isPending || remove.isPending || signOut.isPending}
-                />
-              }
-            >
-              <MoreIcon aria-hidden />
-            </MenuTrigger>
-            <MenuPopup>
-              {row.canSignIn ? (
-                <>
-                  <MenuItem onClick={connect.start}>
-                    {row.signIn ? m.mcp_connect_again() : m.mcp_connect()}
+        <Menu>
+          <MenuTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={m.mcp_actions({ name: row.name })}
+                isPending={
+                  move.isPending ||
+                  remove.isPending ||
+                  removeFromProject.isPending ||
+                  signOut.isPending
+                }
+              />
+            }
+          >
+            <MoreIcon aria-hidden />
+          </MenuTrigger>
+          <MenuPopup>
+            {row.canSignIn ? (
+              <>
+                <MenuItem onClick={connect.start}>
+                  {row.signIn ? m.mcp_connect_again() : m.mcp_connect()}
+                </MenuItem>
+                {row.signIn ? (
+                  <MenuItem onClick={() => signOut.mutate({ name: row.name })}>
+                    {m.mcp_sign_out()}
                   </MenuItem>
-                  {row.signIn ? (
-                    <MenuItem onClick={() => signOut.mutate({ name: row.name })}>
-                      {m.mcp_sign_out()}
+                ) : null}
+                <MenuSeparator />
+              </>
+            ) : null}
+            {row.project ? (
+              <MenuItem
+                variant="danger"
+                onClick={() => removeFromProject.mutate({ name: row.name, project: row.project! })}
+              >
+                {m.mcp_remove_from_project()}
+              </MenuItem>
+            ) : (
+              <>
+                {spaces
+                  .filter((space) => space.name !== row.space)
+                  .map((space) => (
+                    <MenuItem
+                      key={space.name}
+                      onClick={() =>
+                        move.mutate({ name: row.name, from: row.space, to: space.name })
+                      }
+                    >
+                      {m.mcp_move_to({ space: space.name })}
                     </MenuItem>
-                  ) : null}
-                  {row.project ? null : <MenuSeparator />}
-                </>
-              ) : null}
-              {/* A project's server moves or goes in its .mcp.json, in the project. */}
-              {row.project ? null : (
-                <>
-                  {spaces
-                    .filter((space) => space.name !== row.space)
-                    .map((space) => (
-                      <MenuItem
-                        key={space.name}
-                        onClick={() =>
-                          move.mutate({ name: row.name, from: row.space, to: space.name })
-                        }
-                      >
-                        {m.mcp_move_to({ space: space.name })}
-                      </MenuItem>
-                    ))}
-                  <MenuSeparator />
-                  <MenuItem
-                    variant="danger"
-                    onClick={() => remove.mutate({ name: row.name, space: row.space })}
-                  >
-                    {m.mcp_remove()}
-                  </MenuItem>
-                </>
-              )}
-            </MenuPopup>
-          </Menu>
-        )}
+                  ))}
+                <MenuSeparator />
+                <MenuItem
+                  variant="danger"
+                  onClick={() => remove.mutate({ name: row.name, space: row.space })}
+                >
+                  {m.mcp_remove()}
+                </MenuItem>
+              </>
+            )}
+          </MenuPopup>
+        </Menu>
       </ItemEnd>
     </ItemRow>
   );
@@ -916,52 +933,160 @@ function SecretDialog({ name }: { name: string }) {
   );
 }
 
-/** Servers plain claude and codex have, that Opai sessions don't. */
-function FoundSection({ found, spaces }: { found: McpData["found"]; spaces: SpaceRef[] }) {
+type Found = McpData["found"][number];
+
+/** A server of the tools' configs, by name: every file that has it. */
+function foundByName(found: Found[]) {
+  const groups = new Map<string, { first: Found; where: string[] }>();
+  for (const item of found) {
+    const group = groups.get(item.name);
+    if (group) group.where.push(item.where);
+    else groups.set(item.name, { first: item, where: [item.where] });
+  }
+  return [...groups.values()];
+}
+
+/**
+ * Servers that plain claude and codex keep in their own configs: to import
+ * into a space, or to take out, so that Opai stays their one source.
+ */
+function FoundSection({
+  found,
+  servers,
+  spaces,
+}: {
+  found: Found[];
+  servers: ServerRow[];
+  spaces: SpaceRef[];
+}) {
   const [space, setSpace] = useState(spaces.find((item) => item.base)?.name ?? "global");
   const refresh = useRefresh();
   const importOne = useMutation(orpc.mcp.import.mutationOptions({ onSuccess: refresh }));
-  // The same server is often in several files: the first one is what import takes.
-  const unique = found.filter(
-    (item, index) => found.findIndex((other) => other.name === item.name) === index,
+  const forget = useMutation(orpc.mcp.forget.mutationOptions({ onSuccess: refresh }));
+  const groups = foundByName(found);
+  // Where Opai has a server of that name: the copies in the tools' configs are left over.
+  const inOpai = (name: string) => {
+    const row = servers.find((item) => item.name === name);
+    return row && (row.projectName ?? row.space);
+  };
+  const fresh = groups.filter((group) => !inOpai(group.first.name));
+  const copies = groups.filter((group) => inOpai(group.first.name));
+  const error = errorText(importOne.error ?? forget.error);
+  const forgetting = (name: string) => forget.isPending && !!forget.variables?.names.includes(name);
+  const places = (group: { where: string[] }) => (
+    <ItemDescription className="line-clamp-2">{group.where.join(" · ")}</ItemDescription>
   );
   return (
     <PageSection aria-labelledby="mcp-found">
-      <PageSectionTitle id="mcp-found" count={unique.length}>
+      <PageSectionTitle id="mcp-found" count={groups.length}>
         {m.mcp_found_title()}
       </PageSectionTitle>
-      <Hint>{m.mcp_found_hint()}</Hint>
-      <div className="flex flex-wrap items-center gap-xs">
-        <span className="font-ui text-s text-neutral-8">{m.mcp_found_into()}</span>
-        <SpacePicker spaces={spaces} value={space} onChange={setSpace} label={m.mcp_found_into()} />
-      </div>
-      {errorText(importOne.error) ? (
-        <p className="font-ui text-s text-error">{errorText(importOne.error)}</p>
+      {error ? <p className="font-ui text-s text-error">{error}</p> : null}
+
+      {fresh.length > 0 ? (
+        <>
+          <Hint>{m.mcp_found_hint()}</Hint>
+          <div className="flex flex-wrap items-center gap-xs">
+            <span className="font-ui text-s text-neutral-8">{m.mcp_found_into()}</span>
+            <SpacePicker
+              spaces={spaces}
+              value={space}
+              onChange={setSpace}
+              label={m.mcp_found_into()}
+            />
+          </div>
+          <ItemList>
+            {fresh.map((group) => (
+              <li key={group.first.name}>
+                <ItemRow className="items-start">
+                  <ItemMain>
+                    <ItemTitle>{group.first.name}</ItemTitle>
+                    <ItemDescription className="line-clamp-1 font-mono">
+                      {target(group.first.server)}
+                    </ItemDescription>
+                    {places(group)}
+                  </ItemMain>
+                  <ItemEnd>
+                    <Button
+                      variant="outline"
+                      isPending={
+                        importOne.isPending && importOne.variables?.names[0] === group.first.name
+                      }
+                      onClick={() => importOne.mutate({ names: [group.first.name], space })}
+                    >
+                      {m.mcp_import()}
+                    </Button>
+                    <Menu>
+                      <MenuTrigger
+                        render={
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={m.mcp_actions({ name: group.first.name })}
+                            isPending={forgetting(group.first.name)}
+                          />
+                        }
+                      >
+                        <MoreIcon aria-hidden />
+                      </MenuTrigger>
+                      <MenuPopup>
+                        <MenuItem
+                          variant="danger"
+                          onClick={() => forget.mutate({ names: [group.first.name] })}
+                        >
+                          {m.mcp_found_remove()}
+                        </MenuItem>
+                      </MenuPopup>
+                    </Menu>
+                  </ItemEnd>
+                </ItemRow>
+              </li>
+            ))}
+          </ItemList>
+        </>
       ) : null}
-      <ItemList>
-        {unique.map((item) => (
-          <li key={`${item.name}-${item.where}`}>
-            <ItemRow className="items-start">
-              <ItemMain>
-                <ItemTitle>{item.name}</ItemTitle>
-                <ItemDescription className="line-clamp-1 font-mono">
-                  {target(item.server)}
-                </ItemDescription>
-                <ItemDescription className="line-clamp-1">{item.where}</ItemDescription>
-              </ItemMain>
-              <ItemEnd>
-                <Button
-                  variant="outline"
-                  isPending={importOne.isPending && importOne.variables?.names[0] === item.name}
-                  onClick={() => importOne.mutate({ names: [item.name], space })}
-                >
-                  {m.mcp_import()}
-                </Button>
-              </ItemEnd>
-            </ItemRow>
-          </li>
-        ))}
-      </ItemList>
+
+      {copies.length > 0 ? (
+        <div className="flex flex-col gap-xs">
+          <div className="flex flex-wrap items-center justify-between gap-s">
+            <h3 className="font-ui text-m font-medium text-neutral-8">{m.mcp_copies_title()}</h3>
+            <Button
+              variant="outline"
+              isPending={forget.isPending && (forget.variables?.names.length ?? 0) > 1}
+              onClick={() => forget.mutate({ names: copies.map((group) => group.first.name) })}
+            >
+              {m.mcp_copies_remove_all()}
+            </Button>
+          </div>
+          <Hint>{m.mcp_copies_hint()}</Hint>
+          <ItemList>
+            {copies.map((group) => (
+              <li key={group.first.name}>
+                <ItemRow className="items-start">
+                  <ItemMain>
+                    <ItemTitle>
+                      {group.first.name}
+                      <Badge variant="neutral">
+                        {m.mcp_copy_of({ where: inOpai(group.first.name)! })}
+                      </Badge>
+                    </ItemTitle>
+                    {places(group)}
+                  </ItemMain>
+                  <ItemEnd>
+                    <Button
+                      variant="ghost"
+                      isPending={forgetting(group.first.name)}
+                      onClick={() => forget.mutate({ names: [group.first.name] })}
+                    >
+                      {m.mcp_found_remove()}
+                    </Button>
+                  </ItemEnd>
+                </ItemRow>
+              </li>
+            ))}
+          </ItemList>
+        </div>
+      ) : null}
     </PageSection>
   );
 }

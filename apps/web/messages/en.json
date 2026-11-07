@@ -797,7 +797,7 @@
   "mcp_problems_hint": "Fix the files named here, or store the missing secrets.",
   "mcp_infisical_off": "The MCP secrets can't be read from Infisical: {reason}",
   "mcp_found_title": "In Claude Code's and Codex's own configs",
-  "mcp_found_hint": "Plain claude and codex use these. Import one to give it to Opai sessions; its tokens go to Infisical.",
+  "mcp_found_hint": "Plain claude and codex use these. Import one to give it to Opai sessions; its tokens go to Infisical. Or remove it from these configs.",
   "mcp_found_into": "Import into",
   "mcp_import": "Import",
   "mcp_applies_next": "Changes apply from the next session.",
@@ -818,7 +818,7 @@
   "mcp_sign_out": "Sign out",
   "mcp_tool_only": "Signed in by Claude Code for itself: Codex and the other machines don't have it.",
   "mcp_connect_everywhere": "Sign in everywhere",
-  "mcp_project_hint": "Each one's servers come from its .mcp.json: only that project's sessions have them, in Claude Code and Codex. Change them in that file.",
+  "mcp_project_hint": "Each one's servers come from its .mcp.json: only that project's sessions have them, in Claude Code and Codex. Remove one here, or change them in that file.",
   "mcp_projects": "Projects of {space}",
   "mcp_filter_label": "Filter servers",
   "mcp_filter_all": "All",
@@ -831,5 +831,11 @@
   "mcp_filter_ready": "Ready",
   "mcp_filter_ready_hint": "Connected everywhere, nothing missing",
   "mcp_filter_none": "No server matches this filter.",
-  "mcp_filter_clear": "Show all"
+  "mcp_filter_clear": "Show all",
+  "mcp_remove_from_project": "Remove from .mcp.json",
+  "mcp_found_remove": "Remove from these configs",
+  "mcp_copies_title": "Already in Opai",
+  "mcp_copies_hint": "Opai sessions get these servers from Opai. These copies only serve claude and codex launched outside Opai, such as their desktop apps: remove them to keep one source.",
+  "mcp_copies_remove_all": "Remove every copy",
+  "mcp_copy_of": "In {where}"
 }
