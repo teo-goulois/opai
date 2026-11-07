@@ -1,5 +1,5 @@
 import type { AppRouterClient } from "@opai/context";
-import { Badge } from "@opai/ui/components/ui/badge";
+import { Badge, badgeVariants } from "@opai/ui/components/ui/badge";
 import { Button } from "@opai/ui/components/ui/button";
 import {
   Collapsible,
@@ -593,6 +593,11 @@ function ServerItem({
     orpc.mcp.removeFromProject.mutationOptions({ onSuccess: refresh }),
   );
   const removeError = errorText(remove.error ?? removeFromProject.error ?? move.error);
+  // The secret whose field is open: a missing one to set, or a stored one to replace.
+  const [secret, setSecret] = useState<string>();
+  const missing = row.secrets.filter((item) => item.state === "missing");
+  const signInButton =
+    row.canSignIn && (status?.status === "needs-auth" || toolOnly || connect.waiting);
   return (
     <ItemRow className="items-start">
       <ItemMain>
@@ -634,14 +639,25 @@ function ServerItem({
         ) : null}
         {row.secrets.length > 0 ? (
           <span className="flex flex-wrap gap-xxs pt-xxs">
-            {row.secrets.map((secret) =>
-              secret.state === "missing" ? (
-                <SecretDialog key={secret.name} name={secret.name} />
+            {row.secrets.map((item) =>
+              item.state === "missing" ? (
+                <button
+                  key={item.name}
+                  type="button"
+                  className={badgeVariants({
+                    variant: "warning",
+                    className:
+                      "cursor-pointer underline-offset-2 outline-none hover:underline focus-visible:focus-ring",
+                  })}
+                  onClick={() => setSecret(item.name)}
+                >
+                  {m.mcp_secret_missing({ name: item.name })}
+                </button>
               ) : (
-                <Badge key={secret.name} variant="success">
-                  {secret.state === "infisical"
-                    ? m.mcp_secret_stored({ name: secret.name })
-                    : m.mcp_secret_env({ name: secret.name })}
+                <Badge key={item.name} variant="success">
+                  {item.state === "infisical"
+                    ? m.mcp_secret_stored({ name: item.name })
+                    : m.mcp_secret_env({ name: item.name })}
                 </Badge>
               ),
             )}
@@ -649,7 +665,12 @@ function ServerItem({
         ) : null}
       </ItemMain>
       <ItemEnd>
-        {row.canSignIn && (status?.status === "needs-auth" || toolOnly || connect.waiting) ? (
+        {missing.length > 0 && !signInButton ? (
+          <Button variant="outline" onClick={() => setSecret(missing[0]!.name)}>
+            {m.mcp_secret_set({ name: missing[0]!.name })}
+          </Button>
+        ) : null}
+        {signInButton ? (
           <Button variant="outline" isPending={connect.waiting} onClick={connect.start}>
             {connect.waiting
               ? m.mcp_connect_waiting()
@@ -677,6 +698,18 @@ function ServerItem({
             <MoreIcon aria-hidden />
           </MenuTrigger>
           <MenuPopup>
+            {row.secrets.length > 0 ? (
+              <>
+                {row.secrets.map((item) => (
+                  <MenuItem key={item.name} onClick={() => setSecret(item.name)}>
+                    {item.state === "infisical"
+                      ? m.mcp_secret_replace({ name: item.name })
+                      : m.mcp_secret_set({ name: item.name })}
+                  </MenuItem>
+                ))}
+                <MenuSeparator />
+              </>
+            ) : null}
             {row.canSignIn ? (
               <>
                 <MenuItem onClick={connect.start}>
@@ -723,6 +756,7 @@ function ServerItem({
           </MenuPopup>
         </Menu>
       </ItemEnd>
+      {secret ? <SecretDialog name={secret} onClose={() => setSecret(undefined)} /> : null}
     </ItemRow>
   );
 }
@@ -881,25 +915,25 @@ function AddDialog({ spaces }: { spaces: SpaceRef[] }) {
   );
 }
 
-/** A missing secret: a badge that opens a field to store it in Infisical. */
-function SecretDialog({ name }: { name: string }) {
-  const [open, setOpen] = useState(false);
+/** A field to store a secret in Infisical, a new one or in place of the stored one. */
+function SecretDialog({ name, onClose }: { name: string; onClose: () => void }) {
   const [value, setValue] = useState("");
   const refresh = useRefresh();
   const save = useMutation(
     orpc.mcp.setSecret.mutationOptions({
       onSuccess: () => {
         refresh();
-        setOpen(false);
-        setValue("");
+        onClose();
       },
     }),
   );
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Badge variant="warning" render={<button type="button" />} />}>
-        {m.mcp_secret_missing({ name })}
-      </DialogTrigger>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <DialogPopup closeLabel={m.close()} className="w-[min(480px,calc(100vw-var(--space-xl)))]">
         <DialogTitle>{m.mcp_secret_title({ name })}</DialogTitle>
         <DialogDescription>{m.mcp_secret_description()}</DialogDescription>

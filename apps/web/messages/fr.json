@@ -837,5 +837,7 @@
   "mcp_copies_title": "Déjà dans Opai",
   "mcp_copies_hint": "Les sessions Opai reçoivent ces serveurs d’Opai. Ces copies ne servent qu’à claude et codex lancés hors d’Opai, comme leurs apps de bureau : retire-les pour n’avoir qu’une source.",
   "mcp_copies_remove_all": "Retirer toutes les copies",
-  "mcp_copy_of": "Dans {where}"
+  "mcp_copy_of": "Dans {where}",
+  "mcp_secret_set": "Renseigner {name}",
+  "mcp_secret_replace": "Remplacer {name}"
 }
