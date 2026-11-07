@@ -13,10 +13,13 @@
 //   opai mcp status
 //   opai mcp login <name> [--space s]
 //   opai mcp logout <name>
-//   opai mcp refresh
+//   opai mcp refresh [--install | --uninstall]
 //   opai mcp token <name>          (the headers helper of a signed-in server)
 
-import { execFile } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { parseArgs } from "node:util";
 
 import {
@@ -93,8 +96,8 @@ const USAGE = `usage: opai mcp <command>
   login <name> [--space s]                      sign in to a remote server, in the browser, for
                                                 Claude Code, Codex and every machine (Infisical)
   logout <name>                                 forget that sign-in
-  refresh                                       renew the tokens about to expire: run it on
-                                                one machine, every few minutes
+  refresh [--install | --uninstall]             renew the tokens about to expire; --install runs
+                                                it every 10 minutes with launchd, on one machine
 
 Servers of global are in every session; those of another space only in its
 sessions. opai claude and opai codex load them at launch, so a change applies
@@ -118,6 +121,79 @@ function pairs(items: string[] | undefined, separator: string, label: string) {
   return Object.keys(result).length > 0 ? result : undefined;
 }
 
+const REFRESH_LABEL = "dev.opai.mcp-refresh";
+
+function notify(message: string) {
+  if (process.platform !== "darwin") return;
+  try {
+    execFileSync("osascript", [
+      "-e",
+      `display notification ${JSON.stringify(message)} with title "Opai MCP"`,
+    ]);
+  } catch {}
+}
+
+const xml = (text: string) => text.replace(/[&<>]/g, (char) => `&#${char.charCodeAt(0)};`);
+
+/** One machine renews the tokens: a launchd agent, every 10 minutes and at load. */
+function scheduleRefresh(install: boolean) {
+  if (process.platform !== "darwin") throw new McpError("--install uses launchd: macOS only");
+  const home = homedir();
+  const plist = join(home, "Library", "LaunchAgents", `${REFRESH_LABEL}.plist`);
+  const log = join(home, "Library", "Logs", "opai", "mcp-refresh.log");
+  const domain = `gui/${process.getuid!()}`;
+  try {
+    execFileSync("launchctl", ["bootout", `${domain}/${REFRESH_LABEL}`], { stdio: "ignore" });
+  } catch {}
+  if (!install) {
+    rmSync(plist, { force: true });
+    console.log("This machine no longer renews the MCP tokens.");
+    return;
+  }
+  const node = process.env.OPAI_NODE || process.execPath;
+  const args = [
+    "/usr/bin/env",
+    "-i",
+    `HOME=${home}`,
+    "PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+    `OPAI_HOME=${ROOT}`,
+    `OPAI_NODE=${node}`,
+    node,
+    join(import.meta.dirname, "mcp-cli.ts"),
+    "refresh",
+  ];
+  mkdirSync(join(home, "Library", "Logs", "opai"), { recursive: true });
+  mkdirSync(join(home, "Library", "LaunchAgents"), { recursive: true });
+  writeFileSync(
+    plist,
+    `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>${REFRESH_LABEL}</string>
+  <key>ProgramArguments</key>
+  <array>
+${args.map((arg) => `    <string>${xml(arg)}</string>`).join("\n")}
+  </array>
+  <key>StartInterval</key>
+  <integer>600</integer>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>ProcessType</key>
+  <string>Background</string>
+  <key>StandardOutPath</key>
+  <string>${xml(log)}</string>
+  <key>StandardErrorPath</key>
+  <string>${xml(log)}</string>
+</dict>
+</plist>
+`,
+  );
+  execFileSync("launchctl", ["bootstrap", domain, plist]);
+  console.log(`This machine renews the MCP tokens every 10 minutes. Log: ${homePath(log)}`);
+}
+
 async function main(argv: string[]) {
   const [command, ...rest] = argv;
   const { values, positionals } = parseArgs({
@@ -131,6 +207,8 @@ async function main(argv: string[]) {
       type: { type: "string" },
       name: { type: "string" },
       replace: { type: "boolean" },
+      install: { type: "boolean" },
+      uninstall: { type: "boolean" },
     },
   });
 
@@ -298,11 +376,23 @@ async function main(argv: string[]) {
       return;
     }
     case "refresh": {
+      if (values.install || values.uninstall) return scheduleRefresh(!!values.install);
+      // Under launchd, the log keeps only what changed.
+      const watched = process.stdout.isTTY;
+      const failed: string[] = [];
       for (const result of await refreshAll(ROOT)) {
-        if (result.error) process.exitCode = 1;
-        console.log(
-          `${result.name}  ${result.error ? `failed: ${result.error}` : result.renewed ? "renewed" : "still valid"}`,
-        );
+        if (result.error) failed.push(result.name);
+        if (!watched && !result.renewed && !result.error) continue;
+        const state = result.error
+          ? `failed: ${result.error}`
+          : result.renewed
+            ? "renewed"
+            : "still valid";
+        console.log(`${watched ? "" : `${new Date().toISOString()} `}${result.name}  ${state}`);
+      }
+      if (failed.length > 0) {
+        process.exitCode = 1;
+        if (!watched) notify(`Sign in again to ${failed.join(", ")} (opai mcp login)`);
       }
       return;
     }
