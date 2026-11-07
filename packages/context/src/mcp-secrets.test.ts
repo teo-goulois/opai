@@ -110,6 +110,7 @@ test("without an Infisical project or with a failing CLI, a launch goes on", () 
   writeFileSync(join(bin, "infisical"), "#!/bin/sh\necho 'Error: not logged in' >&2\nexit 1\n");
   const warnings: string[] = [];
   const result = prepareLaunch(root, servers, {}, (warning) => warnings.push(warning));
-  assert.deepEqual(result, { secrets: {}, servers });
+  // The sign-ins are unknown, not none: the tools' configs are left as they are.
+  assert.deepEqual(result, { secrets: {}, servers, signedIn: undefined });
   assert.match(warnings[0]!, /not logged in/);
 });

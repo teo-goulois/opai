@@ -8,6 +8,7 @@
 //   opai mcp move <name> <space> [--from s]
 //   opai mcp import [<name>...] [--space s] [--replace]
 //   opai mcp forget <name>...
+//   opai mcp sync
 //   opai mcp secrets
 //   opai mcp secret set <NAME>
 //   opai mcp check
@@ -16,19 +17,24 @@
 //   opai mcp logout <name>
 //   opai mcp refresh [--install | --uninstall]
 //   opai mcp token <name>          (the headers helper of a signed-in server)
+//   opai mcp headers <name>        (the headers helper of global's servers, outside Opai)
+//   opai mcp run <name> [--codex]  (starts a server of global with its secrets, outside Opai)
 
-import { execFile, execFileSync } from "node:child_process";
+import { execFile, execFileSync, spawn } from "node:child_process";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { parseArgs } from "node:util";
 
 import {
   addServer,
   checkServers,
+  expand,
   findToolServers,
   forgetToolServers,
+  globalServers,
   importServers,
+  listProjectServers,
   listServers,
   McpError,
   mcpFile,
@@ -37,9 +43,10 @@ import {
   type Server,
 } from "./mcp-servers.ts";
 import { parsePaste } from "./mcp-paste.ts";
-import { readSecrets, storeSecrets, variables } from "./mcp-secrets.ts";
+import { infisicalEnv, readSecrets, storeSecrets, variables } from "./mcp-secrets.ts";
 import { accessToken, loginState, refreshAll, signOut, startLogin } from "./mcp-oauth.ts";
 import { checkStatus } from "./mcp-status.ts";
+import { syncQuietly, syncTools } from "./mcp-sync.ts";
 import { homePath, ROOT } from "./spaces.ts";
 
 /** The names stored in Infisical, or undefined when it can't be read. */
@@ -92,6 +99,10 @@ const USAGE = `usage: opai mcp <command>
   import [<name>...] [--space s] [--replace]    copy servers Claude Code or Codex keep
                                                 in their own configs; with no name, list them
   forget <name>...                              take them out of those configs, everywhere
+  sync                                          write global's servers into those configs, for
+                                                the apps that start claude and codex outside
+                                                Opai; each change of global and each launch
+                                                does it too
   secrets                                       the secrets the servers name, stored or missing
   secret set <NAME>                             store one in Infisical, typed or piped in
   check                                         report what is wrong
@@ -106,6 +117,28 @@ Servers of global are in every session; those of another space only in its
 sessions. opai claude and opai codex load them at launch, so a change applies
 from the next session. Keep secrets out: write \${NAME}, and store NAME in
 Infisical (folder /mcp) or set it in the environment, as "API_KEY": "\${API_KEY}" or "Authorization": "Bearer \${TOKEN}".`;
+
+/** The environment with the secrets a server names and lacks, read from Infisical. */
+function withSecrets(server: Server): NodeJS.ProcessEnv {
+  const missing = variables(server).filter((name) => !process.env[name]);
+  if (missing.length === 0 || !infisicalEnv(ROOT)) return { ...process.env };
+  const stored = readSecrets(ROOT);
+  return {
+    ...process.env,
+    ...Object.fromEntries(
+      missing.filter((name) => name in stored).map((name) => [name, stored[name]!]),
+    ),
+  };
+}
+
+/** After a change of global: the apps outside Opai get it too. */
+function syncAfter() {
+  const result = syncQuietly(ROOT);
+  if (result.error) console.log(`  the tools' configs were not updated: ${result.error}`);
+  else if (result.changed.length > 0) {
+    console.log(`  also in ${result.changed.map(homePath).join(", ")}, for apps outside Opai`);
+  }
+}
 
 function describe(server: Server) {
   const target = server.url ?? [server.command, ...(server.args ?? [])].join(" ");
@@ -212,6 +245,7 @@ async function main(argv: string[]) {
       replace: { type: "boolean" },
       install: { type: "boolean" },
       uninstall: { type: "boolean" },
+      codex: { type: "boolean" },
     },
   });
 
@@ -226,6 +260,13 @@ async function main(argv: string[]) {
         console.log(`  ${entry.name}  ${describe(entry.server)}`);
       }
       if (!space) console.log("No server declared. Add one with: opai mcp add");
+      for (const entry of listProjectServers(ROOT)) {
+        if (entry.project !== space) {
+          space = entry.project!;
+          console.log(`\n${entry.space}: ${homePath(space)}/.mcp.json`);
+        }
+        console.log(`  ${entry.name}  ${describe(entry.server)}`);
+      }
       return;
     }
     case "add": {
@@ -242,6 +283,7 @@ async function main(argv: string[]) {
       if (headers) server.headers = headers;
       const entry = addServer(ROOT, name, server, values);
       console.log(`Added ${entry.name} to ${entry.space}: ${homePath(mcpFile(ROOT, entry.space))}`);
+      syncAfter();
       return;
     }
     case "paste": {
@@ -259,6 +301,7 @@ async function main(argv: string[]) {
         console.log(`Added ${entry.name} to ${entry.space}: ${describe(entry.server)}`);
         for (const note of item.notes) console.log(`  left behind: ${note}`);
       }
+      syncAfter();
       return;
     }
     case "remove": {
@@ -266,6 +309,7 @@ async function main(argv: string[]) {
       if (!name) throw new McpError("remove <name>");
       const entry = removeServer(ROOT, name, values.space);
       console.log(`Removed ${entry.name} from ${entry.space}`);
+      syncAfter();
       return;
     }
     case "move": {
@@ -273,11 +317,14 @@ async function main(argv: string[]) {
       if (!name || !space) throw new McpError("move <name> <space>");
       const entry = moveServer(ROOT, name, space, values.from);
       console.log(`Moved ${entry.name} to ${entry.space}`);
+      syncAfter();
       return;
     }
     case "import": {
       if (positionals.length === 0) {
-        const declared = new Set(listServers(ROOT).map((entry) => entry.name));
+        const declared = new Set(
+          [...listServers(ROOT), ...listProjectServers(ROOT)].map((entry) => entry.name),
+        );
         for (const found of findToolServers(ROOT)) {
           const mark = declared.has(found.name) ? "  (declared)" : "";
           console.log(`${found.name}  ${describe(found.server)}${mark}\n    in ${found.where}`);
@@ -298,6 +345,7 @@ async function main(argv: string[]) {
         }
         if (source.dropped.length > 0) console.log(`  left behind: ${source.dropped.join(", ")}`);
       }
+      syncAfter();
       return;
     }
     case "forget": {
@@ -305,6 +353,70 @@ async function main(argv: string[]) {
       for (const { name, where } of forgetToolServers(ROOT, positionals)) {
         console.log(`Took ${name} out of ${where.join(", ")}`);
       }
+      return;
+    }
+    case "sync": {
+      const { changed, skipped } = syncTools(ROOT);
+      console.log(
+        changed.length > 0
+          ? `Wrote the servers of global into ${changed.map(homePath).join(", ")}`
+          : "The tools' configs already have the servers of global.",
+      );
+      for (const line of skipped) console.log(`  left out: ${line}`);
+      return;
+    }
+    case "headers": {
+      // Claude Code and Codex read the headers on stdout: nothing else goes there.
+      const [name] = positionals;
+      const server = name ? globalServers(ROOT)[name] : undefined;
+      if (!name || !server?.url) throw new McpError("headers <name of a remote server of global>");
+      const env = withSecrets(server);
+      const headers = Object.fromEntries(
+        Object.entries(server.headers ?? {}).map(([key, value]) => [key, expand(value, env)]),
+      );
+      const token = await accessToken(ROOT, name);
+      if (token) headers.Authorization = `Bearer ${token}`;
+      process.stdout.write(`${JSON.stringify(headers)}\n`);
+      return;
+    }
+    case "run": {
+      // The server's own protocol goes on stdout: nothing else may.
+      const [name] = positionals;
+      const declared = name ? globalServers(ROOT)[name] : undefined;
+      if (!name || !declared?.command) {
+        throw new McpError("run <name of a local server of global> [--codex]");
+      }
+      const { codex, ...own } = declared;
+      const server = values.codex ? { ...own, ...codex } : own;
+      const env = withSecrets(server);
+      const child = spawn(
+        expand(server.command!, env),
+        (server.args ?? []).map((arg) => expand(arg, env)),
+        {
+          stdio: "inherit",
+          cwd: server.cwd ? expand(server.cwd, env) : undefined,
+          env: {
+            ...env,
+            ...Object.fromEntries(
+              Object.entries(server.env ?? {}).map(([key, value]) => [key, expand(value, env)]),
+            ),
+          },
+        },
+      );
+      for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"] as const) {
+        process.on(signal, () => child.kill(signal));
+      }
+      await new Promise<void>((resolve) => {
+        child.on("error", (error) => {
+          console.error(`opai mcp run: ${error.message}`);
+          process.exitCode = 1;
+          resolve();
+        });
+        child.on("exit", (code, signal) => {
+          process.exitCode = code ?? (signal ? 1 : 0);
+          resolve();
+        });
+      });
       return;
     }
     case "secrets": {
@@ -347,11 +459,12 @@ async function main(argv: string[]) {
     }
     case "status": {
       const statuses = await checkStatus(ROOT);
-      let space = "";
+      let group = "";
       for (const item of statuses) {
-        if (item.space !== space) {
-          space = item.space;
-          console.log(`\n${space}`);
+        const where = item.project ? `${item.space}: ${homePath(item.project)}` : item.space;
+        if (where !== group) {
+          group = where;
+          console.log(`\n${group}`);
         }
         console.log(`  ${item.name}  ${item.status}${item.error ? `  (${item.error})` : ""}`);
       }
@@ -383,6 +496,7 @@ async function main(argv: string[]) {
       if (!name) throw new McpError("logout <name>");
       signOut(ROOT, name);
       console.log(`Opai is signed out of ${name}.`);
+      syncAfter();
       return;
     }
     case "refresh": {
@@ -421,6 +535,20 @@ async function main(argv: string[]) {
       if (command && command !== "help") process.exitCode = 2;
   }
 }
+
+// Apps start their servers and helpers with a short PATH: add where infisical,
+// node, npx and Homebrew's tools live, for this command and what it starts.
+process.env.PATH = [
+  ...new Set([
+    ...(process.env.PATH ?? "").split(":").filter(Boolean),
+    dirname(process.execPath),
+    join(homedir(), ".vite-plus", "bin"),
+    "/opt/homebrew/bin",
+    "/usr/local/bin",
+    "/usr/bin",
+    "/bin",
+  ]),
+].join(":");
 
 try {
   await main(process.argv.slice(2));

@@ -11,14 +11,14 @@ import { join } from "node:path";
 
 import { stringify as stringifyYaml } from "yaml";
 
-import { McpError, type Server } from "./mcp-servers.ts";
+import { McpError } from "./mcp-servers.ts";
 
 export const SECRETS_FOLDER = "/mcp";
 const VARIABLE = /\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-[^}]*)?\}/g;
 
-/** The variables a server's values name. */
-export function variables(server: Server): string[] {
-  const names = [...JSON.stringify(server).matchAll(VARIABLE)].map((match) => match[1]!);
+/** The variables a server's values name, or those of any value. */
+export function variables(value: unknown): string[] {
+  const names = [...(JSON.stringify(value) ?? "").matchAll(VARIABLE)].map((match) => match[1]!);
   // HOME locates files; it is never a secret.
   return [...new Set(names)].filter((name) => name !== "HOME");
 }

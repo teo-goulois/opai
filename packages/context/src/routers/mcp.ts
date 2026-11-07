@@ -32,6 +32,7 @@ import {
   startLogin,
 } from "../mcp-oauth.ts";
 import { allServers, cachedStatus, forgetStatus } from "../mcp-status.ts";
+import { syncQuietly } from "../mcp-sync.ts";
 import { o } from "../procedure.ts";
 import { homePath, loadSpaces } from "../spaces.ts";
 
@@ -59,6 +60,13 @@ function run<A>(work: () => A) {
   } catch (error) {
     rethrow(error);
   }
+}
+
+/** A change of global's servers or sign-ins, then the same in the tools' own configs. */
+function changing<A>(root: string, work: () => A) {
+  const result = run(work);
+  syncQuietly(root);
+  return result;
 }
 
 export type SecretState = "infisical" | "environment" | "missing";
@@ -143,7 +151,7 @@ export const mcpRouter = {
       }),
     )
     .handler(({ context, input }) =>
-      run(() => {
+      changing(context.root, () => {
         const pasted = parsePaste(input.text, input.name);
         const secrets = Object.assign({}, ...pasted.map((item) => item.secrets));
         storeSecrets(context.root, secrets);
@@ -158,7 +166,7 @@ export const mcpRouter = {
   remove: o
     .input(z.object({ name: Name, space: Space }))
     .handler(({ context, input }) =>
-      run(() => removeServer(context.root, input.name, input.space)),
+      changing(context.root, () => removeServer(context.root, input.name, input.space)),
     ),
   /** Takes a server out of its project's .mcp.json. */
   removeFromProject: o
@@ -177,12 +185,12 @@ export const mcpRouter = {
   move: o
     .input(z.object({ name: Name, from: Space, to: Space }))
     .handler(({ context, input }) =>
-      run(() => moveServer(context.root, input.name, input.to, input.from)),
+      changing(context.root, () => moveServer(context.root, input.name, input.to, input.from)),
     ),
   import: o
     .input(z.object({ names: z.array(z.string().max(64)).min(1).max(50), space: Space }))
     .handler(({ context, input }) =>
-      run(() => {
+      changing(context.root, () => {
         const imported = importServers(context.root, input.names, { space: input.space });
         storeSecrets(
           context.root,
@@ -210,7 +218,7 @@ export const mcpRouter = {
     .handler(({ input }) => loginState(input.name) ?? null),
   /** Forgets Opai's sign-in to a server, on every machine. */
   signOut: o.input(z.object({ name: Name })).handler(({ context, input }) =>
-    run(() => {
+    changing(context.root, () => {
       signOut(context.root, input.name);
       return { name: input.name };
     }),

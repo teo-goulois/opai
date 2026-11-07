@@ -116,13 +116,19 @@ export function prepareLaunch(
     (name) => !env[name],
   );
   const signable = Object.values(servers).some(canSignIn);
-  if ((missing.length === 0 && !signable) || !infisicalEnv(root)) return { secrets: {}, servers };
+  // `signedIn` is undefined only when Infisical could not be read: what it holds is unknown.
+  const none = {
+    secrets: {} as Record<string, string>,
+    servers,
+    signedIn: new Map<string, OAuthRecord>(),
+  };
+  if ((missing.length === 0 && !signable) || !infisicalEnv(root)) return none;
   let stored: Record<string, string>;
   try {
     stored = readSecrets(root);
   } catch (error) {
     warn(`opai: the MCP secrets were not loaded (${(error as Error).message})`);
-    return { secrets: {}, servers };
+    return { ...none, signedIn: undefined };
   }
   const secrets = Object.fromEntries(
     missing.filter((name) => name in stored).map((name) => [name, stored[name]!]),
@@ -136,7 +142,7 @@ export function prepareLaunch(
         : server,
     ]),
   );
-  return { secrets, servers: withHelpers };
+  return { secrets, servers: withHelpers, signedIn };
 }
 
 const INITIALIZE = {
@@ -634,6 +640,9 @@ export async function startLogin(
         };
         storeSecrets(root, { [oauthKey(name)]: JSON.stringify(record) });
         version++;
+        // The apps outside Opai get the sign-in too (mcp-sync.ts imports this file).
+        const { syncQuietly } = await import("./mcp-sync.ts");
+        syncQuietly(root);
         answer(true);
         end("connected");
       } catch (error) {

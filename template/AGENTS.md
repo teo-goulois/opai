@@ -14,5 +14,8 @@ README.md describes the layout.
   tokens go to Infisical (`opai mcp secret set`), never into `mcp.json`.
   `opai mcp status` says which servers Claude Code reaches; a remote one
   that is not signed in waits for the user's `opai mcp login <name>`.
+  Opai writes global's servers into `~/.claude.json` and
+  `~/.codex/config.toml` itself (`opai mcp sync`): change them in the
+  space, never in those files.
 - Never commit what Claude Code or Codex write into `claude/` and `codex/`
   (sessions, caches, logs, credentials): `.gitignore` lists what is tracked.

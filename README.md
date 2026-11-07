@@ -306,7 +306,18 @@ applies from the next session:
   project's `.mcp.json` gives way: a server of the same name keeps Opai's.
 - Codex gets one `-c mcp_servers.<name>={...}` per server, a `headersHelper`
   as its `http_headers_helper`. It has no SSE transport: an SSE server
-  reaches Claude Code only.
+  reaches Claude Code only. A server's `codex` key holds what changes for
+  Codex, such as its own `args`; Claude Code never sees it.
+
+The servers of `global` also go into the configs that plain Claude Code and
+Codex read, `~/.claude.json` and `~/.codex/config.toml` (in a marked block),
+for the apps that start them outside Opai: Claude Desktop, the ChatGPT app.
+Each change of `global` and each launch writes them (`opai mcp sync` does it
+by hand), replacing a server of the same name; a server that leaves `global`
+leaves them. No secret is written: a remote server that needs one gets the
+headers helper `opai mcp headers <name>`, which reads it and Opai's sign-in
+from Infisical; a local one starts through `opai mcp run <name>`, which puts
+its secrets in its environment and finds `npx` on a PATH the apps keep short.
 
 ```sh
 opai mcp list                                         # every server, by space
@@ -319,6 +330,7 @@ opai mcp remove <name> [--space s]
 opai mcp import                                       # the servers the tools keep themselves
 opai mcp import <name>... [--space s]                 # copy them into a space
 opai mcp forget <name>...                             # take them out of the tools' configs
+opai mcp sync                                         # write global's servers into them
 opai mcp secrets                                      # the secrets they name: stored or missing
 opai mcp secret set <NAME>                            # store one, typed or piped in
 opai mcp check

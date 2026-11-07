@@ -45,6 +45,8 @@ export type Server = {
   headers?: Record<string, string>;
   /** A command that prints headers as JSON; Claude Code only. */
   headersHelper?: string;
+  /** What changes for Codex, such as its own args: Opai's own key, Claude Code never sees it. */
+  codex?: Omit<Server, "codex">;
 };
 
 export type Entry = {
@@ -122,6 +124,12 @@ export function serverProblems(name: string, server: unknown, committed = true):
   for (const key of ["env", "headers"]) {
     if (s[key] !== undefined && !isRecord(s[key])) problems.push(`${key} is not a map of strings`);
   }
+  if (
+    s.codex !== undefined &&
+    (!s.codex || typeof s.codex !== "object" || Array.isArray(s.codex))
+  ) {
+    problems.push("codex is not an object");
+  }
   // A project's .mcp.json is the project's business: only Opai's own files refuse literals.
   if (problems.length > 0 || !committed) return problems;
   for (const key of literalSecrets(s as Server)) {
@@ -156,6 +164,15 @@ function writeFile(root: string, space: string, servers: Record<string, Server>)
   const file = mcpFile(root, space);
   if (Object.keys(servers).length === 0) rmSync(file, { force: true });
   else writeFileSync(file, `${JSON.stringify({ mcpServers: servers }, null, 2)}\n`);
+}
+
+/** The servers of the base space, in every session. */
+export function globalServers(root: string): Record<string, Server> {
+  return Object.fromEntries(
+    listServers(root)
+      .filter((entry) => entry.space === baseSpace(root))
+      .map((entry) => [entry.name, entry.server]),
+  );
 }
 
 /** Every valid server of every space, the base space first. */
@@ -294,7 +311,8 @@ export function sessionServers(
 
 // --- Launch ----------------------------------------------------------------
 
-function expand(text: string, env: NodeJS.ProcessEnv) {
+/** A value with its ${NAME} templates filled from env. */
+export function expand(text: string, env: NodeJS.ProcessEnv) {
   return text.replace(
     TEMPLATE,
     (_, name: string, fallback?: string) => env[name] || fallback || "",
@@ -303,7 +321,8 @@ function expand(text: string, env: NodeJS.ProcessEnv) {
 
 /** The server as Claude Code reads it: the type said, the templates left to Claude. */
 export function claudeServer(server: Server): Server {
-  return { type: server.type ?? (server.url ? "http" : "stdio"), ...server };
+  const { codex: _codex, ...rest } = server;
+  return { type: server.type ?? (server.url ? "http" : "stdio"), ...rest };
 }
 
 /**
@@ -311,7 +330,9 @@ export function claudeServer(server: Server): Server {
  * SSE transport). Templates are expanded here, except a variable passed under
  * its own name and a bearer token, which Codex reads from the environment.
  */
-export function codexServer(server: Server, env = process.env) {
+export function codexServer(declared: Server, env = process.env) {
+  const { codex, ...own } = declared;
+  const server: Server = { ...own, ...codex };
   if (server.type === "sse") return undefined;
   const table: Record<string, unknown> = {};
   if (server.command) {
@@ -344,7 +365,7 @@ export function codexServer(server: Server, env = process.env) {
   return table;
 }
 
-function tomlKey(key: string) {
+export function tomlKey(key: string) {
   return NAME.test(key) ? key : JSON.stringify(key);
 }
 
@@ -627,6 +648,24 @@ function codexConfig(file: string): Found[] {
     );
 }
 
+/** Where Opai notes the servers it wrote into ~/.claude.json and ~/.codex (mcp-sync.ts). */
+export function syncedFile(root: string) {
+  return join(root, ".local", "mcp", "synced.json");
+}
+
+/** The names Opai wrote into the tools' configs on this machine. */
+export function syncedNames(root: string): { claude: string[]; codex: string[] } {
+  try {
+    const data = JSON.parse(readFileSync(syncedFile(root), "utf8")) as {
+      claude?: string[];
+      codex?: string[];
+    };
+    return { claude: data.claude ?? [], codex: data.codex ?? [] };
+  } catch {
+    return { claude: [], codex: [] };
+  }
+}
+
 /** The servers the instance's claude/ and codex/ keep in their own configs. */
 function instanceToolServers(root: string) {
   return [
@@ -640,15 +679,21 @@ function instanceToolServers(root: string) {
  * then the default ~/.claude.json and ~/.codex/config.toml. `home` is for the tests.
  */
 export function findToolServers(root: string, home = homedir()): Found[] {
+  // What Opai wrote there itself is global's, not a copy.
+  const synced = syncedNames(root);
   return [
     ...instanceToolServers(root),
-    ...claudeConfig(join(home, ".claude.json")),
-    ...codexConfig(join(home, ".codex", "config.toml")),
+    ...claudeConfig(join(home, ".claude.json")).filter(
+      (found) => found.place.folder || !synced.claude.includes(found.name),
+    ),
+    ...codexConfig(join(home, ".codex", "config.toml")).filter(
+      (found) => !synced.codex.includes(found.name),
+    ),
   ];
 }
 
 /** Writes a file whole or not at all, with the mode it had. */
-function replaceFile(file: string, text: string) {
+export function replaceFile(file: string, text: string) {
   const temporary = `${file}.opai-${process.pid}`;
   writeFileSync(temporary, text, { mode: statSync(file).mode & 0o777 });
   renameSync(temporary, file);
