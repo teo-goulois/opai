@@ -151,8 +151,9 @@ is installed, on `127.0.0.1:4748` otherwise. Its pages call the same oRPC proced
   description the agent reads to decide, edits its `SKILL.md`, moves it to
   another space, and compares an imported one with its source (`opai
   skills`, below, does the same from a terminal). Import one from either page.
-- MCP: the servers of each space, and the secrets they name, stored or
-  missing (a missing one is stored from its badge). Add one by pasting what
+- MCP: the servers of each space and of its projects (their `.mcp.json`),
+  and the secrets they name, stored or missing (a missing one is stored
+  from its badge). Add one by pasting what
   its docs give (`claude mcp add ...`, `codex mcp add ...`, JSON, `npx ...`,
   a URL): a preview shows what it becomes and which tokens go to Infisical.
   Move or remove a server, or import one plain `claude` and `codex` have.
@@ -291,10 +292,15 @@ anything else in the way is reported, not replaced.
 A space declares its MCP servers in `spaces/<space>/mcp.json`, in the shape of
 Claude Code's `.mcp.json`. Those of `global` are in every session; those of
 another space only in its sessions, where they win over a global server of the
-same name. `opai claude` and `opai codex` load them at launch, so a change
+same name. A project keeps the servers dedicated to it in its own `.mcp.json`,
+in its repository: they are in the sessions of that project only (the nearest
+folder with a `.mcp.json` above where the session starts), and win over the
+space's. `opai claude` and `opai codex` load them at launch, so a change
 applies from the next session:
 
-- Claude Code gets `--mcp-config=.local/mcp/<space>.json`, written then.
+- Claude Code gets `--mcp-config=.local/mcp/<space>.json`, written then
+  (`<space>-<project>-<hash>.json` in a project). Its own reading of the
+  project's `.mcp.json` gives way: a server of the same name keeps Opai's.
 - Codex gets one `-c mcp_servers.<name>={...}` per server, a `headersHelper`
   as its `http_headers_helper`. It has no SSE transport: an SSE server
   reaches Claude Code only.

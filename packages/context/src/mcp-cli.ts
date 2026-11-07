@@ -353,14 +353,14 @@ async function main(argv: string[]) {
     case "login": {
       const [name] = positionals;
       if (!name) throw new McpError("login <name>");
-      const login = await startLogin(ROOT, name, values.space);
+      const login = await startLogin(ROOT, name, values.space ? { space: values.space } : {});
       if (!login.authUrl) throw new McpError(`${name} gave no page to sign in on`);
       console.log(`Sign in to ${login.name} in the browser:\n  ${login.authUrl}`);
       console.log("The sign-in serves Claude Code, Codex and every machine of the instance.");
       if (process.platform === "darwin") execFile("open", [login.authUrl]);
       for (;;) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        const state = loginState(login.space, login.name);
+        const state = loginState(login.name);
         if (state?.state === "connected") {
           console.log(`${login.name} is connected.`);
           process.exit(0);

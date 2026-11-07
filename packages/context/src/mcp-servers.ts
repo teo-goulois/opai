@@ -17,13 +17,14 @@
 // The opai server itself is not here: `opai setup` writes it into the tools'
 // own configs, so plain claude and codex have it too.
 
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { basename, dirname, join, sep } from "node:path";
 
 import { parse as parseToml } from "smol-toml";
 
-import { homePath, loadSpaces, which } from "./spaces.ts";
+import { homePath, loadSpaces, real, which } from "./spaces.ts";
 
 export type Server = {
   type?: "stdio" | "http" | "sse";
@@ -37,7 +38,13 @@ export type Server = {
   headersHelper?: string;
 };
 
-export type Entry = { name: string; space: string; server: Server };
+export type Entry = {
+  name: string;
+  space: string;
+  server: Server;
+  /** The project folder whose own .mcp.json declares it; undefined for a space's server. */
+  project?: string | undefined;
+};
 
 export class McpError extends Error {}
 
@@ -86,7 +93,7 @@ function isRecord(value: unknown): value is Record<string, string> {
 }
 
 /** What is wrong with one server's declaration; empty when it is valid. */
-export function serverProblems(name: string, server: unknown): string[] {
+export function serverProblems(name: string, server: unknown, committed = true): string[] {
   if (!NAME.test(name))
     return [`the name ${name} holds characters other than letters, digits, - and _`];
   if (RESERVED.has(name)) return [`${name} is configured by opai setup, not in a space`];
@@ -106,7 +113,8 @@ export function serverProblems(name: string, server: unknown): string[] {
   for (const key of ["env", "headers"]) {
     if (s[key] !== undefined && !isRecord(s[key])) problems.push(`${key} is not a map of strings`);
   }
-  if (problems.length > 0) return problems;
+  // A project's .mcp.json is the project's business: only Opai's own files refuse literals.
+  if (problems.length > 0 || !committed) return problems;
   for (const key of literalSecrets(s as Server)) {
     problems.push(
       `${key} holds a literal value, and mcp.json is committed: write \${NAME} and set NAME in the environment`,
@@ -116,7 +124,10 @@ export function serverProblems(name: string, server: unknown): string[] {
 }
 
 function readFile(root: string, space: string): Record<string, Server> {
-  const file = mcpFile(root, space);
+  return readServers(mcpFile(root, space));
+}
+
+function readServers(file: string): Record<string, Server> {
   if (!existsSync(file)) return {};
   let data: unknown;
   try {
@@ -157,18 +168,100 @@ export function listServers(root: string): Entry[] {
   });
 }
 
-/** The servers of a session in `cwd`: the base space's, then its space's. */
-export function sessionServers(root: string, cwd: string): Record<string, Server> {
+// A project declares the servers dedicated to it in its own .mcp.json, which
+// its repository keeps. Claude Code reads it there; opai reads it too, so that
+// Codex has them and Opai's sign-ins apply, and gives them to the sessions of
+// that project only.
+
+const SKIPPED = new Set(["node_modules", "dist", "build", "vendor", "Pods", "DerivedData"]);
+
+/** The project of a folder: the nearest one above it, below home, with a .mcp.json. */
+export function projectOf(cwd: string, home = homedir()) {
+  let dir = real(cwd);
+  const top = real(home);
+  if (!dir.startsWith(`${top}${sep}`)) return undefined;
+  while (dir !== top) {
+    if (existsSync(join(dir, ".mcp.json"))) return dir;
+    dir = dirname(dir);
+  }
+  return undefined;
+}
+
+/** The servers a project's .mcp.json declares, the invalid ones left out. */
+export function projectServers(folder: string): Record<string, Server> {
+  let servers: Record<string, Server>;
+  try {
+    servers = readServers(join(folder, ".mcp.json"));
+  } catch {
+    return {};
+  }
+  return Object.fromEntries(
+    Object.entries(servers).filter(
+      ([name, server]) => serverProblems(name, server, false).length === 0,
+    ),
+  );
+}
+
+/** The projects under the spaces' folders, four levels deep at most, with their space. */
+export function projectFolders(root: string) {
+  const spaces = loadSpaces(root);
+  const base = baseSpace(root);
+  const found = new Map<string, string>();
+  const walk = (dir: string, depth: number) => {
+    if (!found.has(dir) && existsSync(join(dir, ".mcp.json"))) {
+      found.set(dir, which(root, dir, spaces)?.space.name ?? base);
+    }
+    if (depth === 0) return;
+    let entries;
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (entry.isDirectory() && !entry.name.startsWith(".") && !SKIPPED.has(entry.name)) {
+        walk(join(dir, entry.name), depth - 1);
+      }
+    }
+  };
+  for (const space of spaces) for (const path of space.paths) walk(path, 4);
+  return [...found].map(([folder, space]) => ({ folder, space }));
+}
+
+/** Every valid server of every project, with the project's space. */
+export function listProjectServers(root: string): Entry[] {
+  return projectFolders(root).flatMap(({ folder, space }) =>
+    Object.entries(projectServers(folder)).map(([name, server]) => ({
+      name,
+      space,
+      server,
+      project: folder,
+    })),
+  );
+}
+
+/**
+ * The servers of a session in `cwd`: the base space's, then its space's, then
+ * its project's; on a name clash, the later wins.
+ */
+export function sessionServers(
+  root: string,
+  cwd: string,
+  home = homedir(),
+): Record<string, Server> {
   const base = baseSpace(root);
   const space = which(root, cwd)?.space.name;
   const entries = listServers(root);
-  // The space's entries come last, so they win over the base space's.
-  return Object.fromEntries(
-    [
-      ...entries.filter((entry) => entry.space === base),
-      ...entries.filter((entry) => entry.space === space && space !== base),
-    ].map((entry) => [entry.name, entry.server]),
-  );
+  const project = projectOf(cwd, home);
+  return Object.fromEntries([
+    ...entries
+      .filter((entry) => entry.space === base)
+      .map((entry) => [entry.name, entry.server] as const),
+    ...entries
+      .filter((entry) => entry.space === space && space !== base)
+      .map((entry) => [entry.name, entry.server] as const),
+    ...Object.entries(project ? projectServers(project) : {}),
+  ]);
 }
 
 // --- Launch ----------------------------------------------------------------
@@ -250,8 +343,13 @@ export function mcpLaunchArgs(
   if (names.length === 0) return [];
   if (tool === "claude") {
     const space = which(root, cwd)?.space.name ?? baseSpace(root);
+    // A project has its own servers, so its own file: two projects' sessions may start together.
+    const project = projectOf(cwd);
+    const id = project
+      ? `${space}-${basename(project).replace(/[^\w-]+/g, "-")}-${createHash("sha256").update(project).digest("hex").slice(0, 8)}`
+      : space;
     const folder = join(root, ".local", "mcp");
-    const file = join(folder, `${space}.json`);
+    const file = join(folder, `${id}.json`);
     const config = Object.fromEntries(names.map((name) => [name, claudeServer(servers[name]!)]));
     const text = `${JSON.stringify({ mcpServers: config }, null, 2)}\n`;
     mkdirSync(folder, { recursive: true });

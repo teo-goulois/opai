@@ -817,5 +817,6 @@
   "mcp_signed_in": "Signed in through Opai, from {by}; token renewed {when}",
   "mcp_sign_out": "Sign out",
   "mcp_tool_only": "Signed in by Claude Code for itself: Codex and the other machines don't have it.",
-  "mcp_connect_everywhere": "Sign in everywhere"
+  "mcp_connect_everywhere": "Sign in everywhere",
+  "mcp_project_hint": "Declared in this project's .mcp.json: only its sessions have them, in Claude Code and Codex. Change them there."
 }

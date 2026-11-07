@@ -86,9 +86,7 @@ export function McpPage({ data }: { data: McpData }) {
     mutationFn: () => orpc.mcp.status.call({ refresh: true }),
     onSuccess: (fresh) => queryClient.setQueryData(orpc.mcp.status.queryKey({ input: {} }), fresh),
   });
-  const statuses = new Map(
-    (status.data?.servers ?? []).map((item) => [`${item.space}/${item.name}`, item]),
-  );
+  const statuses = new Map((status.data?.servers ?? []).map((item) => [serverKey(item), item]));
   const checking = status.isFetching || recheck.isPending;
   return (
     <div className="flex flex-col gap-xl">
@@ -154,11 +152,24 @@ export function McpPage({ data }: { data: McpData }) {
       ) : null}
 
       {spaces.map((space, index) => {
-        const rows = data.servers.filter((row) => row.space === space.name);
-        if (rows.length === 0 && !space.base) return null;
+        const all = data.servers.filter((row) => row.space === space.name);
+        const rows = all.filter((row) => !row.project);
+        // A project's servers, under its name: they serve its sessions only.
+        const projects = [...new Set(all.flatMap((row) => (row.project ? [row.project] : [])))];
+        if (all.length === 0 && !space.base) return null;
+        const item = (row: ServerRow) => (
+          <li key={serverKey(row)}>
+            <ServerItem
+              row={row}
+              spaces={spaces}
+              status={statuses.get(serverKey(row))}
+              checking={checking}
+            />
+          </li>
+        );
         return (
           <PageSection key={space.name} aria-labelledby={`mcp-${space.name}`}>
-            <PageSectionTitle id={`mcp-${space.name}`} count={rows.length || undefined}>
+            <PageSectionTitle id={`mcp-${space.name}`} count={all.length || undefined}>
               <span className="flex items-center gap-xs">
                 <SpaceDot index={index} />
                 {space.name}
@@ -168,21 +179,25 @@ export function McpPage({ data }: { data: McpData }) {
               </span>
             </PageSectionTitle>
             {rows.length > 0 ? (
-              <ItemList>
-                {rows.map((row) => (
-                  <li key={row.name}>
-                    <ServerItem
-                      row={row}
-                      spaces={spaces}
-                      status={statuses.get(`${row.space}/${row.name}`)}
-                      checking={checking}
-                    />
-                  </li>
-                ))}
-              </ItemList>
-            ) : (
+              <ItemList>{rows.map(item)}</ItemList>
+            ) : projects.length === 0 ? (
               <Hint>{m.mcp_none()}</Hint>
-            )}
+            ) : null}
+            {projects.map((project) => {
+              const own = all.filter((row) => row.project === project);
+              return (
+                <div key={project} className="flex flex-col gap-xs pt-s">
+                  <h3 className="flex flex-wrap items-baseline gap-x-xs font-ui text-m font-medium text-neutral-10">
+                    {own[0]!.projectName}
+                    <span className="font-mono text-s font-regular text-neutral-7">
+                      {own[0]!.projectPath}/.mcp.json
+                    </span>
+                  </h3>
+                  <Hint>{m.mcp_project_hint()}</Hint>
+                  <ItemList>{own.map(item)}</ItemList>
+                </div>
+              );
+            })}
           </PageSection>
         );
       })}
@@ -190,6 +205,11 @@ export function McpPage({ data }: { data: McpData }) {
       {notDeclared.length > 0 ? <FoundSection found={notDeclared} spaces={spaces} /> : null}
     </div>
   );
+}
+
+/** A server's place: its name, in its space or its project. */
+function serverKey(item: { space: string; project?: string | undefined; name: string }) {
+  return `${item.space}/${item.project ?? ""}/${item.name}`;
 }
 
 const STATUS_BADGE = {
@@ -217,7 +237,7 @@ function statusLabel(status: ServerStatus["status"]) {
  */
 function useConnect(row: ServerRow) {
   const queryClient = useQueryClient();
-  const input = { name: row.name, space: row.space };
+  const input = { name: row.name };
   const [started, setStarted] = useState(false);
   const connect = useMutation(orpc.mcp.connect.mutationOptions());
   const login = useQuery({
@@ -239,16 +259,19 @@ function useConnect(row: ServerRow) {
     start() {
       // Opened now, while the click allows it; the address comes after.
       const tab = window.open("", "_blank");
-      connect.mutate(input, {
-        onSuccess: ({ authUrl }) => {
-          if (authUrl && tab) tab.location.href = authUrl;
-          else tab?.close();
-          // The last sign-in's answer must not end this one.
-          void queryClient.resetQueries({ queryKey: orpc.mcp.connection.queryKey({ input }) });
-          setStarted(true);
+      connect.mutate(
+        { ...input, space: row.space, ...(row.project && { project: row.project }) },
+        {
+          onSuccess: ({ authUrl }) => {
+            if (authUrl && tab) tab.location.href = authUrl;
+            else tab?.close();
+            // The last sign-in's answer must not end this one.
+            void queryClient.resetQueries({ queryKey: orpc.mcp.connection.queryKey({ input }) });
+            setStarted(true);
+          },
+          onError: () => tab?.close(),
         },
-        onError: () => tab?.close(),
-      });
+      );
     },
   };
 }
@@ -334,52 +357,61 @@ function ServerItem({
                 : m.mcp_connect()}
           </Button>
         ) : null}
-        <Menu>
-          <MenuTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={m.mcp_actions({ name: row.name })}
-                isPending={move.isPending || remove.isPending || signOut.isPending}
-              />
-            }
-          >
-            <MoreIcon aria-hidden />
-          </MenuTrigger>
-          <MenuPopup>
-            {row.canSignIn ? (
-              <>
-                <MenuItem onClick={connect.start}>
-                  {row.signIn ? m.mcp_connect_again() : m.mcp_connect()}
-                </MenuItem>
-                {row.signIn ? (
-                  <MenuItem onClick={() => signOut.mutate({ name: row.name })}>
-                    {m.mcp_sign_out()}
-                  </MenuItem>
-                ) : null}
-                <MenuSeparator />
-              </>
-            ) : null}
-            {spaces
-              .filter((space) => space.name !== row.space)
-              .map((space) => (
-                <MenuItem
-                  key={space.name}
-                  onClick={() => move.mutate({ name: row.name, from: row.space, to: space.name })}
-                >
-                  {m.mcp_move_to({ space: space.name })}
-                </MenuItem>
-              ))}
-            <MenuSeparator />
-            <MenuItem
-              variant="danger"
-              onClick={() => remove.mutate({ name: row.name, space: row.space })}
+        {row.project && !row.canSignIn ? null : (
+          <Menu>
+            <MenuTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={m.mcp_actions({ name: row.name })}
+                  isPending={move.isPending || remove.isPending || signOut.isPending}
+                />
+              }
             >
-              {m.mcp_remove()}
-            </MenuItem>
-          </MenuPopup>
-        </Menu>
+              <MoreIcon aria-hidden />
+            </MenuTrigger>
+            <MenuPopup>
+              {row.canSignIn ? (
+                <>
+                  <MenuItem onClick={connect.start}>
+                    {row.signIn ? m.mcp_connect_again() : m.mcp_connect()}
+                  </MenuItem>
+                  {row.signIn ? (
+                    <MenuItem onClick={() => signOut.mutate({ name: row.name })}>
+                      {m.mcp_sign_out()}
+                    </MenuItem>
+                  ) : null}
+                  {row.project ? null : <MenuSeparator />}
+                </>
+              ) : null}
+              {/* A project's server moves or goes in its .mcp.json, in the project. */}
+              {row.project ? null : (
+                <>
+                  {spaces
+                    .filter((space) => space.name !== row.space)
+                    .map((space) => (
+                      <MenuItem
+                        key={space.name}
+                        onClick={() =>
+                          move.mutate({ name: row.name, from: row.space, to: space.name })
+                        }
+                      >
+                        {m.mcp_move_to({ space: space.name })}
+                      </MenuItem>
+                    ))}
+                  <MenuSeparator />
+                  <MenuItem
+                    variant="danger"
+                    onClick={() => remove.mutate({ name: row.name, space: row.space })}
+                  >
+                    {m.mcp_remove()}
+                  </MenuItem>
+                </>
+              )}
+            </MenuPopup>
+          </Menu>
+        )}
       </ItemEnd>
     </ItemRow>
   );

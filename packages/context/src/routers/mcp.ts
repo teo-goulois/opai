@@ -2,6 +2,8 @@
 // write secrets to Infisical, so mcp.ts never offers them to agents. A secret's
 // value goes in, never out: the page only learns which names are stored.
 
+import { basename } from "node:path";
+
 import { ORPCError } from "@orpc/server";
 import { z } from "zod";
 
@@ -14,7 +16,6 @@ import {
   codexServer,
   findToolServers,
   importServers,
-  listServers,
   McpError,
   moveServer,
   removeServer,
@@ -28,9 +29,9 @@ import {
   signOut,
   startLogin,
 } from "../mcp-oauth.ts";
-import { cachedStatus, forgetStatus } from "../mcp-status.ts";
+import { allServers, cachedStatus, forgetStatus } from "../mcp-status.ts";
 import { o } from "../procedure.ts";
-import { loadSpaces } from "../spaces.ts";
+import { homePath, loadSpaces } from "../spaces.ts";
 
 const Name = z
   .string()
@@ -99,10 +100,13 @@ export const mcpRouter = {
     const signIns = records(values);
     const state = (name: string): SecretState =>
       names.has(name) ? "infisical" : process.env[name] ? "environment" : "missing";
-    const servers = listServers(context.root).map((entry) => {
+    const servers = allServers(context.root).map((entry) => {
       const signIn = signIns.get(entry.name);
       return {
         ...entry,
+        // A project's server is managed in its .mcp.json, in the project's repository.
+        projectName: entry.project && basename(entry.project),
+        projectPath: entry.project && homePath(entry.project),
         ...reach(entry.server),
         secrets: variables(entry.server).map((name) => ({ name, state: state(name) })),
         canSignIn: canSignIn(entry.server),
@@ -179,14 +183,17 @@ export const mcpRouter = {
     .handler(({ context, input }) => cachedStatus(context.root, input.refresh)),
   /** Starts a sign-in to a remote server: the page the browser opens. */
   connect: o
-    .input(z.object({ name: Name, space: Space }))
+    .input(z.object({ name: Name, space: Space, project: z.string().max(1024).optional() }))
     .handler(({ context, input }) =>
-      startLogin(context.root, input.name, input.space).catch(rethrow),
+      startLogin(context.root, input.name, {
+        space: input.space,
+        ...(input.project && { project: input.project }),
+      }).catch(rethrow),
     ),
   /** Where the sign-in started by connect stands. */
   connection: o
-    .input(z.object({ name: Name, space: Space }))
-    .handler(({ input }) => loginState(input.space, input.name) ?? null),
+    .input(z.object({ name: Name }))
+    .handler(({ input }) => loginState(input.name) ?? null),
   /** Forgets Opai's sign-in to a server, on every machine. */
   signOut: o.input(z.object({ name: Name })).handler(({ context, input }) =>
     run(() => {

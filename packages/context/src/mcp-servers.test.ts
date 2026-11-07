@@ -12,10 +12,12 @@ import {
   findToolServers,
   importServers,
   inlineToml,
+  listProjectServers,
   listServers,
   mcpFile,
   mcpLaunchArgs,
   moveServer,
+  projectOf,
   removeServer,
   sessionServers,
 } from "./mcp-servers.ts";
@@ -231,4 +233,34 @@ test("check reports broken files, unset variables and servers defined twice", ()
     listServers(root).map((entry) => entry.name),
     ["docs", "keyed"],
   );
+});
+
+test("a project's .mcp.json serves the sessions of that project, over its space's servers", () => {
+  const app = join(client, "app");
+  addServer(root, "docs", { url: "https://docs.example/mcp" }, { replace: true });
+  write(
+    join(app, ".mcp.json"),
+    JSON.stringify({
+      mcpServers: {
+        docs: { type: "http", url: "https://app.example/docs" },
+        crm: {
+          url: "https://crm.example/mcp",
+          headers: { "X-Key": "literal-is-the-project's-call" },
+        },
+        "bad.name": { url: "https://x" },
+      },
+    }),
+  );
+  assert.equal(projectOf(join(app, "src"), base), app);
+  assert.equal(projectOf(join(client, "src"), base), undefined);
+  assert.equal(projectOf(outside), undefined);
+  assert.deepEqual(
+    listProjectServers(root).map((entry) => `${entry.space} ${entry.project} ${entry.name}`),
+    [`client ${app} docs`, `client ${app} crm`],
+  );
+  const servers = sessionServers(root, join(app, "src"), base);
+  assert.equal(servers.docs!.url, "https://app.example/docs");
+  assert.equal(servers.crm!.url, "https://crm.example/mcp");
+  assert.equal(sessionServers(root, client, base).crm, undefined);
+  assert.equal(sessionServers(root, client, base).docs!.url, "https://docs.example/mcp");
 });

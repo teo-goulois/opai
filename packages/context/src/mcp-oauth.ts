@@ -17,7 +17,13 @@ import { hostname } from "node:os";
 import { join } from "node:path";
 
 import { deleteSecret, infisicalEnv, readSecrets, storeSecrets, variables } from "./mcp-secrets.ts";
-import { listServers, McpError, type Entry, type Server } from "./mcp-servers.ts";
+import {
+  listProjectServers,
+  listServers,
+  McpError,
+  type Entry,
+  type Server,
+} from "./mcp-servers.ts";
 import { signInPage } from "./sign-in-page.ts";
 
 export type OAuthRecord = {
@@ -481,15 +487,21 @@ export function signInVersion() {
   return version;
 }
 
-function find(root: string, name: string, space?: string): Entry {
-  const entries = listServers(root).filter(
-    (entry) => entry.name === name && (!space || entry.space === space),
+/**
+ * The server a sign-in is for. A sign-in goes by name, so several projects
+ * may declare the same server; under one name, two URLs need the place said.
+ */
+function find(root: string, name: string, where: { space?: string; project?: string } = {}) {
+  const entries: Entry[] = [...listServers(root), ...listProjectServers(root)].filter(
+    (entry) =>
+      entry.name === name &&
+      (!where.space || entry.space === where.space) &&
+      (!where.project || entry.project === where.project),
   );
   if (entries.length === 0) throw new McpError(`no server named ${name}`);
-  if (entries.length > 1) {
-    throw new McpError(
-      `${name} is in ${entries.map((entry) => entry.space).join(" and ")}: name the space`,
-    );
+  if (new Set(entries.map((entry) => entry.server.url)).size > 1) {
+    const places = entries.map((entry) => entry.project ?? entry.space);
+    throw new McpError(`${name} is in ${places.join(" and ")}, at other URLs: name the space`);
   }
   return entries[0]!;
 }
@@ -543,8 +555,12 @@ function listen(
  * for its return, stores the tokens, and the sign-in ends connected, failed,
  * or after 10 minutes.
  */
-export async function startLogin(root: string, name: string, space?: string) {
-  const entry = find(root, name, space);
+export async function startLogin(
+  root: string,
+  name: string,
+  where: { space?: string; project?: string } = {},
+) {
+  const entry = find(root, name, where);
   if (!entry.server.url) {
     throw new McpError(`${name} runs a command: there is nothing to sign in to`);
   }
@@ -553,7 +569,8 @@ export async function startLogin(root: string, name: string, space?: string) {
   }
   if (!infisicalEnv(root))
     throw new McpError("the instance has no Infisical project to keep the sign-in");
-  const key = `${entry.space}/${entry.name}`;
+  // A sign-in goes by name: so does the one in progress.
+  const key = entry.name;
   logins.get(key)?.close?.();
   const discovery = await discover(entry.server.url);
   const { port, close, callback } = await listen(name);
@@ -628,11 +645,11 @@ export async function startLogin(root: string, name: string, space?: string) {
     end("failed", (error as Error).message);
     throw error;
   }
-  return { space: entry.space, name: entry.name, authUrl: login.authUrl };
+  return { name: entry.name, authUrl: login.authUrl };
 }
 
 /** Where a sign-in stands; undefined when none was started. */
-export function loginState(space: string, name: string): Login | undefined {
-  const login = logins.get(`${space}/${name}`);
+export function loginState(name: string): Login | undefined {
+  const login = logins.get(name);
   return login && { state: login.state, authUrl: login.authUrl, error: login.error };
 }

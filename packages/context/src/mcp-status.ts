@@ -1,5 +1,5 @@
 // Whether Claude Code reaches each MCP server. Claude itself answers: a
-// headless `claude -p`, with the servers of one space as a session gets them
+// headless `claude -p`, with the servers of one space or project as a session gets them
 // (secrets and sign-ins of mcp-oauth.ts), answers the Agent SDK's mcp_status
 // control request. No prompt is sent, so no model runs, and
 // --no-session-persistence leaves no session.
@@ -10,11 +10,20 @@ import { join } from "node:path";
 import { createInterface } from "node:readline";
 
 import { canSignIn, prepareLaunch, requiresSignIn, signInVersion } from "./mcp-oauth.ts";
-import { claudeServer, listServers, McpError, type Server } from "./mcp-servers.ts";
+import {
+  claudeServer,
+  listProjectServers,
+  listServers,
+  McpError,
+  type Entry,
+  type Server,
+} from "./mcp-servers.ts";
 
 export type Status = "connected" | "needs-auth" | "failed" | "pending" | "disabled";
 export type ServerStatus = {
   space: string;
+  /** The project folder of a server its .mcp.json declares. */
+  project?: string | undefined;
   name: string;
   status: Status;
   error?: string;
@@ -33,7 +42,7 @@ class ClaudeControl {
   #stopped: Error | undefined;
   ready: Promise<Response>;
 
-  constructor(root: string, servers: Record<string, Server>) {
+  constructor(root: string, servers: Record<string, Server>, cwd = tmpdir()) {
     // As in a session: the secrets from Infisical, and the sign-ins of Opai.
     const launch = prepareLaunch(root, servers, process.env);
     const env = { ...process.env, ...launch.secrets };
@@ -52,8 +61,9 @@ class ClaudeControl {
         `--settings=${JSON.stringify({ disableAllHooks: true })}`,
         `--mcp-config=${JSON.stringify({ mcpServers: config })}`,
       ],
-      // Outside any project, so no .mcp.json or CLAUDE.md of a folder joins in.
-      { cwd: tmpdir(), env: { ...env, CLAUDE_CONFIG_DIR: join(root, "claude") }, stdio: "pipe" },
+      // In the project whose servers these are, for their relative paths, or
+      // outside any; --strict-mcp-config keeps a folder's .mcp.json out.
+      { cwd, env: { ...env, CLAUDE_CONFIG_DIR: join(root, "claude") }, stdio: "pipe" },
     );
     this.#child.stdin!.on("error", () => {});
     this.#child.on("error", (error) =>
@@ -147,44 +157,68 @@ async function settle(control: ClaudeControl, ms: number) {
   }
 }
 
-/** Every declared server's status, each space checked with its own servers. */
-export async function checkStatus(root: string, entries = listServers(root)) {
-  const spaces = [...new Set(entries.map((entry) => entry.space))];
-  const results = await Promise.all(
-    spaces.map(async (space): Promise<ServerStatus[]> => {
-      const own = entries.filter((entry) => entry.space === space);
-      const control = new ClaudeControl(
-        root,
-        Object.fromEntries(own.map((entry) => [entry.name, entry.server])),
-      );
-      const guarded = Promise.all(
-        own.map((entry) => (canSignIn(entry.server) ? requiresSignIn(entry.server.url!) : false)),
-      );
-      try {
-        const found = new Map((await settle(control, 20_000)).map((s) => [s.name, s]));
-        const needs = await guarded;
-        return own.map(({ name }, index) => {
-          const server = found.get(name);
-          return {
-            space,
-            name,
-            status: server?.status ?? "failed",
-            ...(server?.error && { error: shortError(server.error) }),
-            ...(needs[index] && { protected: true }),
-          };
-        });
-      } catch (error) {
-        return own.map(({ name }) => ({
+/** Runs `work` over the items, `size` at a time: each check starts a Claude Code and its servers. */
+async function inBatches<T, R>(items: T[], size: number, work: (item: T) => Promise<R>) {
+  const results: R[] = [];
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const index = next++;
+      results[index] = await work(items[index]!);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(size, items.length) }, worker));
+  return results;
+}
+
+/** The servers of the spaces and of the projects. */
+export function allServers(root: string): Entry[] {
+  return [...listServers(root), ...listProjectServers(root)];
+}
+
+/** Every declared server's status, each space and each project checked with its own servers. */
+export async function checkStatus(root: string, entries = allServers(root)) {
+  const groups = new Map<string, Entry[]>();
+  for (const entry of entries) {
+    const key = entry.project ?? `space:${entry.space}`;
+    groups.set(key, [...(groups.get(key) ?? []), entry]);
+  }
+  const results = await inBatches([...groups.values()], 4, async (own): Promise<ServerStatus[]> => {
+    const { space, project } = own[0]!;
+    const control = new ClaudeControl(
+      root,
+      Object.fromEntries(own.map((entry) => [entry.name, entry.server])),
+      project,
+    );
+    const guarded = Promise.all(
+      own.map((entry) => (canSignIn(entry.server) ? requiresSignIn(entry.server.url!) : false)),
+    );
+    try {
+      const found = new Map((await settle(control, 20_000)).map((s) => [s.name, s]));
+      const needs = await guarded;
+      return own.map(({ name }, index) => {
+        const server = found.get(name);
+        return {
           space,
+          project,
           name,
-          status: "failed",
-          error: (error as Error).message,
-        }));
-      } finally {
-        control.close();
-      }
-    }),
-  );
+          status: server?.status ?? "failed",
+          ...(server?.error && { error: shortError(server.error) }),
+          ...(needs[index] && { protected: true }),
+        };
+      });
+    } catch (error) {
+      return own.map(({ name }) => ({
+        space,
+        project,
+        name,
+        status: "failed",
+        error: (error as Error).message,
+      }));
+    } finally {
+      control.close();
+    }
+  });
   return results.flat();
 }
 
@@ -201,7 +235,7 @@ export function forgetStatus() {
  * sign-ins; a new check otherwise, or when `refresh`.
  */
 export async function cachedStatus(root: string, refresh = false) {
-  const entries = listServers(root);
+  const entries = allServers(root);
   const key = `${signInVersion()} ${JSON.stringify(entries)}`;
   if (refresh || !cache || cache.key !== key || Date.now() - cache.at > STATUS_MS) {
     cache = { key, at: Date.now(), result: checkStatus(root, entries) };
