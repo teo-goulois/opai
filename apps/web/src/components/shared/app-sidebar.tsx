@@ -36,6 +36,7 @@ import { orpc } from "@/utils/orpc";
 
 import { toggleLocale, useThemeToggle } from "./app-preferences";
 import { useCommandPalette } from "./command-palette";
+import { Logo } from "./logo";
 
 type NavItem = {
   to: LinkProps["to"];
@@ -120,12 +121,8 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <Sidebar>
       <SidebarHeader className="px-s py-xs">
-        <Link
-          to="/"
-          onClick={onNavigate}
-          className="rounded-xs font-brand text-m font-medium text-neutral-10"
-        >
-          {m.app_name()}
+        <Link to="/" onClick={onNavigate} className="flex w-fit rounded-xs text-neutral-10">
+          <Logo className="h-5 w-auto" />
         </Link>
       </SidebarHeader>
 

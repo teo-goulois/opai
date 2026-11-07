@@ -18,6 +18,7 @@ import { join } from "node:path";
 
 import { deleteSecret, infisicalEnv, readSecrets, storeSecrets, variables } from "./mcp-secrets.ts";
 import { listServers, McpError, type Entry, type Server } from "./mcp-servers.ts";
+import { signInPage } from "./sign-in-page.ts";
 
 export type OAuthRecord = {
   name: string;
@@ -495,10 +496,12 @@ function find(root: string, name: string, space?: string): Entry {
 
 const base64url = (bytes: Buffer) => bytes.toString("base64url");
 
-type Callback = { params: URLSearchParams; answer: (ok: boolean, text: string) => void };
+type Callback = { params: URLSearchParams; answer: (ok: boolean, error?: string) => void };
 
 /** A server on localhost for the browser's return; it serves one callback. */
-function listen(): Promise<{ port: number; close: () => void; callback: Promise<Callback> }> {
+function listen(
+  server: string,
+): Promise<{ port: number; close: () => void; callback: Promise<Callback> }> {
   return new Promise((resolve, reject) => {
     let deliver!: (callback: Callback) => void;
     const callback = new Promise<Callback>((done) => (deliver = done));
@@ -514,12 +517,10 @@ function listen(): Promise<{ port: number; close: () => void; callback: Promise<
       }
       deliver({
         params: url.searchParams,
-        answer: (ok, text) =>
+        answer: (ok, error) =>
           response
             .writeHead(ok ? 200 : 400, { "content-type": "text/html; charset=utf-8" })
-            .end(
-              `<!doctype html><meta charset="utf-8"><title>Opai</title><body style="font:16px system-ui;padding:3rem">${text.replace(/[<&]/g, (c) => (c === "<" ? "&lt;" : "&amp;"))}</body>`,
-            ),
+            .end(signInPage({ ok, server, error, languages: request.headers["accept-language"] })),
       });
     };
     const first = createServer(handle);
@@ -555,7 +556,7 @@ export async function startLogin(root: string, name: string, space?: string) {
   const key = `${entry.space}/${entry.name}`;
   logins.get(key)?.close?.();
   const discovery = await discover(entry.server.url);
-  const { port, close, callback } = await listen();
+  const { port, close, callback } = await listen(name);
   const login: Login & { close?: () => void } = { state: "waiting", close };
   logins.set(key, login);
   const end = (state: Login["state"], error?: string) => {
@@ -616,10 +617,10 @@ export async function startLogin(root: string, name: string, space?: string) {
         };
         storeSecrets(root, { [oauthKey(name)]: JSON.stringify(record) });
         version++;
-        answer(true, `Opai is signed in to ${name}. You can close this tab.`);
+        answer(true);
         end("connected");
       } catch (error) {
-        answer(false, `The sign-in to ${name} failed: ${(error as Error).message}`);
+        answer(false, (error as Error).message);
         end("failed", (error as Error).message);
       }
     });

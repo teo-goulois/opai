@@ -12,6 +12,7 @@ import { useState, type ReactNode } from "react";
 import { m } from "@/paraglide/messages.js";
 
 import { AppSidebar } from "./app-sidebar";
+import { Logo } from "./logo";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -36,8 +37,8 @@ export function AppShell({ children }: { children: ReactNode }) {
               <AppSidebar onNavigate={() => setSheetOpen(false)} />
             </SidebarSheetPopup>
           </SidebarSheet>
-          <Link to="/" className="rounded-xs font-brand text-m font-medium">
-            {m.app_name()}
+          <Link to="/" className="flex rounded-xs text-neutral-10">
+            <Logo className="h-5 w-auto" />
           </Link>
         </header>
 
