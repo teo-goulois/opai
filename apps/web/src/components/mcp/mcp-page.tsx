@@ -31,7 +31,7 @@ import { Skeleton } from "@opai/ui/components/ui/skeleton";
 import { Switch } from "@opai/ui/components/ui/switch";
 import { Textarea } from "@opai/ui/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@opai/ui/components/ui/toggle-group";
-import { AddIcon, MoreIcon, RefreshIcon, WarningIcon } from "@opai/ui/icon";
+import { AddIcon, FolderIcon, MoreIcon, RefreshIcon, WarningIcon } from "@opai/ui/icon";
 import { ORPCError } from "@orpc/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useDeferredValue, useEffect, useState } from "react";
@@ -167,13 +167,23 @@ export function McpPage({ data }: { data: McpData }) {
             />
           </li>
         );
+        // Three levels: the space (a large title, a line above), its projects
+        // (a framed box each), the servers (rows).
         return (
-          <PageSection key={space.name} aria-labelledby={`mcp-${space.name}`}>
-            <PageSectionTitle id={`mcp-${space.name}`} count={all.length || undefined}>
+          <PageSection
+            key={space.name}
+            aria-labelledby={`mcp-${space.name}`}
+            className="gap-m pt-l edge-top edge-neutral-4"
+          >
+            <PageSectionTitle
+              id={`mcp-${space.name}`}
+              count={all.length || undefined}
+              className="text-l"
+            >
               <span className="flex items-center gap-xs">
                 <SpaceDot index={index} />
                 {space.name}
-                <span className="font-regular text-neutral-7">
+                <span className="font-ui text-m font-regular text-neutral-7">
                   {space.base ? m.mcp_every_session() : m.mcp_space_sessions({ space: space.name })}
                 </span>
               </span>
@@ -183,21 +193,38 @@ export function McpPage({ data }: { data: McpData }) {
             ) : projects.length === 0 ? (
               <Hint>{m.mcp_none()}</Hint>
             ) : null}
-            {projects.map((project) => {
-              const own = all.filter((row) => row.project === project);
-              return (
-                <div key={project} className="flex flex-col gap-xs pt-s">
-                  <h3 className="flex flex-wrap items-baseline gap-x-xs font-ui text-m font-medium text-neutral-10">
-                    {own[0]!.projectName}
-                    <span className="font-mono text-s font-regular text-neutral-7">
-                      {own[0]!.projectPath}/.mcp.json
-                    </span>
+            {projects.length > 0 ? (
+              <div className="flex flex-col gap-s pt-xs">
+                <div className="flex flex-col gap-xxs">
+                  <h3 className="font-ui text-m font-medium text-neutral-8">
+                    {m.mcp_projects({ space: space.name })}
                   </h3>
                   <Hint>{m.mcp_project_hint()}</Hint>
-                  <ItemList>{own.map(item)}</ItemList>
                 </div>
-              );
-            })}
+                {projects.map((project) => {
+                  const own = all.filter((row) => row.project === project);
+                  return (
+                    <section
+                      key={project}
+                      aria-label={own[0]!.projectName}
+                      className="flex flex-col gap-xs rounded-m px-m pt-s pb-xs edge edge-neutral-4"
+                    >
+                      <h4 className="flex min-w-0 flex-wrap items-center gap-x-xs gap-y-xxs font-ui text-m font-medium text-neutral-10">
+                        <FolderIcon aria-hidden className="size-4 shrink-0 text-neutral-7" />
+                        {own[0]!.projectName}
+                        <span className="truncate font-mono text-s font-regular text-neutral-7">
+                          {own[0]!.projectPath}/.mcp.json
+                        </span>
+                        <span className="ml-auto font-ui text-s font-regular text-neutral-7 tabular-nums">
+                          {own.length}
+                        </span>
+                      </h4>
+                      <ItemList>{own.map(item)}</ItemList>
+                    </section>
+                  );
+                })}
+              </div>
+            ) : null}
           </PageSection>
         );
       })}

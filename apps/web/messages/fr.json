@@ -818,5 +818,6 @@
   "mcp_sign_out": "Se déconnecter",
   "mcp_tool_only": "Connecté par Claude Code pour lui seul : Codex et les autres machines ne l’ont pas.",
   "mcp_connect_everywhere": "Connecter partout",
-  "mcp_project_hint": "Déclarés dans le .mcp.json de ce projet : seules ses sessions les ont, dans Claude Code et Codex. On les change là-bas."
+  "mcp_project_hint": "Les serveurs de chacun viennent de son .mcp.json : seules les sessions de ce projet les ont, dans Claude Code et Codex. On les change dans ce fichier.",
+  "mcp_projects": "Projets de {space}"
 }
