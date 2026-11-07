@@ -2,6 +2,11 @@ import type { AppRouterClient } from "@opai/context";
 import { Badge } from "@opai/ui/components/ui/badge";
 import { Button } from "@opai/ui/components/ui/button";
 import {
+  Collapsible,
+  CollapsiblePanel,
+  CollapsibleTrigger,
+} from "@opai/ui/components/ui/collapsible";
+import {
   Dialog,
   DialogDescription,
   DialogFooter,
@@ -34,7 +39,7 @@ import { ToggleGroup, ToggleGroupItem } from "@opai/ui/components/ui/toggle-grou
 import { AddIcon, FolderIcon, MoreIcon, RefreshIcon, WarningIcon } from "@opai/ui/icon";
 import { ORPCError } from "@orpc/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useDeferredValue, useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 
 import { Hint, orderSpaces, SpaceDot } from "@/components/spaces/space-ui";
 import { m } from "@/paraglide/messages.js";
@@ -152,85 +157,224 @@ export function McpPage({ data }: { data: McpData }) {
       ) : null}
 
       {spaces.map((space, index) => {
-        const all = data.servers.filter((row) => row.space === space.name);
-        const rows = all.filter((row) => !row.project);
-        // A project's servers, under its name: they serve its sessions only.
-        const projects = [...new Set(all.flatMap((row) => (row.project ? [row.project] : [])))];
-        if (all.length === 0 && !space.base) return null;
-        const item = (row: ServerRow) => (
-          <li key={serverKey(row)}>
-            <ServerItem
-              row={row}
-              spaces={spaces}
-              status={statuses.get(serverKey(row))}
-              checking={checking}
-            />
-          </li>
-        );
-        // Three levels: the space (a large title, a line above), its projects
-        // (a framed box each), the servers (rows).
+        const rows = data.servers.filter((row) => row.space === space.name);
+        if (rows.length === 0 && !space.base) return null;
         return (
-          <PageSection
+          <SpaceGroup
             key={space.name}
-            aria-labelledby={`mcp-${space.name}`}
-            className="gap-m pt-l edge-top edge-neutral-4"
-          >
-            <PageSectionTitle
-              id={`mcp-${space.name}`}
-              count={all.length || undefined}
-              className="text-l"
-            >
-              <span className="flex items-center gap-xs">
-                <SpaceDot index={index} />
-                {space.name}
-                <span className="font-ui text-m font-regular text-neutral-7">
-                  {space.base ? m.mcp_every_session() : m.mcp_space_sessions({ space: space.name })}
-                </span>
-              </span>
-            </PageSectionTitle>
-            {rows.length > 0 ? (
-              <ItemList>{rows.map(item)}</ItemList>
-            ) : projects.length === 0 ? (
-              <Hint>{m.mcp_none()}</Hint>
-            ) : null}
-            {projects.length > 0 ? (
-              <div className="flex flex-col gap-s pt-xs">
-                <div className="flex flex-col gap-xxs">
-                  <h3 className="font-ui text-m font-medium text-neutral-8">
-                    {m.mcp_projects({ space: space.name })}
-                  </h3>
-                  <Hint>{m.mcp_project_hint()}</Hint>
-                </div>
-                {projects.map((project) => {
-                  const own = all.filter((row) => row.project === project);
-                  return (
-                    <section
-                      key={project}
-                      aria-label={own[0]!.projectName}
-                      className="flex flex-col gap-xs rounded-m px-m pt-s pb-xs edge edge-neutral-4"
-                    >
-                      <h4 className="flex min-w-0 flex-wrap items-center gap-x-xs gap-y-xxs font-ui text-m font-medium text-neutral-10">
-                        <FolderIcon aria-hidden className="size-4 shrink-0 text-neutral-7" />
-                        {own[0]!.projectName}
-                        <span className="truncate font-mono text-s font-regular text-neutral-7">
-                          {own[0]!.projectPath}/.mcp.json
-                        </span>
-                        <span className="ml-auto font-ui text-s font-regular text-neutral-7 tabular-nums">
-                          {own.length}
-                        </span>
-                      </h4>
-                      <ItemList>{own.map(item)}</ItemList>
-                    </section>
-                  );
-                })}
-              </div>
-            ) : null}
-          </PageSection>
+            space={space}
+            index={index}
+            rows={rows}
+            render={(row) => (
+              <li key={serverKey(row)}>
+                <ServerItem
+                  row={row}
+                  spaces={spaces}
+                  status={statuses.get(serverKey(row))}
+                  checking={checking}
+                />
+              </li>
+            )}
+            statuses={statuses}
+          />
         );
       })}
 
       {notDeclared.length > 0 ? <FoundSection found={notDeclared} spaces={spaces} /> : null}
     </div>
+  );
+}
+
+// Which sections are open: this viewer's choice, kept in the browser. The
+// server renders the defaults; the browser's choice follows at hydration.
+const OPEN_KEY = "opai.mcp.open";
+const openListeners = new Set<() => void>();
+
+function readOpen(): Record<string, boolean> {
+  try {
+    return JSON.parse(localStorage.getItem(OPEN_KEY) ?? "{}") as Record<string, boolean>;
+  } catch {
+    return {};
+  }
+}
+
+let openCache: { text: string | null; value: Record<string, boolean> } | undefined;
+
+function openSnapshot() {
+  let text: string | null = null;
+  try {
+    text = localStorage.getItem(OPEN_KEY);
+  } catch {}
+  if (openCache?.text !== text) openCache = { text, value: readOpen() };
+  return openCache.value;
+}
+
+function useOpen(id: string, initial: boolean) {
+  const stored = useSyncExternalStore(
+    (listener) => {
+      openListeners.add(listener);
+      return () => openListeners.delete(listener);
+    },
+    openSnapshot,
+    () => undefined,
+  );
+  const open = stored?.[id] ?? initial;
+  const setOpen = (next: boolean) => {
+    try {
+      localStorage.setItem(OPEN_KEY, JSON.stringify({ ...readOpen(), [id]: next }));
+    } catch {}
+    for (const listener of openListeners) listener();
+  };
+  return [open, setOpen] as const;
+}
+
+/** How many servers are connected, to sign in, or failing: what a closed section still shows. */
+function StatusSummary({
+  rows,
+  statuses,
+}: {
+  rows: ServerRow[];
+  statuses: Map<string, ServerStatus>;
+}) {
+  const count = (status: ServerStatus["status"]) =>
+    rows.filter((row) => statuses.get(serverKey(row))?.status === status).length;
+  const parts = [
+    { status: "connected" as const, dot: "bg-success" },
+    { status: "needs-auth" as const, dot: "bg-warning" },
+    { status: "failed" as const, dot: "bg-error" },
+  ]
+    .map((part) => ({ ...part, count: count(part.status) }))
+    .filter((part) => part.count > 0);
+  if (parts.length === 0) return null;
+  return (
+    <span className="flex items-center gap-s font-ui text-s font-regular text-neutral-7 tabular-nums">
+      {parts.map((part) => (
+        <span
+          key={part.status}
+          className="flex items-center gap-xxs"
+          title={statusLabel(part.status)}
+        >
+          <span aria-hidden className={`size-2 rounded-full ${part.dot}`} />
+          {part.count}
+          <span className="sr-only">{statusLabel(part.status)}</span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/** A space, open by default: its own servers, then its projects, each closed by default. */
+function SpaceGroup({
+  space,
+  index,
+  rows,
+  render,
+  statuses,
+}: {
+  space: SpaceRef;
+  index: number;
+  rows: ServerRow[];
+  render: (row: ServerRow) => ReactNode;
+  statuses: Map<string, ServerStatus>;
+}) {
+  const [open, setOpen] = useOpen(`space:${space.name}`, true);
+  const own = rows.filter((row) => !row.project);
+  const projects = [...new Set(rows.flatMap((row) => (row.project ? [row.project] : [])))];
+  return (
+    <Collapsible
+      open={open}
+      onOpenChange={setOpen}
+      className="pt-m edge-top edge-neutral-4"
+      render={<section aria-label={space.name} />}
+    >
+      <CollapsibleTrigger className="py-s">
+        <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-s gap-y-xxs">
+          <span className="flex items-center gap-xs font-brand text-l font-medium text-neutral-10">
+            <SpaceDot index={index} />
+            {space.name}
+          </span>
+          <span className="font-ui text-m font-regular text-neutral-7">
+            {space.base ? m.mcp_every_session() : m.mcp_space_sessions({ space: space.name })}
+          </span>
+          <span className="ml-auto flex items-center gap-m">
+            <StatusSummary rows={rows} statuses={statuses} />
+            <span className="font-ui text-s font-regular text-neutral-7 tabular-nums">
+              {rows.length}
+            </span>
+          </span>
+        </span>
+      </CollapsibleTrigger>
+      <CollapsiblePanel variant="plain">
+        <div className="flex flex-col gap-m pb-s">
+          {own.length > 0 ? (
+            <ItemList>{own.map(render)}</ItemList>
+          ) : projects.length === 0 ? (
+            <Hint>{m.mcp_none()}</Hint>
+          ) : null}
+          {projects.length > 0 ? (
+            <div className="flex flex-col gap-xs">
+              <div className="flex flex-col gap-xxs">
+                <h3 className="font-ui text-m font-medium text-neutral-8">
+                  {m.mcp_projects({ space: space.name })}
+                </h3>
+                <Hint>{m.mcp_project_hint()}</Hint>
+              </div>
+              {projects.map((project) => (
+                <ProjectGroup
+                  key={project}
+                  rows={rows.filter((row) => row.project === project)}
+                  render={render}
+                  statuses={statuses}
+                />
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </CollapsiblePanel>
+    </Collapsible>
+  );
+}
+
+/** A project's servers, in a frame that opens on its header. */
+function ProjectGroup({
+  rows,
+  render,
+  statuses,
+}: {
+  rows: ServerRow[];
+  render: (row: ServerRow) => ReactNode;
+  statuses: Map<string, ServerStatus>;
+}) {
+  const first = rows[0]!;
+  const [open, setOpen] = useOpen(`project:${first.project}`, false);
+  return (
+    <Collapsible
+      open={open}
+      onOpenChange={setOpen}
+      className="gap-0 rounded-m edge edge-neutral-4 data-open:gap-0"
+      render={<section aria-label={first.projectName} />}
+    >
+      <CollapsibleTrigger className="px-m py-s">
+        <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-xs gap-y-xxs">
+          <FolderIcon aria-hidden className="size-4 shrink-0 text-neutral-7" />
+          <span className="font-ui text-m font-medium text-neutral-10">{first.projectName}</span>
+          <span className="truncate font-mono text-s font-regular text-neutral-7">
+            {first.projectPath}/.mcp.json
+          </span>
+          <span className="ml-auto flex items-center gap-m">
+            <StatusSummary rows={rows} statuses={statuses} />
+            <span className="font-ui text-s font-regular text-neutral-7 tabular-nums">
+              {rows.length}
+            </span>
+          </span>
+        </span>
+      </CollapsibleTrigger>
+      <CollapsiblePanel variant="plain">
+        <div className="px-m pb-xs">
+          <ItemList>{rows.map(render)}</ItemList>
+        </div>
+      </CollapsiblePanel>
+    </Collapsible>
   );
 }
 
