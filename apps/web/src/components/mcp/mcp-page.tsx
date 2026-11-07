@@ -76,8 +76,96 @@ function ClaudeOnly({ what }: { what: string[] }) {
   ) : null;
 }
 
+/** The page's filters: what is left to do on a server, or that nothing is. */
+export const FILTERS = ["sign-in", "missing", "failed", "ready"] as const;
+export type Filter = (typeof FILTERS)[number];
+
+/** Signed in by a tool for itself: that tool only, on this machine. */
+function isToolOnly(row: ServerRow, status: ServerStatus | undefined) {
+  return row.canSignIn && !row.signIn && status?.status === "connected" && !!status.protected;
+}
+
+/** Whether a server is in a filter; undefined while its status is still unknown. */
+function matches(filter: Filter, row: ServerRow, status: ServerStatus | undefined) {
+  const missing = row.secrets.some((secret) => secret.state === "missing");
+  if (filter === "missing") return missing;
+  if (!status) return undefined;
+  if (filter === "sign-in") return status.status === "needs-auth" || isToolOnly(row, status);
+  if (filter === "failed") return status.status === "failed" || status.status === "pending";
+  return status.status === "connected" && !isToolOnly(row, status) && !missing;
+}
+
+function filterLabel(filter: Filter) {
+  return {
+    "sign-in": m.mcp_filter_sign_in,
+    missing: m.mcp_filter_missing,
+    failed: m.mcp_filter_failed,
+    ready: m.mcp_filter_ready,
+  }[filter]();
+}
+
+function filterHint(filter: Filter) {
+  return {
+    "sign-in": m.mcp_filter_sign_in_hint,
+    missing: m.mcp_filter_missing_hint,
+    failed: m.mcp_filter_failed_hint,
+    ready: m.mcp_filter_ready_hint,
+  }[filter]();
+}
+
+/** All servers, or those a filter keeps, with how many each one holds. */
+function FilterBar({
+  filter,
+  onFilter,
+  counts,
+  total,
+}: {
+  filter: Filter | undefined;
+  onFilter: (filter: Filter | undefined) => void;
+  counts: Record<Filter, number | undefined>;
+  total: number;
+}) {
+  const count = (value: number | undefined) => (
+    <span className="font-regular text-neutral-7 tabular-nums">{value ?? "…"}</span>
+  );
+  return (
+    <ToggleGroup
+      aria-label={m.mcp_filter_label()}
+      value={[filter ?? "all"]}
+      onValueChange={(next) => {
+        if (next[0]) onFilter(next[0] === "all" ? undefined : (next[0] as Filter));
+      }}
+      className="flex-wrap"
+    >
+      <ToggleGroupItem value="all">
+        {m.mcp_filter_all()}
+        {count(total)}
+      </ToggleGroupItem>
+      {FILTERS.map((value) => (
+        <ToggleGroupItem
+          key={value}
+          value={value}
+          title={filterHint(value)}
+          disabled={counts[value] === 0 && filter !== value}
+        >
+          {filterLabel(value)}
+          {count(counts[value])}
+        </ToggleGroupItem>
+      ))}
+    </ToggleGroup>
+  );
+}
+
 /** Every MCP server, by space, with what the tools keep outside Opai. */
-export function McpPage({ data }: { data: McpData }) {
+export function McpPage({
+  data,
+  filter,
+  onFilter,
+}: {
+  data: McpData;
+  filter: Filter | undefined;
+  onFilter: (filter: Filter | undefined) => void;
+}) {
   const spaces = orderSpaces(data.spaces.map((space) => ({ default: false, ...space })));
   const notDeclared = data.found.filter((found) => !found.declared);
   const queryClient = useQueryClient();
@@ -93,6 +181,19 @@ export function McpPage({ data }: { data: McpData }) {
   });
   const statuses = new Map((status.data?.servers ?? []).map((item) => [serverKey(item), item]));
   const checking = status.isFetching || recheck.isPending;
+  const known = !!status.data;
+  const counts = Object.fromEntries(
+    FILTERS.map((value) => [
+      value,
+      value === "missing" || known
+        ? data.servers.filter((row) => matches(value, row, statuses.get(serverKey(row)))).length
+        : undefined,
+    ]),
+  ) as Record<Filter, number | undefined>;
+  // Until the status is known, a status filter keeps every server rather than none.
+  const shown = filter
+    ? data.servers.filter((row) => matches(filter, row, statuses.get(serverKey(row))) ?? !known)
+    : data.servers;
   return (
     <div className="flex flex-col gap-xl">
       <PageHeader>
@@ -156,15 +257,27 @@ export function McpPage({ data }: { data: McpData }) {
         </section>
       ) : null}
 
+      <FilterBar filter={filter} onFilter={onFilter} counts={counts} total={data.servers.length} />
+
+      {filter && shown.length === 0 ? (
+        <div className="flex flex-wrap items-center gap-s">
+          <Hint>{m.mcp_filter_none()}</Hint>
+          <Button variant="outline" onClick={() => onFilter(undefined)}>
+            {m.mcp_filter_clear()}
+          </Button>
+        </div>
+      ) : null}
+
       {spaces.map((space, index) => {
-        const rows = data.servers.filter((row) => row.space === space.name);
-        if (rows.length === 0 && !space.base) return null;
+        const rows = shown.filter((row) => row.space === space.name);
+        if (rows.length === 0 && (!space.base || filter)) return null;
         return (
           <SpaceGroup
             key={space.name}
             space={space}
             index={index}
             rows={rows}
+            filter={filter}
             render={(row) => (
               <li key={serverKey(row)}>
                 <ServerItem
@@ -207,6 +320,11 @@ function openSnapshot() {
   } catch {}
   if (openCache?.text !== text) openCache = { text, value: readOpen() };
   return openCache.value;
+}
+
+/** A section's place in the stored choices: one set without a filter, one per filter. */
+function sectionId(filter: Filter | undefined, id: string) {
+  return filter ? `${filter}/${id}` : id;
 }
 
 function useOpen(id: string, initial: boolean) {
@@ -268,16 +386,18 @@ function SpaceGroup({
   space,
   index,
   rows,
+  filter,
   render,
   statuses,
 }: {
   space: SpaceRef;
   index: number;
   rows: ServerRow[];
+  filter: Filter | undefined;
   render: (row: ServerRow) => ReactNode;
   statuses: Map<string, ServerStatus>;
 }) {
-  const [open, setOpen] = useOpen(`space:${space.name}`, true);
+  const [open, setOpen] = useOpen(sectionId(filter, `space:${space.name}`), true);
   const own = rows.filter((row) => !row.project);
   const projects = [...new Set(rows.flatMap((row) => (row.project ? [row.project] : [])))];
   return (
@@ -323,6 +443,7 @@ function SpaceGroup({
                 <ProjectGroup
                   key={project}
                   rows={rows.filter((row) => row.project === project)}
+                  filter={filter}
                   render={render}
                   statuses={statuses}
                 />
@@ -338,15 +459,18 @@ function SpaceGroup({
 /** A project's servers, in a frame that opens on its header. */
 function ProjectGroup({
   rows,
+  filter,
   render,
   statuses,
 }: {
   rows: ServerRow[];
+  filter: Filter | undefined;
   render: (row: ServerRow) => ReactNode;
   statuses: Map<string, ServerStatus>;
 }) {
   const first = rows[0]!;
-  const [open, setOpen] = useOpen(`project:${first.project}`, false);
+  // Under a filter, what it keeps is shown: projects open too.
+  const [open, setOpen] = useOpen(sectionId(filter, `project:${first.project}`), !!filter);
   return (
     <Collapsible
       open={open}
@@ -461,9 +585,7 @@ function ServerItem({
   const refresh = useRefresh();
   const connect = useConnect(row);
   const signOut = useMutation(orpc.mcp.signOut.mutationOptions({ onSuccess: refresh }));
-  // Signed in by a tool for itself: that tool only, on this machine.
-  const toolOnly =
-    row.canSignIn && !row.signIn && status?.status === "connected" && status.protected;
+  const toolOnly = isToolOnly(row, status);
   const move = useMutation(orpc.mcp.move.mutationOptions({ onSuccess: refresh }));
   const remove = useMutation(orpc.mcp.remove.mutationOptions({ onSuccess: refresh }));
   return (

@@ -819,5 +819,17 @@
   "mcp_tool_only": "Connecté par Claude Code pour lui seul : Codex et les autres machines ne l’ont pas.",
   "mcp_connect_everywhere": "Connecter partout",
   "mcp_project_hint": "Les serveurs de chacun viennent de son .mcp.json : seules les sessions de ce projet les ont, dans Claude Code et Codex. On les change dans ce fichier.",
-  "mcp_projects": "Projets de {space}"
+  "mcp_projects": "Projets de {space}",
+  "mcp_filter_label": "Filtrer les serveurs",
+  "mcp_filter_all": "Tous",
+  "mcp_filter_sign_in": "Connexion incomplète",
+  "mcp_filter_sign_in_hint": "Pas connectés, ou connectés par Claude Code pour lui seul",
+  "mcp_filter_missing": "Infos manquantes",
+  "mcp_filter_missing_hint": "Un secret reste à renseigner",
+  "mcp_filter_failed": "En échec",
+  "mcp_filter_failed_hint": "Claude Code ne les démarre pas, ou trop lentement",
+  "mcp_filter_ready": "Opérationnels",
+  "mcp_filter_ready_hint": "Connectés partout, rien ne manque",
+  "mcp_filter_none": "Aucun serveur ne correspond à ce filtre.",
+  "mcp_filter_clear": "Tout afficher"
 }

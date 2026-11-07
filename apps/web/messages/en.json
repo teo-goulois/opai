@@ -819,5 +819,17 @@
   "mcp_tool_only": "Signed in by Claude Code for itself: Codex and the other machines don't have it.",
   "mcp_connect_everywhere": "Sign in everywhere",
   "mcp_project_hint": "Each one's servers come from its .mcp.json: only that project's sessions have them, in Claude Code and Codex. Change them in that file.",
-  "mcp_projects": "Projects of {space}"
+  "mcp_projects": "Projects of {space}",
+  "mcp_filter_label": "Filter servers",
+  "mcp_filter_all": "All",
+  "mcp_filter_sign_in": "Sign-in incomplete",
+  "mcp_filter_sign_in_hint": "Not signed in, or signed in by Claude Code for itself only",
+  "mcp_filter_missing": "Missing details",
+  "mcp_filter_missing_hint": "A secret still to fill in",
+  "mcp_filter_failed": "Failing",
+  "mcp_filter_failed_hint": "Claude Code can't start them, or they start too slowly",
+  "mcp_filter_ready": "Ready",
+  "mcp_filter_ready_hint": "Connected everywhere, nothing missing",
+  "mcp_filter_none": "No server matches this filter.",
+  "mcp_filter_clear": "Show all"
 }
