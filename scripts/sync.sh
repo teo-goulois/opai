@@ -2,8 +2,9 @@
 # Syncs the instance (OPAI_HOME, ~/.opai by default) with its Git remote:
 # records this machine's skill uses and the skills it has not shared, commits
 # what agents wrote (spaces/*/agents/), rebases this machine's commits on
-# origin/main, then pushes. What you change yourself (rules, config) is never
-# committed here: you commit it, and the next run pushes it.
+# origin/main, writes global's MCP servers into the tools' own configs, then
+# pushes. What you change yourself (rules, config) is never committed here:
+# you commit it, and the next run pushes it.
 #
 #   opai sync              sync once
 #   opai sync --install    sync every 10 minutes with launchd (macOS)
@@ -156,7 +157,15 @@ if [ "$incoming" -gt 0 ]; then
   say "Pulled $incoming commits."
 fi
 
-# 5. Send this machine's commits, yours and the agents'.
+# 5. Give the apps that start Claude Code and Codex outside Opai (T3 Code, the
+#    desktop apps) the servers of global, with what was pulled and the sign-ins
+#    made on other machines, which change no file. Every run, then.
+if [ -n "$node" ]; then
+  OPAI_HOME="$root" "$node" "$engine/packages/context/src/mcp-cli.ts" sync > /dev/null 2>&1 ||
+    say "Could not write the MCP servers into the tools' configs."
+fi
+
+# 6. Send this machine's commits, yours and the agents'.
 outgoing=$(git rev-list --count origin/main..HEAD)
 if [ "$outgoing" -gt 0 ]; then
   if ! git push -q origin HEAD:main; then

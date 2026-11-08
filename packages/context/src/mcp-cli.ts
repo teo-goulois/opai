@@ -101,8 +101,8 @@ const USAGE = `usage: opai mcp <command>
   forget <name>...                              take them out of those configs, everywhere
   sync                                          write global's servers into those configs, for
                                                 the apps that start claude and codex outside
-                                                Opai; each change of global and each launch
-                                                does it too
+                                                Opai; each change of global, each launch and
+                                                each opai sync does it too
   secrets                                       the secrets the servers name, stored or missing
   secret set <NAME>                             store one in Infisical, typed or piped in
   check                                         report what is wrong

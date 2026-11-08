@@ -328,9 +328,10 @@ applies from the next session:
 The servers of `global` also go into the configs that plain Claude Code and
 Codex read, `~/.claude.json` and `~/.codex/config.toml` (in a marked block),
 for the apps that start them outside Opai: Claude Desktop, the ChatGPT app.
-Each change of `global` and each launch writes them (`opai mcp sync` does it
-by hand), replacing a server of the same name; a server that leaves `global`
-leaves them. No secret is written: a remote server that needs one gets the
+Each change of `global`, each launch and each `opai sync` (so what another
+machine pushed or signed in to) writes them (`opai mcp sync` does it by
+hand), replacing a server of the same name; a server that leaves `global`
+leaves them, and one Opai signed in to leaves Claude Code's needs-auth cache. No secret is written: a remote server that needs one gets the
 headers helper `opai mcp headers <name>`, which reads it and Opai's sign-in
 from Infisical; a local one starts through `opai mcp run <name>`, which puts
 its secrets in its environment and finds `npx` on a PATH the apps keep short.

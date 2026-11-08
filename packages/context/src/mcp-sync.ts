@@ -17,7 +17,7 @@ import { dirname, join } from "node:path";
 
 import { parse as parseToml } from "smol-toml";
 
-import { records, type OAuthRecord } from "./mcp-oauth.ts";
+import { forgetNeedsAuth, records, type OAuthRecord } from "./mcp-oauth.ts";
 import { infisicalEnv, readSecrets, variables } from "./mcp-secrets.ts";
 import {
   claudeServer,
@@ -174,8 +174,10 @@ export function syncTools(
   const claude: Record<string, Server> = {};
   const codex: Record<string, Record<string, unknown>> = {};
   const skipped: string[] = [];
+  const helped: string[] = [];
   for (const [name, server] of Object.entries(servers)) {
     const isSigned = !!server.url && signed.get(name)?.url === server.url;
+    if (isSigned) helped.push(name);
     const outside = outsideServer(root, name, server, isSigned, home);
     if (typeof outside === "string") {
       skipped.push(`${name}: ${outside}`);
@@ -185,6 +187,7 @@ export function syncTools(
     const table = codexServer(outside, { HOME: home });
     if (table) codex[name] = table;
   }
+  forgetNeedsAuth(root, helped, home);
   const before = syncedNames(root);
   const changed: string[] = [];
   const claudeFile = join(home, ".claude.json");
