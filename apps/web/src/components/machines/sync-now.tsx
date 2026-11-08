@@ -35,6 +35,9 @@ function summary(result: SyncResult) {
     result.pushed > 0 ? m.sync_pushed({ count: result.pushed }) : undefined,
     result.pulled > 0 ? m.sync_pulled({ count: result.pulled }) : undefined,
     result.configs.length > 0 ? m.sync_configs() : undefined,
+    ...result.machines
+      .filter((machine) => !machine.problem)
+      .map((machine) => m.sync_machine_done({ machine: machine.name })),
   ].filter(Boolean);
   return parts.length > 0 ? parts.join(" · ") : m.sync_up_to_date();
 }
@@ -47,7 +50,12 @@ export function SyncNow() {
     filters: { mutationKey: syncKey },
     select: (mutation) => mutation.state as { data?: SyncResult; error: Error | null },
   }).at(-1);
-  const problem = last?.error?.message ?? last?.data?.problem;
+  const problems = [
+    last?.error?.message ?? last?.data?.problem,
+    ...(last?.data?.machines ?? [])
+      .filter((machine) => machine.problem)
+      .map((machine) => `${machine.name} : ${machine.problem}`),
+  ].filter(Boolean);
 
   return (
     <div className="flex flex-wrap items-center gap-s">
@@ -56,11 +64,18 @@ export function SyncNow() {
           <Spinner aria-hidden />
           {m.sync_running()}
         </span>
-      ) : problem ? (
-        <span className="font-ui text-s text-error">{problem}</span>
-      ) : last?.data ? (
-        <span className="font-ui text-s text-neutral-7">{summary(last.data)}</span>
-      ) : null}
+      ) : (
+        <>
+          {last?.data && !last.data.problem ? (
+            <span className="font-ui text-s text-neutral-7">{summary(last.data)}</span>
+          ) : null}
+          {problems.map((problem) => (
+            <span key={problem} className="font-ui text-s text-error">
+              {problem}
+            </span>
+          ))}
+        </>
+      )}
       <Button
         variant="outline"
         title={m.sync_now_hint()}

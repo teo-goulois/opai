@@ -165,8 +165,10 @@ is installed, on `127.0.0.1:4748` otherwise. Its pages call the same oRPC proced
   commits every change to the MCP servers and the skills (each space's
   `mcp.json` and `skills/`, and the links), and nothing else, runs `opai
   sync` at once, then writes global's servers into the tools' configs
-  (`packages/context/src/sync-now.ts`). The other machines get it at their
-  next sync, or with their own Sync now.
+  (`packages/context/src/sync-now.ts`). Then it runs the sync of each
+  machine of `machines.json` through SSH (`launchctl kickstart`, never
+  killing one already running) and says what each did; the others get it at
+  their next sync.
 - MCP: the servers of each space and of its projects (their `.mcp.json`),
   and the secrets they name, stored or missing (a missing one is stored
   from its badge). Add one by pasting what
