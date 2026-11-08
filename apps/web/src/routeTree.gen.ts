@@ -20,6 +20,7 @@ import { Route as ConfigSplatRouteImport } from './routes/config/$'
 import { Route as HandbookIndexRouteImport } from './routes/handbook/index'
 import { Route as HandbookSplatRouteImport } from './routes/handbook/$'
 import { Route as HandbookPublishRouteImport } from './routes/handbook/publish'
+import { Route as MachinesIndexRouteImport } from './routes/machines/index'
 import { Route as McpIndexRouteImport } from './routes/mcp/index'
 import { Route as SessionsIndexRouteImport } from './routes/sessions/index'
 import { Route as SkillsIndexRouteImport } from './routes/skills/index'
@@ -94,6 +95,11 @@ const HandbookSplatRoute = HandbookSplatRouteImport.update({
 const HandbookPublishRoute = HandbookPublishRouteImport.update({
   id: '/handbook/publish',
   path: '/handbook/publish',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MachinesIndexRoute = MachinesIndexRouteImport.update({
+  id: '/machines/',
+  path: '/machines/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const McpIndexRoute = McpIndexRouteImport.update({
@@ -210,6 +216,7 @@ export interface FileRoutesByFullPath {
   '/automations/': typeof AutomationsIndexRoute
   '/config/': typeof ConfigIndexRoute
   '/handbook/': typeof HandbookIndexRoute
+  '/machines/': typeof MachinesIndexRoute
   '/mcp/': typeof McpIndexRoute
   '/sessions/': typeof SessionsIndexRoute
   '/skills/': typeof SkillsIndexRoute
@@ -242,6 +249,7 @@ export interface FileRoutesByTo {
   '/automations': typeof AutomationsIndexRoute
   '/config': typeof ConfigIndexRoute
   '/handbook': typeof HandbookIndexRoute
+  '/machines': typeof MachinesIndexRoute
   '/mcp': typeof McpIndexRoute
   '/sessions': typeof SessionsIndexRoute
   '/skills': typeof SkillsIndexRoute
@@ -276,6 +284,7 @@ export interface FileRoutesById {
   '/automations/': typeof AutomationsIndexRoute
   '/config/': typeof ConfigIndexRoute
   '/handbook/': typeof HandbookIndexRoute
+  '/machines/': typeof MachinesIndexRoute
   '/mcp/': typeof McpIndexRoute
   '/sessions/': typeof SessionsIndexRoute
   '/skills/': typeof SkillsIndexRoute
@@ -311,6 +320,7 @@ export interface FileRouteTypes {
     | '/automations/'
     | '/config/'
     | '/handbook/'
+    | '/machines/'
     | '/mcp/'
     | '/sessions/'
     | '/skills/'
@@ -343,6 +353,7 @@ export interface FileRouteTypes {
     | '/automations'
     | '/config'
     | '/handbook'
+    | '/machines'
     | '/mcp'
     | '/sessions'
     | '/skills'
@@ -376,6 +387,7 @@ export interface FileRouteTypes {
     | '/automations/'
     | '/config/'
     | '/handbook/'
+    | '/machines/'
     | '/mcp/'
     | '/sessions/'
     | '/skills/'
@@ -410,6 +422,7 @@ export interface RootRouteChildren {
   AutomationsIndexRoute: typeof AutomationsIndexRoute
   ConfigIndexRoute: typeof ConfigIndexRoute
   HandbookIndexRoute: typeof HandbookIndexRoute
+  MachinesIndexRoute: typeof MachinesIndexRoute
   McpIndexRoute: typeof McpIndexRoute
   SessionsIndexRoute: typeof SessionsIndexRoute
   SkillsIndexRoute: typeof SkillsIndexRoute
@@ -499,6 +512,13 @@ declare module '@tanstack/react-router' {
       path: '/handbook/publish'
       fullPath: '/handbook/publish'
       preLoaderRoute: typeof HandbookPublishRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/machines/': {
+      id: '/machines/'
+      path: '/machines'
+      fullPath: '/machines/'
+      preLoaderRoute: typeof MachinesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mcp/': {
@@ -685,6 +705,7 @@ const rootRouteChildren: RootRouteChildren = {
   AutomationsIndexRoute: AutomationsIndexRoute,
   ConfigIndexRoute: ConfigIndexRoute,
   HandbookIndexRoute: HandbookIndexRoute,
+  MachinesIndexRoute: MachinesIndexRoute,
   McpIndexRoute: McpIndexRoute,
   SessionsIndexRoute: SessionsIndexRoute,
   SkillsIndexRoute: SkillsIndexRoute,

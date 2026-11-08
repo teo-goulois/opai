@@ -18,6 +18,7 @@ import {
   FolderIcon,
   HandbookIcon,
   LanguageIcon,
+  MachineIcon,
   OpsIcon,
   PaletteIcon,
   RulesIcon,
@@ -196,6 +197,12 @@ function CommandPalette({
             label: m.nav_config(),
             icon: <FolderIcon aria-hidden />,
             run: () => void navigate({ to: "/config" }),
+          },
+          {
+            value: `${m.nav_machines()} machines instances sync partage sharing runner`,
+            label: m.nav_machines(),
+            icon: <MachineIcon aria-hidden />,
+            run: () => void navigate({ to: "/machines" }),
           },
           {
             value: `${m.nav_handbook()} handbook code docs`,

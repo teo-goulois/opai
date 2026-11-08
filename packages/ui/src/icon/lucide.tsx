@@ -20,6 +20,7 @@ import {
   GitMerge,
   Info,
   Languages,
+  Laptop,
   Layers,
   Loader,
   Monitor,
@@ -72,6 +73,7 @@ export const HandbookIcon = icon(BookOpen);
 export const InfoIcon = icon(Info);
 export const LanguageIcon = icon(Languages);
 export const LoaderIcon = icon(Loader);
+export const MachineIcon = icon(Laptop);
 export const MoonIcon = icon(Moon);
 export const MoreIcon = icon(Ellipsis);
 export const MoveIcon = icon(ArrowRight);

@@ -15,6 +15,7 @@ import {
   FolderIcon,
   HandbookIcon,
   LanguageIcon,
+  MachineIcon,
   OpsIcon,
   MoonIcon,
   PaletteIcon,
@@ -64,6 +65,7 @@ function useNavGroups(): NavGroup[] {
       label: m.nav_group_instance(),
       items: [
         { to: "/config", label: m.nav_config(), icon: FolderIcon },
+        { to: "/machines", label: m.nav_machines(), icon: MachineIcon },
         { to: "/handbook", label: m.nav_handbook(), icon: HandbookIcon },
         { to: "/analytics", label: m.nav_analytics(), icon: AnalyticsIcon },
       ],

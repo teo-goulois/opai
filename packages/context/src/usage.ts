@@ -182,6 +182,24 @@ export const countSkillUses = (root: string) =>
     catch: (cause) => new UsageUnreadable({ path: root, cause }),
   });
 
+/** Uses per machine, then per skill id as recorded. */
+export const usesByMachine = (root: string) =>
+  Effect.tryPromise({
+    try: async () => {
+      const machines = new Map<string, Map<string, number>>();
+      for (const path of await usagePaths(root)) {
+        for (const record of await readLines(path)) {
+          if (!record.machine) continue;
+          const skills = machines.get(record.machine) ?? new Map<string, number>();
+          skills.set(record.skill, (skills.get(record.skill) ?? 0) + 1);
+          machines.set(record.machine, skills);
+        }
+      }
+      return machines;
+    },
+    catch: (cause) => new UsageUnreadable({ path: root, cause }),
+  });
+
 /** When the oldest recorded use happened: uses are only observed since then. */
 export const firstObservedUse = (root: string) =>
   Effect.tryPromise({

@@ -458,6 +458,40 @@
   "skill_sharing_shared_hint": "On the remote as it is here: your other machines get it at their sync.",
   "skill_share": "Share",
   "skill_share_hint": "Commits this skill and its links, and nothing else.",
+  "nav_machines": "Machines",
+  "machines_title": "Machines",
+  "machines_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} machine",
+        "countPlural=*": "{count} machines"
+      }
+    }
+  ],
+  "machines_hint": "The machines that sync this instance. Each sync publishes the skills its machine has not shared.",
+  "machine_current": "This machine",
+  "machine_last_activity": "Last activity",
+  "machine_last_activity_hint": "The last commit of its sync.",
+  "machine_last_activity_none": "No commit from its sync yet",
+  "machine_unshared": "Not shared",
+  "machine_unshared_none": "Every skill is shared.",
+  "machine_unshared_unknown": "No state published yet: update the engine on this machine, and its next sync publishes it.",
+  "machine_unshared_no_remote": "The instance has no origin/main to share through.",
+  "machine_skills": "Most used skills",
+  "machine_skills_none": "No observed use.",
+  "machine_uses": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} skill use",
+        "countPlural=*": "{count} skill uses"
+      }
+    }
+  ],
+  "machine_declared_hint": "In machines.json: the Automations page reads it through SSH.",
   "skills_unshared": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],

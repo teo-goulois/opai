@@ -70,7 +70,7 @@ Codex reads `~/.agents/skills` (`opai codex` turns each of those skills off).
 │   ├── skills/        its skills
 │   ├── mcp.json       its MCP servers
 │   ├── context/       your notes: agents write only with your yes
-│   └── agents/        what agents write (journal, issues, skill uses)
+│   └── agents/        what agents write (journal, issues, skill uses, machine states)
 ├── handbook/          optional: your handbook, published to a site
 ├── claude/            Claude Code's config folder
 ├── codex/             Codex's config folder
@@ -156,6 +156,12 @@ is installed, on `127.0.0.1:4748` otherwise. Its pages call the same oRPC proced
   `claude/skills/` and `codex/skills/`) stays on this machine until it is
   committed. Its page commits it, and nothing else, with Share; the next sync
   pushes it (`packages/context/src/sharing.ts`).
+- Machines: the machines that sync the instance, this one first. For each,
+  its last activity (the last commit of its sync), the skills it has not
+  shared, and the skills it uses most. A machine's sync publishes what it has
+  not shared in `spaces/global/agents/machines/<machine>.json`, rewritten only
+  when that changes (`packages/context/src/machines.ts`), so a machine whose
+  engine predates it shows no state yet.
 - MCP: the servers of each space and of its projects (their `.mcp.json`),
   and the secrets they name, stored or missing (a missing one is stored
   from its badge). Add one by pasting what

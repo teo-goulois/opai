@@ -1,9 +1,9 @@
 #!/bin/sh
 # Syncs the instance (OPAI_HOME, ~/.opai by default) with its Git remote:
-# records this machine's skill uses, commits what agents wrote
-# (spaces/*/agents/), rebases this machine's commits on origin/main, then
-# pushes. What you change yourself (rules, config) is never committed here:
-# you commit it, and the next run pushes it.
+# records this machine's skill uses and the skills it has not shared, commits
+# what agents wrote (spaces/*/agents/), rebases this machine's commits on
+# origin/main, then pushes. What you change yourself (rules, config) is never
+# committed here: you commit it, and the next run pushes it.
 #
 #   opai sync              sync once
 #   opai sync --install    sync every 10 minutes with launchd (macOS)
@@ -115,6 +115,10 @@ fi
 if [ -n "$node" ]; then
   OPAI_HOME="$root" "$node" "$engine/packages/context/src/usage.ts" collect > /dev/null 2>&1 ||
     say "Could not collect skill uses."
+  # The skills this machine has not shared, for the other machines to see
+  # (machines.ts). Written only when they change.
+  OPAI_HOME="$root" "$node" "$engine/packages/context/src/machines.ts" report > /dev/null 2>&1 ||
+    say "Could not report this machine's state."
 fi
 
 # 2. Commit what agents wrote, and only that. Anything you staged by hand stays
