@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import { after, test } from "node:test";
 
 import { makeFixture } from "./fixture.ts";
-import { shareSkill, skillSharing } from "./sharing.ts";
+import { shareAll, shareSkill, skillSharing } from "./sharing.ts";
 
 const fixture = makeFixture();
 const remote = realpathSync(mkdtempSync(join(tmpdir(), "opai-remote-")));
@@ -94,4 +94,16 @@ test("sharing a skill commits it and its links, and nothing else", () => {
   assert.match(git("status", "--porcelain"), /^A {2}spaces\/perso\/context\/notes\.md$/m);
   assert.throws(() => shareSkill(root, "local"), /nothing to share/);
   assert.throws(() => shareSkill(root, "missing"), /No skill named missing/);
+});
+
+test("sharing all commits the MCP servers and the skills, and nothing else", () => {
+  write(join(root, "spaces", "perso", "mcp.json"), '{ "mcpServers": {} }\n');
+  assert.deepEqual(shareAll(root), [
+    "spaces/global/skills/changed/notes.md",
+    "spaces/perso/mcp.json",
+  ]);
+  assert.equal(git("log", "-1", "--format=%s").trim(), "Share MCP servers and skills");
+  assert.match(git("status", "--porcelain"), /^A {2}spaces\/perso\/context\/notes\.md$/m);
+  assert.equal(skillSharing(root)?.get("spaces/global/skills/changed"), "pending");
+  assert.deepEqual(shareAll(root), []);
 });

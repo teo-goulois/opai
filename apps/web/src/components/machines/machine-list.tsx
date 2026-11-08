@@ -16,13 +16,18 @@ import { SkillSharing, type SkillRow } from "@/components/skills/skill-list";
 import { m } from "@/paraglide/messages.js";
 import { formatDate, formatRelative } from "@/utils/format";
 
+import { SyncNow } from "./sync-now";
+
 /** Every machine that syncs the instance: what it has not shared, and what it uses. */
 export function MachineList({ machines, skills }: { machines: Machine[]; skills: SkillRow[] }) {
   const byName = new Map(skills.map((skill) => [skill.name, skill]));
   return (
     <div className="flex flex-col gap-xl">
       <PageHeader>
-        <PageTitle>{m.machines_title()}</PageTitle>
+        <div className="flex flex-wrap items-center justify-between gap-s">
+          <PageTitle>{m.machines_title()}</PageTitle>
+          <SyncNow />
+        </div>
         <PageMeta>
           <span>{m.machines_count({ count: machines.length })}</span>
           <span>{m.machines_hint()}</span>

@@ -471,6 +471,41 @@
     }
   ],
   "machines_hint": "Les machines qui synchronisent cette instance. Chaque sync publie les skills que sa machine n’a pas partagés.",
+  "sync_now": "Synchroniser",
+  "sync_now_hint": "Commite les serveurs MCP et les skills, les envoie aux autres machines et récupère les leurs. Les autres machines les reçoivent à leur prochain sync.",
+  "sync_running": "Synchronisation…",
+  "sync_shared": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} fichier partagé",
+        "countPlural=*": "{count} fichiers partagés"
+      }
+    }
+  ],
+  "sync_pulled": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} commit reçu",
+        "countPlural=*": "{count} commits reçus"
+      }
+    }
+  ],
+  "sync_pushed": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} commit envoyé",
+        "countPlural=*": "{count} commits envoyés"
+      }
+    }
+  ],
+  "sync_configs": "Configs de Claude Code et Codex à jour",
+  "sync_up_to_date": "Déjà à jour",
   "machine_current": "Cette machine",
   "machine_last_activity": "Dernière activité",
   "machine_last_activity_hint": "Le dernier commit de son sync.",

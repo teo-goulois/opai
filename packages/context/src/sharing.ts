@@ -1,7 +1,8 @@
 // Whether each skill reaches the other machines of the instance. `opai sync`
 // pushes the instance to origin/main every 10 minutes, but it commits only what
 // agents wrote (spaces/*/agents/): a skill reaches the other machines once it is
-// committed, here or with shareSkill.
+// committed, here, with shareSkill, or with shareAll, which commits the MCP
+// servers too.
 //
 // A skill is its folder plus the links Claude Code and Codex read
 // (claude/skills/<name>, codex/skills/<name>): all of them have to be shared.
@@ -11,6 +12,7 @@ import { lstatSync } from "node:fs";
 import { join, relative } from "node:path";
 
 import { listSkills, SkillError, type Skill } from "./skills.ts";
+import { loadSpaces } from "./spaces.ts";
 
 /**
  * - local: never committed, so on this machine only.
@@ -121,6 +123,23 @@ export function skillSharing(root: string, skills = listSkills(root)) {
 }
 
 /**
+ * Commits these paths and nothing else: anything else staged stays out. Says
+ * why when it fails, and leaves them unstaged.
+ */
+function commit(top: string, paths: string[], message: string[]) {
+  try {
+    git(top, ["add", "-A", "--", ...paths]);
+    git(top, ["commit", "-q", ...message.flatMap((part) => ["-m", part]), "--", ...paths]);
+    return undefined;
+  } catch (error) {
+    tryGit(top, ["reset", "-q", "--", ...paths]);
+    const detail =
+      error && typeof error === "object" && "stderr" in error ? String(error.stderr).trim() : "";
+    return `a secret found by the pre-commit hook, or a Git error.${detail ? ` ${detail}` : ""}`;
+  }
+}
+
+/**
  * Commits a skill (its folder and its links) and nothing else, for the next
  * sync to push. Anything else staged stays out of the commit.
  */
@@ -138,16 +157,32 @@ export function shareSkill(root: string, name: string) {
   if (state !== "local" && state !== "changed") {
     throw new SkillError(`${name} has nothing to share.`);
   }
-  try {
-    git(top, ["add", "-A", "--", ...own]);
-    git(top, ["commit", "-q", "-m", `Share the ${name} skill`, "--", ...own]);
-  } catch (error) {
-    tryGit(top, ["reset", "-q", "--", ...own]);
-    const detail =
-      error && typeof error === "object" && "stderr" in error ? String(error.stderr).trim() : "";
-    throw new SkillError(
-      `Could not commit ${name}: a secret found by the pre-commit hook, or a Git error.${detail ? ` ${detail}` : ""}`,
-    );
-  }
+  const failed = commit(top, own, [`Share the ${name} skill`]);
+  if (failed) throw new SkillError(`Could not commit ${name}: ${failed}`);
   return { name, sharing: skillSharing(root, [skill])?.get(skill.folder) ?? "pending" };
+}
+
+/**
+ * Commits every change to the MCP servers and the skills (each space's
+ * mcp.json and skills, and the skill links) and nothing else, for the next
+ * sync to push. Returns the paths it committed.
+ */
+export function shareAll(root: string) {
+  const top = topOf(root);
+  if (!top) throw new Error("The instance is not a Git repository.");
+  const scope = [
+    ...loadSpaces(root).flatMap((space) => [
+      join("spaces", space.name, "mcp.json"),
+      join("spaces", space.name, "skills"),
+    ]),
+    join("claude", "skills"),
+    join("codex", "skills"),
+  ].map((path) => relative(top, join(root, path)));
+  const paths = changedPaths(
+    tryGit(top, ["status", "--porcelain=v1", "-z", "--untracked-files=all", "--", ...scope]),
+  );
+  if (paths.length === 0) return [];
+  const failed = commit(top, paths, ["Share MCP servers and skills", paths.join("\n")]);
+  if (failed) throw new Error(`Could not commit the MCP servers and skills: ${failed}`);
+  return paths;
 }

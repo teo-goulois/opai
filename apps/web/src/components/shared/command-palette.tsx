@@ -21,6 +21,7 @@ import {
   MachineIcon,
   OpsIcon,
   PaletteIcon,
+  RefreshIcon,
   RulesIcon,
   SessionsIcon,
   SkillIcon,
@@ -40,6 +41,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { useSyncNow } from "@/components/machines/sync-now";
 import { orderSpaces, SpaceDot } from "@/components/spaces/space-ui";
 import { m } from "@/paraglide/messages.js";
 import { orpc } from "@/utils/orpc";
@@ -97,6 +99,7 @@ function CommandPalette({
   const spaces = useQuery(orpc.spaces.list.queryOptions());
   const skills = useQuery(orpc.skills.list.queryOptions());
   const rules = useQuery(orpc.rules.list.queryOptions());
+  const { mutate: syncNow } = useSyncNow();
   // Ignore extra Enter presses while the dialog animates closed.
   const committedRef = useRef(false);
 
@@ -233,6 +236,17 @@ function CommandPalette({
         label: m.palette_actions(),
         items: [
           {
+            value: `${m.sync_now()} sync synchroniser mcp skills machines push pull`,
+            label: m.sync_now(),
+            hint: m.nav_machines(),
+            icon: <RefreshIcon aria-hidden />,
+            // The Machines page shows its progress and what it did.
+            run: () => {
+              syncNow({});
+              void navigate({ to: "/machines" });
+            },
+          },
+          {
             value: `${m.theme_toggle()} theme dark light`,
             label: m.theme_toggle(),
             icon: <SunIcon aria-hidden />,
@@ -250,7 +264,7 @@ function CommandPalette({
     ];
 
     return result.filter((group) => group.items.length > 0);
-  }, [hotkeys, navigate, toggleTheme, spaces.data, skills.data, rules.data]);
+  }, [hotkeys, navigate, toggleTheme, spaces.data, skills.data, rules.data, syncNow]);
 
   function runAction(action: PaletteAction) {
     if (committedRef.current) return;

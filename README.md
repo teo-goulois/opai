@@ -161,7 +161,12 @@ is installed, on `127.0.0.1:4748` otherwise. Its pages call the same oRPC proced
   shared, and the skills it uses most. A machine's sync publishes what it has
   not shared in `spaces/global/agents/machines/<machine>.json`, rewritten only
   when that changes (`packages/context/src/machines.ts`), so a machine whose
-  engine predates it shows no state yet.
+  engine predates it shows no state yet. Sync now (also in the palette)
+  commits every change to the MCP servers and the skills (each space's
+  `mcp.json` and `skills/`, and the links), and nothing else, runs `opai
+  sync` at once, then writes global's servers into the tools' configs
+  (`packages/context/src/sync-now.ts`). The other machines get it at their
+  next sync, or with their own Sync now.
 - MCP: the servers of each space and of its projects (their `.mcp.json`),
   and the secrets they name, stored or missing (a missing one is stored
   from its badge). Add one by pasting what
