@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { after, test } from "node:test";
 
 import { codexServer } from "./mcp-servers.ts";
-import { prepareLaunch } from "./mcp-oauth.ts";
+import { forgetNeedsAuth, prepareLaunch } from "./mcp-oauth.ts";
 import { umamiEnv } from "./analytics/umami.ts";
 import { readSecrets, storeSecrets, variables } from "./mcp-secrets.ts";
 
@@ -144,4 +144,18 @@ test("signed out of Infisical, the Umami keys say why they are missing", () => {
   const { env, infisical } = umamiEnv(other, {});
   assert.equal(env.UMAMI_ADMIN_API_KEY, undefined);
   assert.match(infisical!, /^Infisical: no logged in details/);
+});
+
+test("a server Opai signed in to leaves Claude Code's needs-auth cache", () => {
+  const home = join(base, "home");
+  const files = [join(root, "claude"), join(home, ".claude")].map((folder) => {
+    mkdirSync(folder, { recursive: true });
+    const file = join(folder, "mcp-needs-auth-cache.json");
+    writeFileSync(file, JSON.stringify({ docs: { timestamp: 1 }, other: { timestamp: 2 } }));
+    return file;
+  });
+  forgetNeedsAuth(root, ["docs"], home);
+  for (const file of files) {
+    assert.deepEqual(JSON.parse(readFileSync(file, "utf8")), { other: { timestamp: 2 } });
+  }
 });

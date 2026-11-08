@@ -12,8 +12,8 @@
 
 import { createHash, randomBytes } from "node:crypto";
 import { createServer, type Server as HttpServer } from "node:http";
-import { mkdirSync, rmSync, statSync } from "node:fs";
-import { hostname } from "node:os";
+import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { homedir, hostname } from "node:os";
 import { join } from "node:path";
 
 import { deleteSecret, infisicalEnv, readSecrets, storeSecrets, variables } from "./mcp-secrets.ts";
@@ -134,15 +134,43 @@ export function prepareLaunch(
     missing.filter((name) => name in stored).map((name) => [name, stored[name]!]),
   );
   const signedIn = records(stored);
+  const helped = new Set(
+    Object.entries(servers)
+      .filter(([name, server]) => canSignIn(server) && signedIn.get(name)?.url === server.url)
+      .map(([name]) => name),
+  );
+  forgetNeedsAuth(root, [...helped]);
   const withHelpers = Object.fromEntries(
     Object.entries(servers).map(([name, server]) => [
       name,
-      canSignIn(server) && signedIn.get(name)?.url === server.url
-        ? { ...server, headersHelper: helperCommand(root, name) }
-        : server,
+      helped.has(name) ? { ...server, headersHelper: helperCommand(root, name) } : server,
     ]),
   );
   return { secrets, servers: withHelpers, signedIn };
+}
+
+const NEEDS_AUTH = "mcp-needs-auth-cache.json";
+
+/**
+ * Claude Code remembers a server that asked it to sign in
+ * (mcp-needs-auth-cache.json) and skips it for a while, helper or not: a
+ * server Opai signs in to leaves that cache, in the instance's claude/ and in
+ * ~/.claude for the apps outside Opai.
+ */
+export function forgetNeedsAuth(root: string, names: string[], home = homedir()) {
+  if (names.length === 0) return;
+  for (const file of [join(root, "claude", NEEDS_AUTH), join(home, ".claude", NEEDS_AUTH)]) {
+    let cache: Record<string, unknown>;
+    try {
+      cache = JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>;
+    } catch {
+      continue;
+    }
+    const stale = names.filter((name) => name in cache);
+    if (stale.length === 0) continue;
+    for (const name of stale) delete cache[name];
+    writeFileSync(file, JSON.stringify(cache));
+  }
 }
 
 const INITIALIZE = {
