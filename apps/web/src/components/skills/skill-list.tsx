@@ -1,4 +1,5 @@
 import type { SkillUsage } from "@opai/context/routers/skills";
+import type { Sharing } from "@opai/context/sharing";
 import type { Skill, SkillSource } from "@opai/context/skills";
 import { Badge } from "@opai/ui/components/ui/badge";
 import { Button } from "@opai/ui/components/ui/button";
@@ -50,7 +51,7 @@ import { m } from "@/paraglide/messages.js";
 import { formatDate, formatRelative } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
-export type SkillRow = Skill & { usage: SkillUsage };
+export type SkillRow = Skill & { usage: SkillUsage; sharing: Sharing | undefined };
 type SpaceRef = { name: string; base: boolean; default?: boolean };
 
 /** Where an imported skill comes from, as skills.ts describeSource writes it. */
@@ -112,6 +113,41 @@ export function SkillModified({ skill }: { skill: Skill }) {
   ) : null;
 }
 
+const sharingText = {
+  local: { label: m.skill_sharing_local, hint: m.skill_sharing_local_hint },
+  changed: { label: m.skill_sharing_changed, hint: m.skill_sharing_changed_hint },
+  pending: { label: m.skill_sharing_pending, hint: m.skill_sharing_pending_hint },
+  shared: { label: m.skill_sharing_shared, hint: m.skill_sharing_shared_hint },
+} satisfies Record<Sharing, { label: () => string; hint: () => string }>;
+
+export function sharingHint(sharing: Sharing) {
+  return sharingText[sharing].hint();
+}
+
+/** Whether the other machines have the skill; compact shows only what they lack. */
+export function SkillSharing({
+  sharing,
+  compact,
+}: {
+  sharing: Sharing | undefined;
+  compact?: boolean;
+}) {
+  if (!sharing || (compact && sharing === "shared")) return null;
+  const { label, hint } = sharingText[sharing];
+  if (sharing === "shared") {
+    return (
+      <span className="font-ui text-s text-neutral-7" title={hint()}>
+        {label()}
+      </span>
+    );
+  }
+  return (
+    <Badge variant={sharing === "pending" ? "neutral" : "warning"} title={hint()}>
+      {label()}
+    </Badge>
+  );
+}
+
 /** The skills tab of a space: its own, then those it gets from the base space. */
 export function SpaceSkills({ name }: { name: string }) {
   const { space, spaces, skills, ownSkills } = useSpaceData(name);
@@ -167,6 +203,7 @@ function SkillItems({ skills }: { skills: SkillRow[] }) {
               <ItemTitle>
                 {skill.name}
                 <SkillModified skill={skill} />
+                <SkillSharing sharing={skill.sharing} compact />
               </ItemTitle>
               <ItemDescription className="line-clamp-1">{skill.description}</ItemDescription>
             </ItemMain>
@@ -195,6 +232,8 @@ export function AllSkills({
 }) {
   const spaces = orderSpaces(unordered.map((space) => ({ default: false, ...space })));
   const [filter, setFilter] = useState<"all" | "auto" | "manual">("all");
+  const shares = skills.some((skill) => skill.sharing);
+  const unshared = skills.filter((skill) => skill.sharing && skill.sharing !== "shared").length;
   const rank = (skill: SkillRow) => spaces.findIndex((space) => space.name === skill.space);
   const rows = skills
     .filter((skill) =>
@@ -212,6 +251,7 @@ export function AllSkills({
         <PageMeta>
           <span>{m.skills_count({ count: skills.length })}</span>
           <span>{since ? m.skills_since({ date: formatDate(since) }) : m.skills_since_none()}</span>
+          {unshared > 0 ? <span>{m.skills_unshared({ count: unshared })}</span> : null}
         </PageMeta>
       </PageHeader>
 
@@ -257,6 +297,7 @@ export function AllSkills({
               <TableHead>{m.skills_column_skill()}</TableHead>
               <TableHead>{m.skill_space()}</TableHead>
               <TableHead>{m.skill_trigger()}</TableHead>
+              {shares ? <TableHead>{m.skill_sharing()}</TableHead> : null}
               <TableHead numeric>{m.skills_column_uses()}</TableHead>
               <TableHead numeric>{m.skills_column_cost()}</TableHead>
             </TableRow>
@@ -286,6 +327,11 @@ export function AllSkills({
                 <TableCell>
                   <SkillTrigger skill={skill} />
                 </TableCell>
+                {shares ? (
+                  <TableCell>
+                    <SkillSharing sharing={skill.sharing} />
+                  </TableCell>
+                ) : null}
                 <TableCell numeric>
                   <span title={usageLine(skill.usage)}>{skill.usage.uses}</span>
                 </TableCell>

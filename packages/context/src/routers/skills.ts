@@ -18,6 +18,7 @@ import {
   updateSkill,
   type Skill,
 } from "../skills.ts";
+import { shareSkill, skillSharing } from "../sharing.ts";
 import { loadSpaces } from "../spaces.ts";
 import { countSkillUses, firstObservedUse, type SkillCount } from "../usage.ts";
 
@@ -63,10 +64,13 @@ export const skillsRouter = {
       Effect.runPromise(countSkillUses(context.root)),
       Effect.runPromise(firstObservedUse(context.root)),
     ]);
+    const skills = listSkills(context.root);
+    const sharing = skillSharing(context.root, skills);
     return {
-      skills: listSkills(context.root).map((skill) => ({
+      skills: skills.map((skill) => ({
         ...skill,
         usage: usageOf(skill, counts),
+        sharing: sharing?.get(skill.folder),
       })),
       spaces: loadSpaces(context.root).map((space) => ({ name: space.name, base: space.base })),
       since,
@@ -77,7 +81,8 @@ export const skillsRouter = {
     const counts = await Effect.runPromise(countSkillUses(context.root));
     return run(() => {
       const skill = skillDetail(context.root, input.name);
-      return { ...skill, usage: usageOf(skill, counts) };
+      const sharing = skillSharing(context.root, [skill])?.get(skill.folder);
+      return { ...skill, usage: usageOf(skill, counts), sharing };
     });
   }),
   save: o
@@ -116,4 +121,8 @@ export const skillsRouter = {
     .handler(({ context, input }) =>
       run(() => updateSkill(context.root, input.name, { apply: input.apply })),
     ),
+  /** Commits the skill and its links, for the next sync to push to the other machines. */
+  share: o
+    .input(z.object({ name: Name }))
+    .handler(({ context, input }) => run(() => shareSkill(context.root, input.name))),
 };

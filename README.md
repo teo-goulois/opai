@@ -151,6 +151,11 @@ is installed, on `127.0.0.1:4748` otherwise. Its pages call the same oRPC proced
   description the agent reads to decide, edits its `SKILL.md`, moves it to
   another space, and compares an imported one with its source (`opai
   skills`, below, does the same from a terminal). Import one from either page.
+  Each skill also says whether your other machines have it: `opai sync`
+  commits only `spaces/*/agents/`, so a skill (its folder and its links in
+  `claude/skills/` and `codex/skills/`) stays on this machine until it is
+  committed. Its page commits it, and nothing else, with Share; the next sync
+  pushes it (`packages/context/src/sharing.ts`).
 - MCP: the servers of each space and of its projects (their `.mcp.json`),
   and the secrets they name, stored or missing (a missing one is stored
   from its badge). Add one by pasting what

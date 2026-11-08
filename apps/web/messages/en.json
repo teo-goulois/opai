@@ -447,6 +447,27 @@
   "skill_explicit_hint": "Out of the agent's list until you ask for it with /name or $name.",
   "skill_modified": "Changed here",
   "skill_modified_hint": "Differs from the version imported from its source.",
+  "skill_sharing": "Sharing",
+  "skill_sharing_local": "This machine only",
+  "skill_sharing_local_hint": "Never committed: your other machines don't have it.",
+  "skill_sharing_changed": "Unshared changes",
+  "skill_sharing_changed_hint": "Committed, but its latest changes are on this machine only.",
+  "skill_sharing_pending": "At the next sync",
+  "skill_sharing_pending_hint": "Committed: the next sync sends it to your other machines, within 10 minutes.",
+  "skill_sharing_shared": "Shared",
+  "skill_sharing_shared_hint": "On the remote as it is here: your other machines get it at their sync.",
+  "skill_share": "Share",
+  "skill_share_hint": "Commits this skill and its links, and nothing else.",
+  "skills_unshared": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} not on your other machines",
+        "countPlural=*": "{count} not on your other machines"
+      }
+    }
+  ],
   "skill_cost": "≈ {tokens} tokens in every session",
   "skill_not_found_title": "No skill with this name",
   "skill_not_found_description": "It may have been renamed or removed.",

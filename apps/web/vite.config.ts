@@ -25,7 +25,7 @@ export default defineConfig({
     host: "127.0.0.1",
     port: 4748,
     strictPort: true,
-    allowedHosts: ["opai.localify"],
+    allowedHosts: ["opai.localify", ".opai.localify"],
   },
   preview: { host: "127.0.0.1", port: 4748, strictPort: true },
   resolve: {

@@ -447,6 +447,27 @@
   "skill_explicit_hint": "Absent de la liste de l’agent tant que tu ne le demandes pas avec /nom ou $nom.",
   "skill_modified": "Modifié ici",
   "skill_modified_hint": "Diffère de la version importée depuis sa source.",
+  "skill_sharing": "Partage",
+  "skill_sharing_local": "Cette machine seulement",
+  "skill_sharing_local_hint": "Jamais commité : tes autres machines ne l’ont pas.",
+  "skill_sharing_changed": "Changements non partagés",
+  "skill_sharing_changed_hint": "Commité, mais ses derniers changements ne sont que sur cette machine.",
+  "skill_sharing_pending": "Au prochain sync",
+  "skill_sharing_pending_hint": "Commité : le prochain sync l’envoie à tes autres machines, sous 10 minutes.",
+  "skill_sharing_shared": "Partagé",
+  "skill_sharing_shared_hint": "Sur le dépôt tel qu’ici : tes autres machines le reçoivent à leur sync.",
+  "skill_share": "Partager",
+  "skill_share_hint": "Commite ce skill et ses liens, rien d’autre.",
+  "skills_unshared": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} absent de tes autres machines",
+        "countPlural=*": "{count} absents de tes autres machines"
+      }
+    }
+  ],
   "skill_cost": "≈ {tokens} tokens à chaque session",
   "skill_not_found_title": "Aucun skill à ce nom",
   "skill_not_found_description": "Il a peut-être été renommé ou supprimé.",

@@ -1,4 +1,5 @@
 import type { SkillUsage } from "@opai/context/routers/skills";
+import type { Sharing } from "@opai/context/sharing";
 import type { SkillDetail as Detail, UpdateResult } from "@opai/context/skills";
 import { Button } from "@opai/ui/components/ui/button";
 import { DescriptionItem, DescriptionList } from "@opai/ui/components/ui/description-list";
@@ -29,9 +30,17 @@ import { m } from "@/paraglide/messages.js";
 import { formatDate } from "@/utils/format";
 import { orpc } from "@/utils/orpc";
 
-import { skillChars, SkillModified, SkillTrigger, sourceLabel, usageLine } from "./skill-list";
+import {
+  sharingHint,
+  skillChars,
+  SkillModified,
+  SkillSharing,
+  SkillTrigger,
+  sourceLabel,
+  usageLine,
+} from "./skill-list";
 
-type Skill = Detail & { usage: SkillUsage };
+type Skill = Detail & { usage: SkillUsage; sharing: Sharing | undefined };
 export type SkillTab = "settings" | "instructions" | "source";
 
 export function SkillDocument({
@@ -54,7 +63,11 @@ export function SkillDocument({
   const save = useMutation(
     orpc.skills.save.mutationOptions({
       onSuccess: (saved) => {
-        queryClient.setQueryData(query.queryKey, { ...saved, usage: skill.usage });
+        queryClient.setQueryData(query.queryKey, {
+          ...saved,
+          usage: skill.usage,
+          sharing: afterEdit(skill.sharing),
+        });
         void queryClient.invalidateQueries({ queryKey: orpc.skills.list.key() });
       },
     }),
@@ -74,6 +87,7 @@ export function SkillDocument({
           <PageMeta>
             <SkillTrigger skill={skill} />
             <SkillModified skill={skill} />
+            <SkillSharing sharing={skill.sharing} compact />
             <span>{usageLine(skill.usage)}</span>
           </PageMeta>
         </PageHeader>
@@ -134,7 +148,11 @@ function SkillSettings({ skill }: { skill: Skill }) {
   const configure = useMutation(
     orpc.skills.configure.mutationOptions({
       onSuccess: (next) => {
-        queryClient.setQueryData(query.queryKey, { ...next, usage: skill.usage });
+        queryClient.setQueryData(query.queryKey, {
+          ...next,
+          usage: skill.usage,
+          sharing: afterEdit(skill.sharing),
+        });
         void queryClient.invalidateQueries({ queryKey: orpc.skills.list.key() });
         setDraft(null);
         setSaved(true);
@@ -248,6 +266,12 @@ function SkillFacts({ skill, spaces }: { skill: Skill; spaces: string[] }) {
         <PageSectionTitle>{m.skill_space()}</PageSectionTitle>
         <MoveSpace skill={skill} spaces={spaces} />
       </PageSection>
+      {skill.sharing ? (
+        <PageSection>
+          <PageSectionTitle>{m.skill_sharing()}</PageSectionTitle>
+          <ShareSkill skill={skill} sharing={skill.sharing} />
+        </PageSection>
+      ) : null}
       <DescriptionList>
         <DescriptionItem label={m.skill_source()}>
           {skill.provenance ? (
@@ -280,6 +304,41 @@ function SkillFacts({ skill, spaces }: { skill: Skill; spaces: string[] }) {
         ) : null}
       </DescriptionList>
     </aside>
+  );
+}
+
+/** An edit of a committed skill leaves changes to share. */
+function afterEdit(sharing: Sharing | undefined): Sharing | undefined {
+  return sharing === "shared" || sharing === "pending" ? "changed" : sharing;
+}
+
+/** Where the skill stands with the other machines, and a commit to send it to them. */
+function ShareSkill({ skill, sharing }: { skill: Skill; sharing: Sharing }) {
+  const queryClient = useQueryClient();
+  const share = useMutation(
+    orpc.skills.share.mutationOptions({
+      onSuccess: () => void queryClient.invalidateQueries({ queryKey: orpc.skills.key() }),
+    }),
+  );
+  return (
+    <div className="flex flex-col gap-xs">
+      <div>
+        <SkillSharing sharing={sharing} />
+      </div>
+      <p className="font-ui text-s text-neutral-7">{sharingHint(sharing)}</p>
+      {sharing === "local" || sharing === "changed" ? (
+        <Button
+          variant="outline"
+          className="w-fit"
+          title={m.skill_share_hint()}
+          disabled={share.isPending}
+          onClick={() => share.mutate({ name: skill.name })}
+        >
+          {m.skill_share()}
+        </Button>
+      ) : null}
+      {share.error ? <p className="font-ui text-s text-error">{share.error.message}</p> : null}
+    </div>
   );
 }
 
