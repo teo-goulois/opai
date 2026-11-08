@@ -203,8 +203,8 @@ is installed, on `127.0.0.1:4748` otherwise. Its pages call the same oRPC proced
 - Handbook: the instance's handbook, edited in place and published to a site
   (below).
 - Analytics: Umami numbers of the sites in `analytics.json`. The keys come
-  from the server's environment (`packages/context/src/analytics/README.md`);
-  an instance with an `.infisical.yaml` gets them from Infisical.
+  from the server's environment, else from the instance's Infisical project
+  (`packages/context/src/analytics/README.md`).
 
 The Spaces, Rules and Config procedures edit your files, the Sessions ones
 read whole conversations, and the Skills ones change skills and fetch from the

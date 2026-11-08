@@ -1,11 +1,13 @@
 import { Data, Effect, Exit } from "effect";
 import { z } from "zod";
 
+import { infisicalEnv, readSecrets } from "../mcp-secrets.ts";
 import type { UmamiInstance } from "./catalog.ts";
 import type { Range } from "./period.ts";
 
 // Read-only client for the Umami API (v3 response shapes). Runs on the server
-// only: the key comes from the environment, through `infisical run`.
+// only: the keys come from its environment, else from the instance's
+// Infisical project (see `umamiEnv`).
 //
 // - self:  your own Umami at UMAMI_URL, key UMAMI_ADMIN_API_KEY
 // - cloud: https://api.umami.is/v1, key UMAMI_CLOUD_API_KEY
@@ -13,6 +15,8 @@ import type { Range } from "./period.ts";
 export class UmamiNotConfigured extends Data.TaggedError("UmamiNotConfigured")<{
   instance: UmamiInstance;
   variable: string;
+  /** Why the instance's Infisical project could not be read, when it was tried. */
+  infisical?: string;
 }> {}
 
 export class UmamiRequestFailed extends Data.TaggedError("UmamiRequestFailed")<{
@@ -28,7 +32,33 @@ export type UmamiConnection = {
   headers: Record<string, string>;
 };
 
-type Env = Record<string, string | undefined>;
+export type Env = Record<string, string | undefined>;
+
+const VARIABLES = ["UMAMI_URL", "UMAMI_ADMIN_API_KEY", "UMAMI_CLOUD_API_KEY"];
+const stored = new Map<string, Record<string, string>>();
+
+/** The variables the Umami clients read, and why Infisical could not fill them. */
+export type UmamiEnv = { env: Env; infisical?: string };
+
+/**
+ * The environment, with the Umami variables it lacks taken from the root
+ * folder of the instance's Infisical project, read once per server. So the
+ * server has them however it starts: `opai app`, Localify, `pnpm dev`.
+ */
+export function umamiEnv(root: string, env: Env = process.env): UmamiEnv {
+  if (VARIABLES.every((name) => env[name]) || !infisicalEnv(root)) return { env };
+  let secrets = stored.get(root);
+  if (!secrets) {
+    try {
+      secrets = readSecrets(root, VARIABLES, "/");
+    } catch (error) {
+      // Signed out or unreachable: the next call tries again.
+      return { env, infisical: (error as Error).message };
+    }
+    stored.set(root, secrets);
+  }
+  return { env: { ...secrets, ...env } };
+}
 
 export function umamiConnection(
   instance: UmamiInstance,

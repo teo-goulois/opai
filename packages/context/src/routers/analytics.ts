@@ -26,7 +26,9 @@ const appErrors = {
   UmamiNotConfigured: (e: UmamiNotConfigured) =>
     Effect.die(
       new ORPCError("PRECONDITION_FAILED", {
-        message: `${e.variable} is not set. Start the server with infisical run.`,
+        message: e.infisical
+          ? `${e.variable} is not set, and ${e.infisical}`
+          : `${e.variable} is not set: add it to the root folder of the instance's Infisical project, or to the server's environment.`,
       }),
     ),
   UmamiRequestFailed: (e: UmamiRequestFailed) =>

@@ -184,9 +184,14 @@ function UntrackedTable({ rows }: { rows: AppRow[] }) {
             </TableCell>
             <TableCell className="whitespace-nowrap text-neutral-8">
               {umami.status === "error" || umami.status === "missing-access" ? (
-                <Badge variant={umami.status === "error" ? "error" : "warning"}>
-                  {reason(umami)}
-                </Badge>
+                <>
+                  <Badge variant={umami.status === "error" ? "error" : "warning"}>
+                    {reason(umami)}
+                  </Badge>
+                  {umami.status === "missing-access" && umami.infisical ? (
+                    <p className="mt-1 whitespace-normal text-xs">{umami.infisical}</p>
+                  ) : null}
+                </>
               ) : (
                 reason(umami)
               )}

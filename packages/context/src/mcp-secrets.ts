@@ -46,11 +46,16 @@ function infisical(root: string, args: string[]) {
     const lines = String((error as { stderr?: unknown }).stderr ?? "")
       .split("\n")
       .map((line) => line.trim());
-    // The API's message when there is one; else the last line that says something.
+    // The API's message when there is one, else the CLI's error, else the
+    // last line that says something.
     const reason =
       lines
         .find((line) => line.startsWith("Message:"))
         ?.slice("Message:".length)
+        .trim() ??
+      lines
+        .find((line) => /^error:/i.test(line))
+        ?.slice("error:".length)
         .trim() ??
       lines
         .filter(
@@ -63,9 +68,13 @@ function infisical(root: string, args: string[]) {
   }
 }
 
-/** The secrets of the folder, by name; only `names` when given. */
-export function readSecrets(root: string, names?: string[]): Record<string, string> {
-  const output = infisical(root, ["export", `--path=${SECRETS_FOLDER}`, "--format=json"]);
+/** The secrets of a folder (the MCP one by default), by name; only `names` when given. */
+export function readSecrets(
+  root: string,
+  names?: string[],
+  folder = SECRETS_FOLDER,
+): Record<string, string> {
+  const output = infisical(root, ["export", `--path=${folder}`, "--format=json"]);
   const secrets = JSON.parse(output) as { key: string; value: string }[];
   const wanted = names && new Set(names);
   return Object.fromEntries(

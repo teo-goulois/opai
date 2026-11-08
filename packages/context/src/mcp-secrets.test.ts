@@ -6,6 +6,7 @@ import { after, test } from "node:test";
 
 import { codexServer } from "./mcp-servers.ts";
 import { prepareLaunch } from "./mcp-oauth.ts";
+import { umamiEnv } from "./analytics/umami.ts";
 import { readSecrets, storeSecrets, variables } from "./mcp-secrets.ts";
 
 // A fake infisical on the PATH: `export` prints a JSON store, `secrets set`
@@ -49,6 +50,7 @@ writeFileSync(
     { key: "API_TOKEN", value: "t0k" },
     { key: "OTHER", value: "x" },
     { key: "OAUTH_DOCS", value: JSON.stringify(signIn) },
+    { key: "UMAMI_ADMIN_API_KEY", value: "umami" },
   ]),
 );
 const path = process.env.PATH;
@@ -102,6 +104,19 @@ test("storing writes a file, never the value in the arguments, into the folder t
   assert.ok(!readFileSync(join(base, "calls"), "utf8").includes("s3cret"));
 });
 
+test("the Umami keys the server lacks come from the root folder, and only them", () => {
+  const { env } = umamiEnv(root, { UMAMI_URL: "https://umami.example" });
+  assert.equal(env.UMAMI_ADMIN_API_KEY, "umami");
+  assert.equal(env.UMAMI_URL, "https://umami.example");
+  assert.equal(env.API_TOKEN, undefined);
+  assert.match(
+    readFileSync(join(base, "calls"), "utf8"),
+    /export --path=\/ --format=json --env=prod/,
+  );
+  // The environment wins over Infisical.
+  assert.equal(umamiEnv(root, { UMAMI_ADMIN_API_KEY: "mine" }).env.UMAMI_ADMIN_API_KEY, "mine");
+});
+
 test("without an Infisical project or with a failing CLI, a launch goes on", () => {
   const plain = join(base, "plain");
   mkdirSync(plain);
@@ -113,4 +128,20 @@ test("without an Infisical project or with a failing CLI, a launch goes on", () 
   // The sign-ins are unknown, not none: the tools' configs are left as they are.
   assert.deepEqual(result, { secrets: {}, servers, signedIn: undefined });
   assert.match(warnings[0]!, /not logged in/);
+});
+
+test("signed out of Infisical, the Umami keys say why they are missing", () => {
+  const other = join(base, "other");
+  mkdirSync(other);
+  writeFileSync(
+    join(other, ".infisical.yaml"),
+    "secrets-management:\n    default-environment: prod\n",
+  );
+  writeFileSync(
+    join(bin, "infisical"),
+    "#!/bin/sh\necho 'error: no logged in details, try running [infisical login]' >&2\necho 'Unable to fetch secrets' >&2\nexit 1\n",
+  );
+  const { env, infisical } = umamiEnv(other, {});
+  assert.equal(env.UMAMI_ADMIN_API_KEY, undefined);
+  assert.match(infisical!, /^Infisical: no logged in details/);
 });

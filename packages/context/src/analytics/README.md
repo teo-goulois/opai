@@ -15,7 +15,8 @@ calls the oRPC procedures below.
 Procedures, in `routers/analytics.ts`, also offered to agents over MCP:
 
 - `analytics.overview({ period })`: one row per app. A row without data says
-  why: `not-tracked`, `missing-id`, `missing-access` (with the variable), or
+  why: `not-tracked`, `missing-id`, `missing-access` (with the variable, and
+  why Infisical could not be read when it was tried), or
   `error`.
 - `analytics.app({ id, period })`: one app, with page views and visits per
   hour or day, visitors now, and the page views other hosts sent.
@@ -33,8 +34,11 @@ counts: Umami cannot tell it apart.
 
 ## Access
 
-The keys come from the environment of the server (`opai app`); a server
-without them shows each app as "Missing access", with the variable it needs.
+The keys come from the environment of the server; those it lacks, the server
+reads once from the root folder of the instance's Infisical project
+(`.infisical.yaml`), however it was started (`opai app`, Localify, `pnpm
+dev`). A server without them shows each app as "Missing access", with the
+variable it needs.
 
 - `UMAMI_ADMIN_API_KEY`: your own Umami, at the `umamiUrl` of
   `analytics.json` (`UMAMI_URL` overrides it).

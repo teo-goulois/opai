@@ -102,19 +102,11 @@ case "${1:-}" in
   app)
     need_instance
     # Through Localify when it is installed (https://opai.localify), else on
-    # 127.0.0.1:4748. An instance with an Infisical project gets its secrets
-    # (Umami keys) from it.
-    set -- pnpm dev
-    command -v localify > /dev/null 2>&1 && set -- localify dev
-    if [ -f "$home/.infisical.yaml" ] && command -v infisical > /dev/null 2>&1; then
-      # From the instance, so a profile bound to it (infisical profile bind)
-      # picks the organization.
-      cd "$home"
-      set -- infisical run --silent -- sh -c 'cd "$0" && exec "$@"' "$engine/apps/web" "$@"
-    else
-      cd "$engine/apps/web"
-    fi
-    exec "$@"
+    # 127.0.0.1:4748. The server reads its secrets (Umami keys) from the
+    # instance's Infisical project itself.
+    cd "$engine/apps/web"
+    command -v localify > /dev/null 2>&1 && exec localify dev
+    exec pnpm dev
     ;;
   home)
     echo "$home"

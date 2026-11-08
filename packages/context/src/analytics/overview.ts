@@ -10,10 +10,12 @@ import {
   getStats,
   listWebsites,
   umamiConnection,
+  umamiEnv,
+  UmamiNotConfigured,
   type Filter,
   type UmamiConnection,
   type UmamiCounts,
-  type UmamiNotConfigured,
+  type UmamiEnv,
   type UmamiRequestFailed,
 } from "./umami.ts";
 
@@ -53,7 +55,7 @@ export type UmamiSummary =
     }
   | { status: "not-tracked" }
   | { status: "missing-id"; instance: UmamiInstance }
-  | { status: "missing-access"; instance: UmamiInstance; variable: string }
+  | { status: "missing-access"; instance: UmamiInstance; variable: string; infisical?: string }
   | { status: "error"; instance: UmamiInstance; message: string };
 
 export type AppRow = {
@@ -143,14 +145,21 @@ export function ownHosts(domain: string | null): string[] {
 function tracked(
   app: CatalogApp,
   umamiUrl: string | undefined,
+  { env, infisical }: UmamiEnv,
 ): Effect.Effect<Tracked, UmamiNotConfigured | UmamiRequestFailed | AppNotTracked> {
   const umami = app.sources.umami;
   if (!umami) return Effect.fail(new AppNotTracked({ id: app.id }));
   return Effect.gen(function* () {
     const connection = yield* umamiConnection(umami.instance, {
-      ...process.env,
-      UMAMI_URL: process.env.UMAMI_URL || umamiUrl,
-    });
+      ...env,
+      UMAMI_URL: env.UMAMI_URL || umamiUrl,
+    }).pipe(
+      Effect.mapError((e) =>
+        infisical
+          ? new UmamiNotConfigured({ instance: e.instance, variable: e.variable, infisical })
+          : e,
+      ),
+    );
     const hosts = ownHosts(app.domain);
     const filter: Filter = hosts.length > 0 ? { hostname: hosts.join(",") } : {};
     if (umami.websiteId) return { connection, websiteId: umami.websiteId, filter };
@@ -197,10 +206,11 @@ function summarize(
 export function getOverview(root: string, period: Period): Effect.Effect<AnalyticsOverview> {
   const now = Date.now();
   const catalog = loadCatalog(root);
+  const env = umamiEnv(root);
   return Effect.forEach(
     catalog.apps,
     (app) =>
-      tracked(app, catalog.umamiUrl).pipe(
+      tracked(app, catalog.umamiUrl, env).pipe(
         Effect.flatMap((t) => summarize(t, period, now)),
         Effect.catchTags({
           AppNotTracked: () =>
@@ -214,6 +224,7 @@ export function getOverview(root: string, period: Period): Effect.Effect<Analyti
               status: "missing-access",
               instance: e.instance,
               variable: e.variable,
+              ...(e.infisical ? { infisical: e.infisical } : {}),
             }),
           UmamiRequestFailed: (e) =>
             Effect.succeed<UmamiSummary>({
@@ -243,7 +254,7 @@ function trackedApp(root: string, id: string) {
   const catalog = loadCatalog(root);
   const app = catalog.apps.find((candidate) => candidate.id === id);
   return app
-    ? tracked(app, catalog.umamiUrl).pipe(Effect.map((t) => ({ app, ...t })))
+    ? tracked(app, catalog.umamiUrl, umamiEnv(root)).pipe(Effect.map((t) => ({ app, ...t })))
     : Effect.fail(new AppNotFound({ id }));
 }
 
